@@ -318,7 +318,7 @@ cd linux-on-litex-vexriscv
 
 # get list of supported boards
 ./make.py --help
-# make sure that your board (like colorlight_i5) is listed
+# make sure that your board (like icepi_zero or colorlight_i5) is listed
 
 # install the Meson build system. Required for ./sim.py
 pip3 install meson
@@ -350,6 +350,7 @@ pip3 install meson
 cd images
 wget https://github.com/litex-hub/linux-on-litex-vexriscv/files/8331338/linux_2022_03_23.zip
 unzip linux_2022_03_23.zip
+gzip -k rootfs.cpio  # keep the unzipped. This is for the sim.py step below to work
 # Only needed if targeting the OrangeCrab board:
 # wget https://github.com/litex-hub/linux-on-litex-vexriscv/files/8331388/orangecrab_2022_03_23.zip
 # unzip orangecrab_2022_03_23.zip
@@ -440,6 +441,7 @@ wget https://github.com/sbt/sbt/releases/download/v2.0.6/sbt-2.0.6.tgz
 tar xvfz sbt-2.0.6.tgz
 cd sbt
 ./bin/sbt
+# that errors out in a few seconds, but proves that the binary runs. TODO: better test here
 
 # Add ~/openfpga/sbt/bin to the path (put this in your .bashrc):
 # for the sbt, required to build linux-on-litex-vexriscv
@@ -485,18 +487,20 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 # 3. Load the bitstream (SRAM-only, not written to flash):
 openFPGALoader -b icepi-zero build/icepi_zero/gateware/icepi_zero.bit
+# at this point, the white LEDs should "chase"
 
 # 4. Get the stock Linux/OpenSBI/rootfs images (same zip this document already uses for sim.py;
 #    no repatching needed -- see "why this just works" below):
 cd images
 wget https://github.com/litex-hub/linux-on-litex-vexriscv/files/8331338/linux_2022_03_23.zip
 unzip -o linux_2022_03_23.zip
-gzip -k rootfs.cpio
+gzip -k rootfs.cpio  # keep the unzipped too
 cd ..
 
 # 5. Start litex_term LISTENING FIRST -- see the shared-USB-device gotcha below for why the
 #    order matters here (opposite of what you'd do with the i9's DAPLink probe):
 litex_term --images=images/boot.json /dev/ttyUSB0
+# If you're fast, you can watch litex start up, otherwise hit <enter> a few times to get a prompt.
 # Then, once you see the "litex>" prompt echoed in litex_term, type:
 serialboot
 # Upload takes roughly 15 minutes at 115200 baud (see timing note below) -- this is normal,
