@@ -1,0 +1,102 @@
+# Target options
+BR2_riscv=y
+BR2_RISCV_32=y
+
+# Instruction Set Extensions
+BR2_riscv_custom=y
+# Backward compat (buildroot 2023.02.5 LTS).
+BR2_RISCV_ISA_CUSTOM_RVM=y
+BR2_RISCV_ISA_CUSTOM_RVA=y
+BR2_RISCV_ISA_CUSTOM_RVC=n
+# make.py enables FPU/hard-float options in the generated board defconfig.
+#BR2_RISCV_ISA_CUSTOM_RVF=y
+#BR2_RISCV_ISA_CUSTOM_RVD=y
+# Since commit cbd91e89e4 (2023-08-18 / 2023.11).
+BR2_RISCV_ISA_RVM=y
+BR2_RISCV_ISA_RVA=y
+BR2_RISCV_ISA_RVC=n
+# make.py enables FPU/hard-float options in the generated board defconfig.
+#BR2_RISCV_ISA_RVF=y
+#BR2_RISCV_ISA_RVD=y
+BR2_RISCV_ABI_ILP32=y
+
+# Patches
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_LITEX_VEXRISCV_PATH)/patches"
+
+# GCC
+BR2_GCC_VERSION_13_X=y
+
+# System
+BR2_TARGET_GENERIC_GETTY=y
+BR2_TARGET_GENERIC_GETTY_PORT="console"
+
+# Filesystem
+BR2_TARGET_ROOTFS_CPIO=y
+BR2_TARGET_ROOTFS_CPIO_GZIP=y
+BR2_TARGET_ROOTFS_EXT2=y
+BR2_TARGET_ROOTFS_EXT2_4=y
+
+# Image
+
+# Kernel header version
+# Kernel header version. MUST track BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE below.
+# BR2_KERNEL_HEADERS_AS_KERNEL=y (the kconfig default) builds the headers package
+# at the kernel's version, while this symbol declares the series the toolchain is
+# built against. support/scripts/check-kernel-headers.sh compares the two and
+# aborts the build if they disagree.
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_12=y
+
+# Kernel (mainline + patches set)
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="6.12"
+BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_LITEX_VEXRISCV_PATH)/board/litex_vexriscv/linux.config"
+BR2_LINUX_KERNEL_IMAGE=y
+
+# Bootloader (opensbi)
+BR2_TARGET_OPENSBI=y
+BR2_TARGET_OPENSBI_CUSTOM_GIT=y
+BR2_TARGET_OPENSBI_CUSTOM_REPO_URL="https://github.com/litex-hub/opensbi.git"
+BR2_TARGET_OPENSBI_CUSTOM_REPO_VERSION="1.3.1-linux-on-litex-vexriscv"
+BR2_TARGET_OPENSBI_PLAT="litex/vexriscv"
+BR2_TARGET_OPENSBI_INSTALL_DYNAMIC_IMG=n
+
+# Rootfs customisation
+
+# Required tools to create the SD image
+BR2_PACKAGE_HOST_DOSFSTOOLS=y
+BR2_PACKAGE_HOST_GENIMAGE=y
+BR2_PACKAGE_HOST_MTOOLS=y
+
+# Extra packages
+#BR2_PACKAGE_DHRYSTONE_OPT=y
+#BR2_PACKAGE_MICROPYTHON=y
+#BR2_PACKAGE_SPIDEV_TEST=y
+#BR2_PACKAGE_MTD=y
+#BR2_PACKAGE_MTD_JFFS_UTILS=y
+
+# Crypto
+#BR2_PACKAGE_LIBATOMIC_OPS_ARCH_SUPPORTS=y
+#BR2_PACKAGE_LIBATOMIC_OPS=y
+#BR2_PACKAGE_OPENSSL=y
+#BR2_PACKAGE_LIBRESSL=y
+#BR2_PACKAGE_LIBRESSL_BIN=y
+#BR2_PACKAGE_HAVEGED=y
+# make.py enables hardware AES options in the generated board defconfig.
+#BR2_PACKAGE_VEXRISCV_AES=y
+
+# ---- added for the Icepi Zero ADC/DAC tutorials ----
+# Loadable modules, so the adda driver can be insmod'ed:
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_ICEPI_ADDA_PATH)/kernel_modules.config"
+# Upstream's overlay plus ours (adda.ko and sweep.sh in /root):
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_LITEX_VEXRISCV_PATH)/board/litex_vexriscv/rootfs_overlay $(BR2_EXTERNAL_ICEPI_ADDA_PATH)/rootfs_overlay"
+# No post-image script: upstream's replaces linux-on-litex-vexriscv/images/
+# with links to these files.  Copy them to images_adda/ instead (see Part 8).
+# awk with maths, for /root/sweep.sh:
+BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_ICEPI_ADDA_PATH)/busybox.config"
+# musl instead of glibc: glibc 2.42's dynamic loader (Buildroot 2026.02) crashes
+# on this CPU before init's main(), while glibc 2.34 (the 2022 images) did not.
+# musl works (tested), and is smaller too.
+BR2_TOOLCHAIN_BUILDROOT_MUSL=y
+# (BR2_PACKAGE_PPPD removed: it pulls in 6 MB of OpenSSL that every serial boot would have to upload)
