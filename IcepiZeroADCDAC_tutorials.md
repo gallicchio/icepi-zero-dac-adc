@@ -1,44 +1,42 @@
-# FPGA tutorials: an ADC, a DAC, and a lock-in amplifier on an Icepi Zero
+# FPGA tutorials: ADC + DAC on an Icepi Zero
 
-A sequence of hands-on tutorials for a junior-level physics electronics lab.
-You should know basic analog and digital electronics and Fourier analysis. You
-do **not** need to have used an FPGA or Verilog before.
+This is a sequence of hands-on tutorials for a junior-level physics electronics lab.
+You should know basic analog and digital electronics and Fourier analysis. 
+You do **not** need to have used an FPGA or Verilog before.
+* You'll configure the digital logic inside of an FPGA to blink lights, 
+output analog waveforms, and capture analog input.
+* You'll configure it to be a processor that can run C programs, 
+including C programs that can write to the DAC and read from the ADC.
+* You can configure, compile, and boot Linux on the processor and access
+the DAC and ADC as linux "files".
+* Then there are an overabundance of experiments you can play with 
+using one or two boards, including time transfer and state-of-the art digital communications.
 
-By the end you will have built, from scratch:
-
-1. a binary counter on five LEDs (Part 1)
-2. a function generator: a sawtooth, then a sine by direct digital synthesis,
-   then the same at twice the clock rate from a PLL (Part 2)
-3. a 25 MS/s digitizer that sends its samples to Python on your PC (Part 3)
-4. a **lock-in amplifier** that measures the amplitude and phase response of a
-   filter or a cable (Part 4)
-
-and then the same three instruments as peripherals of a small RISC-V computer
-built inside the FPGA, first driven by a C program (Parts 5–7) and then by
-Linux, which in the end boots by itself from the board's flash and a micro-SD
-card (Part 8).
-
-Every design, script, figure and number here comes from the real hardware
-described below; [Appendix B](#appendix-b-how-these-tutorials-were-tested)
-says how it was measured. The source files are printed here in full (one
-variant, `lockin_pll.v`, as the lines that change), and they are all in
-[`IcepiZeroADCDAC_tutorials/`](IcepiZeroADCDAC_tutorials/), next to this file.
 
 ## Contents
+
+By the end you will have built:
 
 - [The hardware](#the-hardware)
 - [Part 0: Installing the tools](#part-0-installing-the-tools)
 - [Part 1: A counter on the LEDs](#part-1-a-counter-on-the-leds)
-- [Part 2: Making waveforms with the DAC](#part-2-making-waveforms-with-the-dac)
-- [Part 3: Capturing the ADC to your PC](#part-3-capturing-the-adc-to-your-pc)
-- [Part 4: A lock-in amplifier](#part-4-a-lock-in-amplifier)
-- [Part 5: A computer inside the FPGA — LiteX and a function-generator peripheral](#part-5-a-computer-inside-the-fpga--litex-and-a-function-generator-peripheral)
+- [Part 2: Making waveforms with the DAC](#part-2-making-waveforms-with-the-dac) — a function generator for sawtooth and sine
+- [Part 3: Capturing the ADC to your laptop](#part-3-capturing-the-adc-to-your-laptop) — 25 MS/s digitizer that sends its samples to Python on your laptop
+- [Part 4: A lock-in amplifier](#part-4-a-lock-in-amplifier) — output a constant frequency and measure the amplitude and phase response of a filter or a cable
+- [Part 5: A RISC-V processor inside the FPGA — LiteX and a function-generator peripheral](#part-5-a-risc-v-processor-inside-the-fpga--litex-and-a-function-generator-peripheral)
 - [Part 6: An ADC-capture peripheral](#part-6-an-adc-capture-peripheral)
 - [Part 7: A lock-in peripheral](#part-7-a-lock-in-peripheral)
 - [Part 8: The peripherals under Linux](#part-8-the-peripherals-under-linux)
 - [Part 9: More experiments](#part-9-more-experiments)
+- [Part 10: Two boards](#part-10-two-boards)
 - [Appendix A: Troubleshooting](#appendix-a-troubleshooting)
 - [Appendix B: How these tutorials were tested](#appendix-b-how-these-tutorials-were-tested)
+
+
+Every design, script, figure and number here comes from the real hardware
+described below; [Appendix B](#appendix-b-how-these-tutorials-were-tested)
+says how it was measured. The source files are printed here in full and they are all in
+[`IcepiZeroADCDAC_tutorials/`](IcepiZeroADCDAC_tutorials/).
 
 ---
 
@@ -46,39 +44,35 @@ variant, `lockin_pll.v`, as the lines that change), and they are all in
 
 Three boards, stacked:
 
+![Three boards, stacked](IcepiZeroADCDAC_tutorials/img/photo_stack.png)
+
 | board | what it is |
 | --- | --- |
-| **Icepi Zero** | A Lattice **ECP5 LFE5U-25F** FPGA on a Raspberry-Pi-Zero-sized board: a 50 MHz crystal oscillator, 5 white LEDs, 2 buttons, 32 MB of SDRAM, and one USB-C port whose FT231X chip does two jobs — it programs the FPGA and it is a serial port (`/dev/ttyUSB0`). |
+| **"AD9280 AD9708 Data Acquisition Board"** (the 2x20-pin variant, SMA connectors) | An **[AD9280](https://www.analog.com/en/products/ad9280.html)** ADC (8 bits, up to 32 MS/s) and an **[AD9708](https://www.analog.com/en/products/ad9708.html)** DAC (8 bits, up to 125 MS/s), each with an op-amp front end. |
 | **IcepiZero_AD9280_AD9708_2x20 adapter** | A passive board: the Icepi Zero's 40-pin header on the bottom, a socket for the converter module on top, and silkscreen naming every pin. |
-| **"AD9280 AD9708 Data Acquisition Board"** (the 2x20-pin variant, SMA connectors) | An **AD9280** ADC (8 bits, up to 32 MS/s) and an **AD9708** DAC (8 bits, up to 125 MS/s), each with an op-amp front end. |
+| **[Icepi Zero](https://github.com/cheyao/icepi-zero)** | A Lattice **ECP5 LFE5U-25F** FPGA on a Raspberry-Pi-Zero-sized board: a 50 MHz crystal oscillator, 5 white LEDs, 2 buttons, 32 MB of SDRAM, and one USB-C port whose FT231X chip does two jobs — it programs the FPGA and it is a serial port (`/dev/ttyUSB0` on a linux laptoop). |
 
-**Plug the module in the right way round.** The 2x20 module goes in **upside
-down**: its pins stick up out of its top, so you flip it over (connectors up and
-toward you, then over) and plug it in so the `1`, `2`, `39`, `40` numbers
-printed next to its connector line up with the same numbers on the adapter. The
-wrong way round puts 5 V on FPGA pins. **Never** power the module from its own
-DC jack while it is plugged into the adapter; it gets 5 V from the Icepi Zero.
+**Plug the module in the right way!** The passive converter board should have the same shape as the Icepi Zero and their holes should line up. The wrong way round puts 5 V on FPGA pins (bad).
 
-What these converters actually do, measured on this set of boards (see
+What the DAC and ADC actually do, measured on this set of boards (see
 [Appendix B](#appendix-b-how-these-tutorials-were-tested) for how):
 
 | | DAC (output SMA) | ADC (input SMA) |
 | --- | --- | --- |
 | bits | 8 (codes 0–255) | 8 (codes 0–255) |
 | sample rate used here | 50 MS/s | 25 MS/s |
-| range | code 0 → −3.95 V, code 255 → +3.88 V | −5.0 V → code 0, +5.06 V → code 255 |
+| approximate range  | code 0 → −3.95 V, code 255 → +3.88 V | −5.0 V → code 0, +5.06 V → code 255 |
 | one code (LSB) | 30.7 mV | 39.5 mV |
 | conversion | V = 0.0307 × code − 3.95 | code = 126.7 + 25.35 × V |
 | measured quality | harmonics ≥ 46 dB below a 1 MHz tone | 7.1 effective bits at 1–3 MHz |
 
-The DAC's output was measured into a 1 MΩ scope input. Keep the ADC's input
-within ±5 V. With the DAC cabled straight to the ADC, ADC code = 0.776 × DAC
-code + 27.5, and a change at the DAC comes back 6 samples (240 ns) later
-(Part 3, "Closing the loop").
+Keep the ADC's input within ±5 V!
 
-The pin-by-pin wiring from FPGA ball to module pin is in
-`~/OpticsPCBs/IcepiZeroADCDAC/adapters/out/IcepiZero_AD9280_AD9708_2x20/`. You
-don't need it: the constraints file in Part 1 already encodes it.
+The DAC's output was measured into a 1 MΩ scope input. 
+With the DAC cabled straight to the ADC, 
+ADC code = 0.776 × DAC code + 27.5, 
+and a change at the DAC comes back 6 samples (240 ns) later
+(measured below in Part 3, "Closing the loop").
 
 ---
 
@@ -92,15 +86,12 @@ The FPGA tools used here are all open source:
 | **nextpnr-ecp5** | *place and route*: decides which physical block does what, and wires them |
 | **ecppack** | packs the result into a *bitstream*, the file the FPGA loads |
 | **openFPGALoader** | sends the bitstream to the board over USB |
-| **Icarus Verilog** (`iverilog`) | simulates Verilog on your PC, no hardware needed |
+| **Icarus Verilog** (`iverilog`) | simulates Verilog on your laptop, no hardware needed |
 
 All of them come in one download, the **OSS CAD Suite**. There are two ways to
 get it: through a VS Code extension, or by hand.
 
 ### The easy way: VS Code and the Apio extension
-
-> This route follows Apio's own documentation (September 2026). The rest of
-> the tutorial uses the by-hand install below, and gives the commands in full.
 
 [Apio](https://fpgawars.github.io/apio/docs/) is a front end to the OSS CAD
 Suite, and **Apio IDE** is its VS Code extension. It downloads the tools for you
@@ -135,6 +126,7 @@ and knows the Icepi Zero by name (board ID `icepi-zero`).
    end in `_tb.v`) and uses the one `.lpf` constraints file it finds.
    `top-module` picks which design is the top; change it to `sine`, `capture`
    or `lockin` for the later parts.
+   TODO: would it make more sense to put these in their own folder from the start? Or do the LiteX and Linux parts of the tutorial needs them to be in the same place as `litex/`?
 5. Open the folder in VS Code (*File → Open Folder*). Use the **Build** and
    **Upload** buttons in the status bar, or open a terminal and run
    `apio build` and `apio upload`.
@@ -172,11 +164,15 @@ $ openFPGALoader -b icepi-zero --detect
 ### What an FPGA is
 
 A microcontroller runs one instruction after another. An FPGA doesn't run
-instructions at all: it is a large grid of small logic blocks — about 24,000
-four-input *look-up tables* (each can be any Boolean function of 4 inputs),
-24,000 *flip-flops* (one-bit memories that update on a clock edge), plus 56
-blocks of RAM, 28 hardware multipliers, and ~200 I/O pins — with a
-programmable wiring network between them. A *bitstream* says what each block
+instructions at all: it is a large grid of small logic blocks.
+The FPGA on the Icepi Zero board has:
+* about 24,000 four-input *look-up tables* (each can be any Boolean function of 4 inputs),
+* 24,000 *flip-flops* (one-bit memories that update on a clock edge), 
+* 56 blocks of RAM, 28 hardware multipliers,
+* ~200 I/O pins, and
+* a programmable wiring network between all of these.
+
+A *bitstream* says what each block
 computes and how the wires connect. Loading one turns the chip into the circuit
 you described. Everything in it runs **at the same time**, on every clock edge.
 
@@ -184,8 +180,9 @@ You describe that circuit in a *hardware description language*. We use
 **Verilog**. It looks like a programming language, but it is closer to a
 schematic written as text: each line describes some hardware that exists all
 the time, not a step that happens once.
+# TODO: would it be easier or more difficult to turn everything from Verilog into SystemVerilog? Our student's engineernig classmates learn SystemVerilog. If SystemVerilog would be more clear, and the commands and tooling would be nearly identical, switch to that.
 
-### The design
+### The LED Counter Design
 
 <!-- file: counter.v -->
 ```verilog
@@ -210,7 +207,8 @@ endmodule
 
 What each piece means:
 
-- A **`module`** is a circuit with named **ports**. This one has one input (the
+- A **`module`** is a circuit with named **ports** (inputs and outputs).
+  This one has one input (the
   clock) and a 5-bit output bus, `led[4:0]`.
 - `reg [27:0] count` declares 28 **flip-flops**. A `reg` holds its value until
   it is assigned again.
@@ -218,7 +216,7 @@ What each piece means:
   is a *non-blocking assignment*: every `<=` in the design reads its right-hand
   side just before the edge and updates just after it, all at once. That is
   exactly how real flip-flops behave. Use `<=` in clocked `always` blocks.
-- `count + 1` is an adder. Yosys builds it out of the FPGA's logic and its fast
+- `count + 1` is an adder. The yosys software builds it out of the FPGA's logic and its fast
   carry chains.
 - `assign` connects wires permanently. `count[27:23]` is five of the
   flip-flops' outputs; they drive the five LED pins.
@@ -227,7 +225,8 @@ What each piece means:
 
 Verilog says nothing about which pin of the chip a port is on. That is the job
 of the **constraints file**. This one is shared by every design in Parts 1–4;
-a design only uses the lines for the ports it has.
+a design only uses the lines for the ports it has. Getting this information required
+looking at the Icepy Zero [schematic](https://github.com/cheyao/icepi-zero/tree/main/hardware).
 
 <!-- file: icepi_adda.lpf -->
 ```
@@ -266,7 +265,7 @@ IOBUF  PORT "led[4]" IO_TYPE=LVCMOS33;
 LOCATE COMP "btn" SITE "C5";
 IOBUF  PORT "btn" IO_TYPE=LVCMOS33 PULLMODE=UP;
 
-# ---- serial port, through the FT231X USB chip (/dev/ttyUSB0 on the PC) -----
+# ---- serial port, through the FT231X USB chip (/dev/ttyUSB0 on the laptop) -----
 LOCATE COMP "uart_tx" SITE "K15";
 IOBUF  PORT "uart_tx" IO_TYPE=LVCMOS33;
 LOCATE COMP "uart_rx" SITE "K16";
@@ -316,15 +315,48 @@ IOBUF  PORT "dac_d[7]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
 IOBUF  PORT "dac_clk"  IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
 ```
 
-`LOCATE COMP "led[4]" SITE "E13"` puts bit 4 of the Verilog port `led` on the
+What this means:
+* `LOCATE COMP "led[4]" SITE "E13"` puts bit 4 of the Verilog port `led` on the
 chip's ball E13, which the Icepi Zero wires to an LED. The numbering is a
 choice. With the board held the usual way, USB connectors pointing down, E13 is
 the *leftmost* LED, so making it `led[4]` puts the most significant bit on the
 left and a binary number reads the normal way. (Number them the other way
-round and the counter visibly runs "backwards".) `IO_TYPE=LVCMOS33` says
-the pin uses 3.3 V logic. `FREQUENCY` tells the tools how fast the clock is, so
+round and the counter visibly runs "backwards".)
+* `IO_TYPE=LVCMOS33` says
+the pin uses 3.3 V logic.
+* `FREQUENCY` tells the tools how fast the external clock input is, so
 they can check that every signal gets through its logic within one 20 ns
 period.
+* The converters' output pins carry two more settings, `DRIVE=4 SLEWRATE=SLOW`.
+ - *Drive* is how much current an output pin is guaranteed to source or sink while
+holding a valid logic level (4, 8, 12 or 16 mA at 3.3 V), and so how hard it can
+charge the wire and the input at the far end.
+ -  *Slew rate* chooses a fast or a deliberately gentle edge.
+
+**Too much detail: Why the the ADC and DAC are `DRIVE=4 SLEWRATE=SLOW`:**
+A pin with neither gets 8 mA and SLOW, Lattice's
+defaults, and that is what the LEDs and the serial port use. An LED changes a
+few times a second and the serial line at most a million times, over a few
+centimetres of the Icepi Zero's own board, so the defaults are fine for both. The
+DAC's nine lines (and the ADC's clock) are different. They leave the board
+through two 0.1-inch connectors, toward a chip whose output is analog, and up to
+100 million times a second the eight data lines switch together, each edge
+pushing current through the connectors' few ground pins. A gentler edge rings
+less, and couples less into its neighbours and into the DAC's output. The
+AD9708's datasheet recommends "the slowest logic family" that still meets its
+timing, for this reason. It also keeps the wiring simple. A signal takes about
+0.3 ns to cross the adapter, and as long as its edge takes several times longer
+than that, the wire behaves as a plain connection and needs no terminating
+resistor. So these pins get half the default current. `SLEWRATE=SLOW` only
+restates the default, but writing it down makes the choice visible. The ADC's
+data pins are inputs, and drive and slew rate don't apply to inputs. These
+values were first chosen by that reasoning, and later checked with the DAC cabled
+to the ADC. A DAC sine at 100 MS/s came back with the least noise at 4 mA and
+SLOW: 47.0 dB above the noise floor, against 45.6 dB for the 8 mA default and
+44.8 dB for 16 mA FAST, each repeatable to 0.1 dB. A faster edge on the DAC's
+clock alone didn't help either. Nor do the weak edges limit the speed. With every
+setting tried, the DAC still converted correctly at 200 MS/s, past both the
+AD9708's typical 125 MS/s and Lattice's 150 MHz rating for these outputs.
 
 ### Build it and load it
 
@@ -344,20 +376,20 @@ openFPGALoader -b icepi-zero counter.bit
 | `ecppack` | converts that to the binary the chip loads | `counter.bit` |
 | `openFPGALoader` | sends it over USB into the FPGA's configuration memory | a running circuit |
 
-The whole thing takes about a second. Look for this line in nextpnr's output:
+The whole thing takes about a second. Look for a line like this in nextpnr's output:
 
 ```
 Info: Max frequency for clock '$glbnet$clk$TRELLIS_IO_IN': 305.06 MHz (PASS at 50.00 MHz)
 ```
 
-It says the counter's slowest path would still work with a 305 MHz clock, so
+It says the counter's *slowest* path would still work with a 305 MHz clock, so
 50 MHz is comfortably safe. When a design fails this check it may still appear
 to work, but not reliably.
 
 The LEDs now count in binary. `led[0]`, the rightmost, toggles every 0.17 s
 (2²³ clock periods of 20 ns), and `led[4]`, the leftmost, every 2.7 s.
 
-The bitstream went into SRAM, so unplugging the board erases it. That's what
+`openFPGALoader` loaded bitstream into SRAM, so unplugging the board erases it. That's what
 you want while experimenting. (`openFPGALoader -f` writes the SPI flash
 instead, so the design loads by itself at power-up.)
 
@@ -396,7 +428,7 @@ module's op-amp turns that into a voltage.
 
 module sawtooth (
     input  wire       clk,       // 50 MHz
-    output reg  [7:0] dac_d,     // DAC data, dac_d[7] = MSB
+    output reg  [7:0] dac_d,     // DAC data, dac_d[7] is the most significant bit (MSB)
     output wire       dac_clk    // the DAC grabs dac_d on the RISING edge
 );
     initial dac_d = 0;
@@ -420,6 +452,8 @@ each 20 ns period, 10 ns from any change.
 `make load-sawtooth`, and on the scope:
 
 ![sawtooth.v measured on an ADALM2000](IcepiZeroADCDAC_tutorials/img/sawtooth.png)
+
+TODO: The y axis should say something like "DAC analog output as sampled by the scope at XXX MHz". Otherwise students would expect it to march exactly one sample per DAC code, which it's not doing.
 
 The ramp repeats every 5.12 µs (195.3 kHz) and runs from −3.95 V at code 0 to
 +3.88 V at code 255: 30.7 mV per code. In the lower panel, notice that there is
@@ -446,7 +480,7 @@ which is how almost every modern function generator works:
 //     so                TW = round(f / 50 MHz * 2^32)
 
 module sine #(
-    parameter [31:0] TW = 32'd85899346      // 1.000 000 MHz
+    parameter [31:0] TW = 32'd85899346      // 1.000 000 MHz (calculation above)
 ) (
     input  wire       clk,                  // 50 MHz
     output reg  [7:0] dac_d,
@@ -458,7 +492,7 @@ module sine #(
     integer i;
     initial
         for (i = 0; i < 256; i = i + 1)
-            sine_table[i] = $rtoi($floor(127.0 * $sin(6.283185307179586 * i / 256) + 0.5));
+            sine_table[i] = $rtoi($floor(127.0 * $sin(2 * 3.141592653589793 * i / 256) + 0.5));
 
     // ---- the phase accumulator -------------------------------------------
     reg [31:0] phase = 0;
@@ -486,7 +520,7 @@ Two more Verilog ideas:
 
 - `reg signed [7:0] sine_table [0:255]` is a **memory** of 256 eight-bit words.
   The `initial` loop fills it in *when the design is compiled*: Yosys computes
-  `$sin` and stores the results in the bitstream. The FPGA never computes a
+  `$sin` and stores the 8-bit results in the bitstream. The FPGA never computes a
   sine.
 - The table holds −127…+127, but the DAC wants 0…255 ("offset binary"). Adding
   128 converts.
@@ -509,22 +543,24 @@ All are at least 46 dB below the tone.
   (5 MHz). Then try TW = 2³¹ (25 MHz, two samples per cycle) and TW = 3×2³⁰
   (37.5 MHz). What frequency comes out for the last one, and why? (Hint:
   sampling theorem, and the images of a sampled signal at *n* × 50 MHz ± *f*.)
-- Make a triangle wave, and a square wave, from the same phase accumulator.
+- Make a triangle wave, and a square wave, from the same phase accumulator. This
+  will give triangle and square waves of arbitrary frequency (up to the resolution).
 - Add amplitude control: multiply the table value by a 0–255 number and keep
   the top 8 bits of the product.
 
 ### Faster clocks: a PLL
 
-The AD9708 is rated for 100 MS/s, twice what `sine.v` gives it, but the board
-has only a 50 MHz oscillator. The FPGA can multiply that. The ECP5 has two
-**phase-locked loops (PLLs)**. A PLL has its own voltage-controlled oscillator
+Every AD9708 is guaranteed to run at 100 MS/s, twice what `sine.v` gives it,
+but the board has only a 50 MHz oscillator. The FPGA can multiply that. The ECP5 has two
+**phase-locked loops (PLLs)**. A PLL has its own fast voltage-controlled oscillator
 (VCO) and a feedback loop. The loop divides the output clock by *N*, compares
 the result with the input clock, and steers the VCO until the two agree in
 frequency *and* phase. So the output settles at *N* times the input. Divide the
 input by *M* first and you get *N*/*M* times the input, for many whole numbers
 *N* and *M*. Because the output is phase-locked to the crystal, it's exactly
-as accurate as the crystal: this board's "100 MHz" is the crystal's 50 MHz
-times two, 2.8 ppm low and all.
+as accurate as the crystal: the "100 MHz" is the crystal's 50 MHz times two,
+error and all. (The crystals on the five boards measured here ran 2.8, 3.3, 1.7,
+2.1 and 2.0 ppm slow, and 10.3 shows how much they move with temperature.)
 
 You rarely work out the dividers yourself. The OSS CAD Suite's `ecppll` does
 it and writes the Verilog:
@@ -539,9 +575,14 @@ clkout0 frequency: 100 MHz
 VCO frequency: 600
 ```
 
-`pll100.v` is that file, tidied up and with clearer port names. There's one
-module, `EHXPLLL`, which is the PLL itself, and a page of settings you can take
-as given:
+Check one number that `ecppll` doesn't check for you. The ECP5 datasheet
+guarantees the PLL's jitter only when the input clock, divided by `Refclk
+divisor`, is at least 10 MHz. From this board's 50 MHz, that means a divisor of
+5 or less. Ask `ecppll` for 32 MHz and it picks a divisor of 14 (and gives
+32.14 MHz). The PLL will run like that, but its jitter is no longer specified.
+
+`pll100.v` is `my_pll.v` from above, but tidied up and with clearer port names. There's one
+module, `EHXPLLL`, which is the PLL itself, and a page of settings you can take as given:
 
 <!-- file: pll100.v -->
 ```verilog
@@ -583,7 +624,7 @@ module pll100 (
 endmodule
 ```
 
-The new design is `sine.v` with its clock from the PLL, and one precaution:
+The new design is `sine_pll.v`, whcih is `sine.v` instantiated so that its clock comes from the PLL. One precaution:
 the DDS waits until the PLL reports `locked`, since the output clock wanders
 while the loop settles.
 
@@ -646,55 +687,85 @@ the margins shrink to 2 ns and 2.5 ns.
 
 - `ecppll -n pll125 -i 50 -o 125 -f pll125.v`, and push the DAC to its
   typical maximum. Then go past it, to 150 MHz. How does it fail?
-- Use a second PLL output as a phase-shifted copy of the clock
+- Advanced: Use a second PLL output as a phase-shifted copy of the clock
   (`ecppll ... --clkout1 100 --phase1 90`). Clock the DAC from it and move the
   phase to find where the DAC's data window opens and closes.
 
 ---
 
-## Part 3: Capturing the ADC to your PC
+## Part 3: Capturing the ADC to your laptop
 
 Now the other direction. Connect a function generator to the ADC input SMA
-(±5 V at most), and the Icepi Zero's USB to your PC.
+(±5 V at most). The same Icepi Zero USB port that was used to configure the FPGA
+can send data to your laptop through a serial UART protocol.
 
 ### Three new pieces
 
 **Clocking the ADC.** The AD9280 needs its clock high for at least 14.7 ns and
-low for at least 14.7 ns. With a 50 MHz master clock, the fastest we can do is
-25 MHz: toggle `adc_clk` on every edge. The ADC is *pipelined*: it outputs the
-sample it took on one clock edge 3 clock cycles later, and each output appears
+low for at least 14.7 ns. A 50 MHz clock corresponds to a period of 20 ns,
+and 10 ns on each side of the clock is not enough.
+With a 50 MHz master clock, the fastest we can do is
+25 MHz: toggle `adc_clk` on every `clk` rising edge.
+
+This ADC is *pipelined*: it takes 3 clock cycles to convert an analog input into a digital value. It outputs the
+sample corresponding to the analog value from 3 clock cycles ago. 
+Moreover, each output appears
 about 25 ns (t<sub>OD</sub>, the datasheet's *output delay*) after the rising
-edge that releases it. So we read the data pins just before the next rising
+edge that releases it. So we read the data pins just before the *next* rising
 edge, 40 ns later, when they have been steady for about 15 ns.
 
-**Why 25 MS/s in but 50 MS/s out?** Each converter's datasheet sets its own
-ceiling. The AD9280 is rated for 32 MS/s: a clock period of at least 31.25 ns,
+**Detail: Why 25 MS/s in but 50 MS/s out?** Each converter's datasheet sets its own
+ceiling. The AD9280 ADC is rated for 32 MS/s: a clock period of at least 31.25 ns,
 of which at least 14.7 ns high and 14.7 ns low, because each stage of its
-pipeline needs that long to settle. The AD9708 only has to latch a new code on
-each rising clock edge (data steady 2.0 ns before, 1.5 ns after), and is rated
-for 100 MS/s (125 typical). On this board, though, every clock comes from the
+pipeline needs that long to settle. The AD9708 DAC is simpler and faster: it only has to latch a new code on
+each rising clock edge (data steady 2.0 ns before, 1.5 ns after). The DAC's datasheet
+lists the maximum update rate as 100 MS/s *minimum* and 125 MS/s *typical*:
+every part is guaranteed to keep up at 100 MS/s, and a typical part still works
+at 125, but no particular part is promised that. (The guarantee is stated for 5 V
+supplies. This module runs the DAC's logic at 3.3 V.) On this board, though, every clock comes from the
 one 50 MHz oscillator, and counting its edges gives only 50 MHz divided by a
 whole number: 50, 25, 16.7, 12.5 MHz... The DAC gets the full 50, and the ADC
 gets 25, the fastest of those it can take. The whole-number ratio has a second
-benefit that Parts 3 and 4 rely on. Every ADC sample falls at the same point
-of the DAC's clock, so the two stay in step forever (they're *coherent*). To
-go faster, the FPGA can make a faster clock itself with a PLL
+benefit that Parts 3 and 4 rely on. Every ADC sample is taken at the same point
+of the DAC's clock, so the two stay in step forever (they're *coherent*).
+
+**Extra Detail: Maxing out ADC sample rate?**
+To go faster, the FPGA can make a faster clock itself with a PLL
 ([Faster clocks: a PLL](#faster-clocks-a-pll) runs the DAC at 100 MS/s). The
 ADC could gain its last 28% the same way. For example, a 120 MHz clock could
 run the DAC at 120 MS/s (past its guaranteed 100, within its typical 125) and
-the ADC at 30 MS/s, still in a whole-number ratio. Beyond the chips, the other limit is the path to
-your PC. 25 million bytes per second is 250 times what the serial port
+the ADC at 30 MS/s, still in a whole-number ratio. A 62.5 MHz clock would
+run the ADC at 31.25 MS/s, 98% of its maximum, with the DAC at 62.5. At that
+rate, though, the 25 ns output delay is most of a 32 ns period: "just before
+the next rising edge", the data would have been steady for only about 7 ns. And
+the datasheet gives the 25 ns only as a typical value. This was tried on the
+hardware. The ADC's data pins were sampled every 8 ns, and the ADC's clock was
+shifted in 2 ns steps. The data turned out to be valid for all but about 4 ns
+of each 32 ns period. At the best sampling point the quality was the same as at
+25 MS/s (43.7 dB SINAD, 7.0 effective bits, including the DAC's own distortion).
+So 31.25 MS/s works, if the design reads the data away from that 4 ns, and the
+way to find where those 4 ns fall is to try, as here. The same test turned up a
+subtler effect. When the ADC sampled just as the DAC was switching, the noise
+rose by about 5 dB, because the two converters share a board and a ground. Run
+both from one clock in a whole-number ratio, as these tutorials do, and that
+timing is the same every time you load the design. Beyond the chips, the other limit is the path to
+your laptop. 25 million bytes per second is 250x what the serial port
 carries, which is why the design below stores a burst in block RAM and sends it
-afterwards.
+afterwards. This is always an issue with fast samples: you either need a very
+fast interface to send them off of the board, you need to capture only relatively 
+short intervals (and might miss something), or you need to process everything on
+the FPGA and only send the answers at a slower rate.
 
 **Block RAM.** `reg [7:0] mem [0:16383]` is 16 kB of memory. Yosys notices
 that it is only ever written and read one address at a time and maps it onto 8
 of the chip's 56 block RAMs, instead of 131,072 flip-flops.
 
 **A serial port (UART).** The FT231X chip on the Icepi Zero is also a
-USB-to-serial converter. It appears on the PC as `/dev/ttyUSB0` and talks to
+USB-to-serial converter. It appears on a linux laptop as `/dev/ttyUSB0` and talks to
 the FPGA on two wires, `uart_tx` and `uart_rx`. This file does the FPGA's half,
-at 1,000,000 bits per second (1 µs = 50 clocks per bit):
+at 1,000,000 bits per second (1 µs = 50 clocks per bit). 
+The protocol with 10 time slots for each 8-bit byte should be familiar from
+when you looked at the microcontroller's sserial UART on the oscilloscope.
 
 <!-- file: uart.v -->
 ```verilog
@@ -705,7 +776,7 @@ at 1,000,000 bits per second (1 µs = 50 clocks per bit):
 // At 1,000,000 baud a bit time is 1 us = 50 clocks of the 50 MHz clock.
 //
 // Used by capture.v and lockin.v.  The FT231X chip on the Icepi Zero turns
-// these wires into /dev/ttyUSB0 on the PC.
+// these wires into /dev/ttyUSB0 on the laptop.
 
 module uart_tx #(
     parameter CLKS_PER_BIT = 50
@@ -791,17 +862,19 @@ depends on it.
 
 <!-- file: capture.v -->
 ```verilog
-// capture.v -- Tutorial 3: record 16384 ADC samples into memory, then send
-// them to the PC over the serial port.
+// capture.v -- Tutorial 3: record 2^14=16384 ADC samples into memory, then send
+// them to the laptop over the serial port.
 //
-// The PC sends one character, the hex digit D ("0".."9" or "a".."f", meaning
+// The laptop sends one character, the hex digit D ("0".."9" or "a".."f", meaning
 // 0..15).  The FPGA then keeps every 2^D-th sample
 // of the 25 MS/s ADC stream -- a sample rate of 25 MHz / 2^D -- until its
 // memory is full, and sends the 16384 samples back as 16384 raw bytes at
-// 1,000,000 baud (about 0.16 s).  capture.py does the PC side.
+// 1,000,000 baud (about 0.16 s).  capture.py does the laptop side.
 //
-// LEDs, USB connectors down: the left three show the ADC's top 3 bits (MSB on
-// the left), then led[1] = sending, and the rightmost, led[0] = recording.
+// LEDs (with USB connectors facing down): 
+//   the left three LEDs show the ADC's top 3 bits (MSB on the left), then
+//   led[1] = sending, and
+//   led[0] = recording on the rightmost
 
 module capture (
     input  wire       clk,         // 50 MHz
@@ -859,7 +932,7 @@ module capture (
         case (state)
             IDLE:
                 // Only a hex digit starts a capture.  Anything else is ignored --
-                // including the junk byte the FT231X can produce when the PC
+                // including the junk byte the FT231X can produce when the laptop
                 // opens the port.
                 if (rx_valid && ((rx_data >= "0" && rx_data <= "9") ||
                                  (rx_data >= "a" && rx_data <= "f"))) begin
@@ -894,10 +967,14 @@ module capture (
 endmodule
 ```
 
-`state` makes this a **state machine**: in `IDLE` it waits for a command, in
-`RECORD` it stores samples, in `SEND` it sends them. The `case` statement says
-what happens in each state on each clock. Note that `mem[addr] <= sample` and
-`tx_data <= mem[addr]` are the *only* ways memory is touched: one write port
+`state` makes this a **state machine**:
+* in `IDLE` it waits for a command, 
+* in `RECORD` it stores samples, 
+* in `SEND` it sends them.
+
+The `case` statement says what happens in each state on each clock.
+Note that `mem[addr] <= sample` and `tx_data <= mem[addr]`
+are the *only* ways memory is touched: one write port
 and one read port, which is what lets Yosys use a block RAM.
 
 The command is a single hex digit, `D`. The FPGA keeps one sample in every
@@ -906,17 +983,16 @@ cover 655 µs at D = 0 and 21 s at D = 15.
 
 **Why a hex digit and not simply the byte D?** Because just *opening*
 `/dev/ttyUSB0` briefly pulls the FT231X's transmit line low. The FPGA's receiver
-reads that as a start bit followed by all ones: the byte 0xFF. If any byte were
-a command, that would mean "capture with D = 15", a 21-second capture, and the
-PC's real request would arrive while the FPGA was busy and be ignored.
+reads that as a start bit followed by all ones: the byte 0xFF.
+So 0xFF cannot be a valid command.
 Accepting only `0`–`9` and `a`–`f` makes the glitch harmless.
 
-### The PC side
+### The laptop side
 
 <!-- file: capture.py -->
 ```python
 #!/usr/bin/env python3
-"""Tutorial 3, the PC side: ask capture.v for 16384 ADC samples and plot them.
+"""Tutorial 3, the laptop side: ask capture.v for 16384 ADC samples and plot them.
 
     python3 capture.py            # 25 MS/s
     python3 capture.py -d 4       # 25 MS/s / 2^4 = 1.5625 MS/s
@@ -1006,13 +1082,14 @@ Now connect the DAC output to the ADC input with a coax. (The measurements
 below used two RG-316 cables, 101.5 cm and 16.5 cm long.) `loopback.v` is `capture.v`
 plus a DAC that plays a pattern locked to the sample counter `n`. The
 recording starts at `n` = 0, so you know exactly which sample each DAC change
-happened at, and can watch it come back.
+happened at, and can watch it come back into the ADC.
+It will be scaled, shifted, and delayed by an amount measured below.
 
 <!-- file: loopback.v -->
 ```verilog
 // loopback.v -- the DAC talks to the ADC: record your own signal coming back.
 //
-// Wire the DAC output to the ADC input with a cable.  As in capture.v, the PC
+// Wire the DAC output to the ADC input with a cable.  As in capture.v, the laptop
 // sends one character and gets back 16384 ADC samples (25 MS/s) as raw bytes at
 // 1,000,000 baud.  Meanwhile the DAC plays a pattern locked to the sample
 // counter n, so we know exactly which sample each DAC change happened at:
@@ -1136,7 +1213,7 @@ endmodule
 <!-- file: loopback.py -->
 ```python
 #!/usr/bin/env python3
-"""The PC side of loopback.v: record the DAC's pattern coming back through the ADC.
+"""The laptop side of loopback.v: record the DAC's pattern coming back through the ADC.
 
     python3 loopback.py s          # square wave: plot one rising edge
     python3 loopback.py r          # staircase: plot ADC code against DAC code
@@ -1251,14 +1328,14 @@ goes, from the datasheets and the measurements in this section and Part 4:
 | waiting for the ADC's next sampling edge | 0–40 ns (here 13 ns) |
 | the AD9280's pipeline (3 clock cycles, then 25 ns until the data is valid), read by the FPGA on the 4th clock edge | 160 ns |
 
-So "how long does a new DAC value take to reach the ADC?" has two answers. The
-signal itself takes about **32 ns** to get from the DAC to the ADC's sampling
+**How long does a new DAC value take to reach the ADC?** This has two answers. The
+signal itself takes about **32 ns** to get from the DAC's analog output to the ADC's analog sampling
 point, plus 4.6 ns per metre of cable. But from the FPGA writing a DAC word to
-the FPGA reading the ADC's measurement of it takes **5 to 6 samples** (200–240
+the FPGA reading the ADC's measurement of it takes **5 to 6 ADC samples** (200–240
 ns), and two thirds of that is the ADC's pipeline. For a feedback loop built in
 the FPGA, those 6 samples are the delay that limits how fast the loop can be.
 
-**Finer than one sample.** The ADC only samples every 40 ns, but the pattern
+**Advanced Topic: Finer than one sample.** The ADC only samples at 25 MHz, every 40 ns, but the pattern
 repeats exactly, so you can shift it and sample again. `t` makes every DAC
 change 20 ns later. Interleaving the `s` and `t` records (lower panel) gives
 the step response at 20 ns spacing: *equivalent-time sampling*, the trick
@@ -1302,7 +1379,7 @@ impulse response, ADC codes per DAC code, delays 0..11 samples:
 ![loopback.v: the loop's impulse response from a pseudo-random sequence](IcepiZeroADCDAC_tutorials/img/loopback_prbs.png)
 
 Nothing for 6 samples, then almost everything at once, then a little ringing.
-The taps sum to 0.77, the staircase's slope. This is the loop as the FPGA sees
+The taps sum to 0.77, the staircase's slope. This is the cable loop as the FPGA sees
 it, sample by sample: exactly what you need to design a digital controller or
 an equalizer around it. One caution for the Fourier-minded: the FFT of `h` is
 **not** the analog frequency response near 12.5 MHz. The sequence changes once
@@ -1370,10 +1447,10 @@ frequency by construction.
 // everything at other frequencies (noise, harmonics, hum) averaged away.
 //
 // Serial port, 1,000,000 baud:
-//   PC -> FPGA:  the tuning word TW as hex digits, then Enter, e.g. "051eb852\n"
+//   laptop -> FPGA:  the tuning word TW as hex digits, then Enter, e.g. "051eb852\n"
 //                sets f = TW * 50 MHz / 2^32 (= 1.000000 MHz here) and restarts
 //                the average.  lockin.py does the arithmetic for you.
-//   FPGA -> PC:  one line per average, three 32-bit hex numbers:
+//   FPGA -> laptop:  one line per average, three 32-bit hex numbers:
 //                "TTTTTTTT XXXXXXXX YYYYYYYY"  -- the TW it used, then X and Y
 //                in units of 1/65536 of a code^2, two's complement.
 //
@@ -1552,9 +1629,9 @@ New here:
 ### Simulate it first
 
 Hardware is slow to debug: you see only pins. A *testbench* is Verilog that
-wraps your design in a fake world and runs on your PC. This one connects the
+wraps your design in a fake world and runs on your laptop. This one connects the
 DAC pins back to the ADC pins through a 100 ns delay and a factor of ½, and
-plays the part of the PC on the serial port:
+plays the part of the laptop on the serial port:
 
 <!-- file: lockin_tb.v -->
 ```verilog
@@ -1591,7 +1668,7 @@ module lockin_tb;
     lockin #(.N_LOG2(16)) dut (.clk(clk), .adc_d(adc), .adc_clk(adc_clk),
         .dac_d(dac), .dac_clk(dac_clk), .uart_rx(rx), .uart_tx(tx), .led(led));
 
-    // play the PC: send characters at 1 Mbaud (1 us per bit)
+    // play the laptop: send characters at 1 Mbaud (1 us per bit)
     task send(input [7:0] c);
         integer b;
         begin
@@ -1654,7 +1731,7 @@ the samples coming back over the serial port do the same:
 // capture_tb.v -- simulate capture.v with no hardware at all.
 //
 // A fake ADC counts up by one on every rising edge of adc_clk, with the
-// AD9280's 25 ns output delay, and the testbench plays the PC: it sends "0"
+// AD9280's 25 ns output delay, and the testbench plays the laptop: it sends "0"
 // and checks that the samples coming back count up by one too.
 //
 //   make sim-capture     (or: iverilog -o capture_tb.vvp capture_tb.v capture.v uart.v && vvp capture_tb.vvp)
@@ -1718,7 +1795,7 @@ time zero, and the capture only starts once the command has arrived.
 <!-- file: lockin.py -->
 ```python
 #!/usr/bin/env python3
-"""Tutorial 4, the PC side of lockin.v.
+"""Tutorial 4, the laptop side of lockin.v.
 
     python3 lockin.py -f 1e6                      # watch one frequency (Ctrl-C to stop)
     python3 lockin.py --sweep 1e4 1e7 -o thru.csv # sweep with a plain cable: the reference
@@ -1976,7 +2053,7 @@ changed. Apart from `clk` becoming `clk100` everywhere, it's this:
 
 `adc_clk` is still 20 ns high and 20 ns low, and the data pins are still read
 just before its rising edge. Only the tuning word's arithmetic changes on the
-PC, so `lockin.py` takes the clock as an option. The DAC can now make any
+laptop, so `lockin.py` takes the clock as an option. The DAC can now make any
 frequency up to its own Nyquist frequency, 50 MHz:
 
 ```console
@@ -2066,7 +2143,7 @@ source does.
 
 ---
 
-## Part 5: A computer inside the FPGA — LiteX and a function-generator peripheral
+## Part 5: A RISC-V processor inside the FPGA — LiteX and a function-generator peripheral
 
 In Parts 1–4, changing *anything* — the frequency, the averaging time, the
 serial protocol — meant editing Verilog and re-synthesizing. Now we put a small
@@ -2633,13 +2710,13 @@ adda> dump
 898d93979b9fa3a6a9abadafb0b1b1b2b0aeacaaa7a4a09d98938e8a85807a76716c67635f5b5855...
 ```
 
-`cap_plot.py` does that for you from the PC and plots the result. Close
+`cap_plot.py` does that for you from the laptop and plots the result. Close
 `litex_term` first: only one program can have the port open.
 
 <!-- file: litex/cap_plot.py -->
 ```python
 #!/usr/bin/env python3
-"""Part 6, the PC side: ask the firmware for a capture and plot it.
+"""Part 6, the laptop side: ask the firmware for a capture and plot it.
 
     python3 cap_plot.py                 # 25 MS/s, free-running
     python3 cap_plot.py -d 2 -t 128     # 6.25 MS/s, triggered at mid-scale
@@ -3504,6 +3581,11 @@ the small files they refer to are:
 # loaded with insmod instead of rebuilding the kernel each time.
 CONFIG_MODULES=y
 CONFIG_MODULE_UNLOAD=y
+# Room for a second LiteX UART (Part 10's modem SoC gives Linux /dev/ttyLXU1).
+# With the default of 1, the driver rejects the second port with error -22.
+CONFIG_SERIAL_LITEUART_MAX_PORTS=2
+# SLIP, so two boards can run IP over that second port (Part 10.6).
+CONFIG_SLIP=y
 ```
 
 <!-- file: linux/busybox.config -->
@@ -3511,6 +3593,10 @@ CONFIG_MODULE_UNLOAD=y
 # Added to Buildroot's BusyBox configuration: floating-point maths in awk
 # (sqrt, atan2, exp, log), for sweep.sh.
 CONFIG_FEATURE_AWK_LIBM=y
+# slattach and nc, for IP between two boards over the modem (Part 10.6).
+CONFIG_SLATTACH=y
+CONFIG_NC=y
+CONFIG_NC_SERVER=y
 ```
 
 Two of those changes need explaining:
@@ -3524,6 +3610,10 @@ Two of those changes need explaining:
 - **No `pppd`.** It pulls in 6 MB of OpenSSL, which takes the compressed root
   filesystem from about 2 MB to 5 MB, and every serial boot has to push that
   through the serial port.
+
+(The last lines of each file, a second LiteX UART, SLIP, `slattach` and `nc`,
+are for Part 10. They add 16 kB to the kernel. The sizes and times quoted in
+this part were measured before them, with a 9,113,448-byte `Image`.)
 
 ```bash
 cd ~/openfpga
@@ -3562,11 +3652,17 @@ The device tree records where the root filesystem ends in memory. That's why
 ### 8.3 Boot it
 
 ```bash
-openFPGALoader -b icepi-zero build/icepi_zero_adda/gateware/icepi_zero_adda.bit
+openFPGALoader -b icepi-zero build/icepi_zero_adda/gateware/icepi_zero_adda.bit && \
 litex_term --speed=460800 --images=images_adda/boot.json /dev/ttyUSB0
-# press Enter for the litex> prompt, then:
-serialboot
 ```
+
+Type it as one command, as here, so that `litex_term` is already listening when
+the SoC starts. About a second after the bitstream loads, the BIOS offers to
+boot from the serial port, and it waits only a quarter of a second for an
+answer. `litex_term --images` answers by itself and starts sending the files.
+Start it any later and the offer has gone, and the BIOS moves on to the micro-SD
+card. With no card in the slot, it can be stuck there for a quarter of an hour
+([Appendix A](#appendix-a-troubleshooting)). Just run the command again.
 
 The four files go over the serial port at about 44 kB/s: **4 minutes**. Then
 OpenSBI starts Linux, whose kernel takes 19 s to boot (about half of that is
@@ -4062,7 +4158,7 @@ done
 ```sh
 #!/bin/sh
 # dump.sh -- take one capture and print it as hex, 64 samples per line: the
-# same format as the bare-metal firmware's "dump" (Part 6), so the same PC-side
+# same format as the bare-metal firmware's "dump" (Part 6), so the same laptop-side
 # parser reads either.
 A=$(echo /sys/bus/platform/devices/*.adda)
 hexdump -v -e '64/1 "%02x" "\n"' "$A/capture/data"
@@ -4156,7 +4252,7 @@ accumulator from Part 2 starts turning faster.
 **Try this:**
 
 - Getting a new `adda.ko` onto the board doesn't require a new rootfs and a
-  4-minute reboot. Run `base64 adda.ko` on the PC, type `base64 -d > /tmp/adda.ko`
+  4-minute reboot. Run `base64 adda.ko` on the laptop, type `base64 -d > /tmp/adda.ko`
   on the board, paste the text, press Ctrl-D, then `rmmod adda; insmod /tmp/adda.ko`.
   Paste slowly: the board's serial port receives into a small buffer. At 8
   characters every 10 ms, the 14 kB module takes about 30 s, and arrives with
@@ -4165,7 +4261,7 @@ accumulator from Part 2 starts turning faster.
   integer arithmetic only (a CORDIC, or a lookup table and interpolation).
 - The Linux way for a data-acquisition device is the **IIO** (Industrial I/O)
   subsystem: standard file names, buffered capture through `/dev/iio:device0`,
-  and PC-side tools like `libiio` and ADI's Scopy, the ADALM2000's own
+  and laptop-side tools like `libiio` and ADI's Scopy, the ADALM2000's own
   software. Rewrite the capture half of the driver as an IIO driver. (The
   kernel built here doesn't have IIO switched on: add `CONFIG_IIO=y` to
   `kernel_modules.config`.)
@@ -4186,7 +4282,7 @@ So the plan is:
 
 | where | what | written by |
 | --- | --- | --- |
-| SPI flash | the gateware, `icepi_zero_adda.bit` | `openFPGALoader -f`, from the PC |
+| SPI flash | the gateware, `icepi_zero_adda.bit` | `openFPGALoader -f`, from the laptop |
 | SD card, partition 1: 64 MiB, FAT32 | `Image`, `opensbi.bin`, `rv32.dtb`, `boot.json` | Linux, on the board |
 | SD card, partition 2: 4 GiB, ext2 | the root file system | Linux, on the board |
 
@@ -4197,7 +4293,7 @@ with no initrd. `make_linux.py --rootfs=mmcblk0p2 --images-dir=images_sd`
 writes it.
 
 **Writing the card without taking it out.** You could write the card in a USB
-card reader on your PC, but you don't have to. The board's Linux has a driver
+card reader on your laptop, but you don't have to. The board's Linux has a driver
 for the SD controller, and the card appears as `/dev/mmcblk0`. The hard part is
 getting 9 MB of files *to* the board, because its only link is the serial
 port. Pasting into the console garbles bulk data (8.6's Try-this). Serial boot,
@@ -4265,7 +4361,7 @@ ls -l images_sd images_install
 A partition table is the first 512-byte sector of the card, the *master boot
 record* (MBR). It says where each partition starts, how long it is, and what
 kind it is. BusyBox's `fdisk` expects a person at the keyboard, so the table
-is built on the PC, one field at a time:
+is built on the laptop, one field at a time:
 
 <!-- file: linux/make_mbr.py -->
 ```python
@@ -4359,9 +4455,9 @@ sync
 echo "Done.  Flash the bitstream (openFPGALoader -f), reset, and it boots from the card."
 ```
 
-Step 1 also erases any GPT, the newer kind of partition table that a PC may
+Step 1 also erases any GPT, the newer kind of partition table that a laptop may
 have written when the card was formatted. A GPT keeps a second copy at the
-card's far end, and a leftover copy would confuse a PC that reads the card
+card's far end, and a leftover copy would confuse a laptop that reads the card
 later. `mkdosfs` and `mke2fs` make empty file systems on the two partitions.
 `mke2fs -i 131072` makes one *inode* (a file's entry in the file system) per
 128 kB of space: 32,768 of them, plenty for BusyBox's few hundred files. The
@@ -4374,9 +4470,9 @@ Now run it. It erases whatever is on the card:
 ```bash
 cd ~/openfpga/linux-on-litex-vexriscv
 sh <path>/IcepiZeroADCDAC_tutorials/linux/make_sd_installer.sh      # 20 s
-openFPGALoader -b icepi-zero build/icepi_zero_adda/gateware/icepi_zero_adda.bit
+openFPGALoader -b icepi-zero build/icepi_zero_adda/gateware/icepi_zero_adda.bit && \
 litex_term --speed=460800 --images=images_install/boot.json /dev/ttyUSB0
-# press Enter for the litex> prompt, then serialboot; log in as root, and:
+# (one command, as in 8.3); when it has booted, log in as root, and:
 time /root/install-sd.sh
 ```
 
@@ -4412,8 +4508,8 @@ USB cable that loads the FPGA, and only when the kernel or the root file system
 changes. For small changes afterwards there
 are faster ways. You can edit files on the running system, since they now live
 on the card. You can paste a small file with 8.6's `base64` trick. And a card
-reader is still the fastest route for anything big: any PC reads partition 1
-(FAT32), and a Linux PC reads partition 2 too. (LiteX's BIOS also has
+reader is still the fastest route for anything big: any laptop reads partition 1
+(FAT32), and a Linux laptop reads partition 2 too. (LiteX's BIOS also has
 `sdcard_read` and `sdcard_write` commands, but they only test raw sectors: there's
 no way to send them a file, and no FAT file system to put it in.)
 
@@ -4534,6 +4630,36 @@ The flashed board still listens for a serial boot first. Start
 `reboot`, and it uploads the RAM-disk system as before. So you can test a new
 kernel without touching the card.
 
+**Why does a Raspberry Pi boot so much faster?** No single step is slow here.
+Each part of the minute follows from what kind of computer this is:
+
+- **The CPU and its memory: about 37 s**, most of the kernel's 9 s and of the
+  scripts' 34 s. VexRiscv runs at 50 MHz, at most one instruction per clock, with
+  4 kB caches in front of a 16-bit SDRAM that reads at 20 MB/s. A Raspberry Pi
+  Zero 2 has four 1 GHz cores that each do more per clock, and memory about a
+  hundred times faster. Starting a program costs a third of a second here and
+  about a millisecond there, so the same start-up scripts would take well under
+  a second.
+- **The card: about 20 s**, the 14.4 s kernel load plus about 6 s of the
+  scripts' time reading programs. This isn't the card or the protocol: the BIOS clocks the same 4-bit
+  SD bus at 25 MHz, which could carry 12.5 MB/s, and gets 633 kB/s, because the
+  50 MHz CPU does the work for every block. A Pi's SD hardware reaches tens of
+  MB/s and loads its kernel in well under a second.
+- **How much the system does at boot.** This is the one thing tuning changes.
+  Raspberry Pi OS starts dozens of services and still takes roughly 10–30 s to
+  reach a login. An embedded system tuned for it starts the one program it needs
+  and is ready in a second or two.
+
+Tuning helps this board too, though it can't make up a factor of a hundred in
+CPU speed. Starting one program as `init`, instead of BusyBox's scripts, would
+leave about the kernel's 27 s. A kernel stripped to this board's hardware loads
+faster, and a quicker bitstream load saves 1.4 s (the last Try-this below). A
+reasonable floor is somewhere around 20 s. These estimates come from the
+measurements above, but haven't been tried. If an instrument has to be ready
+the moment it's switched on, it shouldn't use Linux. The firmware of Parts 5–7
+needs no operating system, and the BIOS that would start it is running 2.5 s
+after power-up.
+
 **Try this:**
 
 - Time the start-up yourself. Add `cat /proc/uptime` lines to
@@ -4551,6 +4677,13 @@ kernel without touching the card.
 - The kernel includes drivers this board will never use. Remove some with
   `make O=$HOME/openfpga/buildroot-icepi linux-menuconfig` (IPv6 and PPP, for
   a start), and see how much of the 14.4 s you save.
+- The FPGA reads its 440 kB bitstream from the flash one bit at a time, at
+  2.4 MHz, which takes about 1.5 s. The flash chip can send four bits at a time,
+  much faster. Repack the same design with
+  `ecppack --bootaddr 0 --spimode qspi --freq 62.0 --compress build/icepi_zero_adda/gateware/icepi_zero_adda.config --bit adda_q62.bit`,
+  flash `adda_q62.bit`, and time the boot. Measured: the BIOS's `Memtest OK`
+  comes 1.44 s sooner (1.07 s after `openFPGALoader -r` instead of 2.51 s),
+  and login 1.1–1.2 s sooner.
 
 ---
 
@@ -4671,7 +4804,7 @@ function is zero. Remove D2 and the symmetry, the even harmonics and a DC
 level all appear.
 
 Measure it with the Part 5–7 SoC and firmware: `fg 100000`, then capture and
-FFT on the PC:
+FFT on the laptop:
 
 ```python
 import cap_plot, numpy as np
@@ -4768,7 +4901,2391 @@ true 10 MHz, and refine until the phasor turns slowly. The residual rotation, fo
 minutes, gives the crystal's offset to parts per *billion*. Put a finger on
 the Icepi Zero's oscillator and watch its temperature coefficient happen.
 
+Each board's crystal is different, so measure yours first, which needs no
+reference at all. Send one byte over the serial port every 2²² clock cycles,
+time-stamp the arrivals on a laptop whose clock is kept right by the internet
+(NTP), and fit a straight line. USB delivers each byte up to about a
+millisecond late, but over 12 minutes that averages out: a second Icepi Zero
+measured this way ran at 49,999,835.0 Hz, 3.30 ppm slow (±0.02 ppm, plus
+whatever error the laptop's clock has, which can be up to about a ppm over a few
+minutes: see 10.2), a third at 49,999,914.8 Hz (1.70 ppm slow),
+a fourth at 49,999,895.0 Hz (2.10 ppm slow) and a fifth at 49,999,900.0 Hz
+(2.00 ppm slow). Measure twice, though: one board read 3.30 ppm slow in the
+afternoon and 0.06 ppm *fast* that evening, with its module fitted and warm
+(Part 10.3).
+
+## Part 10: Two boards
+
+Everything so far used one board, and so one clock. Connect two boards, the DAC
+of each to the ADC of the other, and something new appears: two clocks that
+don't quite agree. Most of this part is about that. It covers how to compare two
+clocks to parts per billion, how to agree on what time it is when every message
+takes time to arrive, how two oscillators that can hear each other fall into
+step, and how much information a 16 cm cable can carry.
+
+| | |
+| --- | --- |
+| board A | Icepi Zero + adapter + module; its DAC → B's ADC through a 16.5 cm RG-316 cable |
+| board B | the same; its DAC → A's ADC through a second 16.5 cm cable |
+| (any one board) | looped back, its own DAC → its own ADC: enough for 10.6's noise test and for 10.7 |
+
+![The two boards, cross-connected](IcepiZeroADCDAC_tutorials/img/tb_setup.png)
+
+This part stands on its own. It uses a few files from Parts 1–4 (`uart.v`,
+`sine.v`, `capture.v`, `loopback.v`, `lockin.v`, `pll100.v` and
+`icepi_adda.lpf`), and the new ones are in
+[`IcepiZeroADCDAC_tutorials/twoboard/`](IcepiZeroADCDAC_tutorials/twoboard/).
+Everything is plain Verilog plus Python. The FPGAs do the work that has to be
+on time, to the nanosecond, and the laptop does the arithmetic. (Each experiment
+could later move into a LiteX peripheral or a Linux driver, as Parts 5–8 did
+for the single board, but plain Verilog keeps the physics in view.)
+
+### 10.1 Two boards on one laptop
+
+With several boards plugged in, `/dev/ttyUSB0` and friends stop being useful.
+The numbers are handed out in the order the boards appear, and every
+`openFPGALoader` command makes its board vanish and come back, often under a
+new number. Use each board's FT231X serial number instead:
+
+```console
+$ openFPGALoader --scan-usb
+Bus device vid:pid       probe_type manufacturer serial   product
+005 015    0x0403:0x6015 ft231X     FTDI         DP051TLX FT231X USB UART
+005 014    0x0403:0x6015 ft231X     FTDI         DP0525BU FT231X USB UART
+$ openFPGALoader -b icepi-zero --usb-serial-num DP0525BU lockin.bit
+$ ls /dev/serial/by-id/
+usb-FTDI_FT231X_USB_UART_DP051TLX-if00-port0
+usb-FTDI_FT231X_USB_UART_DP0525BU-if00-port0
+```
+
+The names in `/dev/serial/by-id/` follow the board wherever its `ttyUSB` number
+goes. `twoboard/Makefile` takes the serial number as a variable:
+`make load-awgcap SERIAL=DP0525BU`. (Below, `$A` and `$B` stand for the two
+`/dev/serial/by-id/...` names.)
+
+One more trap. When a board sends you data, Linux keeps about 4 kB of it for
+you. If your program is busy reading the *other* board, the rest is lost. Read
+each port in its own thread, as `awgcap.record_many()` in 10.4 does.
+
+**Checking the links.** `loopback.v` from Part 3 keeps playing its pattern after
+each command and records its own ADC. Load it into both boards and send each a
+command: each board's record is now the *other* board's pattern, starting at an
+arbitrary point, because nothing ties one board's sample 0 to the other's. Line
+the staircase up at its one big drop and it measures each direction. With
+a third board looped to itself for comparison:
+
+| path | ADC code per DAC code | offset (codes) | worst nonlinearity (codes) | missing ADC codes |
+| --- | ---: | ---: | ---: | --- |
+| A → B | 0.7815 | 27.03 | 0.51 | none in 29–225 |
+| B → A | 0.7818 | 27.21 | 0.50 | none in 29–225 |
+| a module looped to itself | 0.7761 | 27.57 | 0.53 | none in 29–224 |
+
+So every data bit of both converters works on both modules, and the two
+modules differ in gain by 0.7%. Each module has a potentiometer, left as it
+came, and that is a likely cause.
+
+### 10.2 Two clocks
+
+Load Part 4's lock-in into both boards and set both to 1 MHz. Each lock-in
+multiplies what arrives, the other board's sine, by its own reference and
+averages for 42 ms. If the two crystals agreed exactly, X and Y would sit still.
+They don't, so the phase turns at the *difference* of the two frequencies.
+`lockin_log.py` records both boards at once, and `beat.py` fits the phase:
+
+<!-- file: twoboard/lockin_log.py -->
+```python
+#!/usr/bin/env python3
+"""Log lockin.v results from several boards at once.
+
+    python3 lockin_log.py OUT.npz SECONDS F_HZ PORT_A PORT_B [...]
+
+Sets every board to F_HZ, then records each board's results for SECONDS.  A board
+sends one line, "TW X Y", every 2^20 samples: 41.94 ms of ITS OWN clock.  Saved per
+board, as board0, board1, ...: rows of (laptop arrival time, X, Y), X and Y in lock-in
+units.  So result k was taken at k * 2^20 / 25 MHz of that board's time (as long as
+no line is lost), and the laptop times give the same thing against the laptop's clock.
+"""
+import sys
+import threading
+import time
+
+import numpy as np
+import serial
+
+
+def tw_of(f, fclk=50e6):
+    return int(round(f / fclk * 2**32)) & 0xFFFFFFFF
+
+
+def s32(v):
+    return v - (1 << 32) if v & (1 << 31) else v
+
+
+def logger(port, tw, secs, out):
+    s = serial.Serial(port, 1_000_000, timeout=1)
+    time.sleep(0.05)
+    s.reset_input_buffer()
+    s.write(b"%08x\n" % tw)
+    rows = []
+    t0 = time.time()
+    while time.time() - t0 < secs:
+        p = s.readline().split()
+        if len(p) != 3:
+            continue
+        try:
+            t, x, y = (int(v, 16) for v in p)
+        except ValueError:
+            continue
+        if t == tw:                          # skip anything from before the change
+            rows.append((time.time(), s32(x) / 65536, s32(y) / 65536))
+    s.close()
+    out[port] = np.array(rows)
+
+
+if __name__ == "__main__":
+    out_path, secs, f = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
+    ports = sys.argv[4:]
+    out = {}
+    # one thread per board, so that no port's input buffer overflows
+    threads = [threading.Thread(target=logger, args=(p, tw_of(f), secs, out)) for p in ports]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    np.savez(out_path, f=f, tw=tw_of(f), ports=ports,
+             **{"board%d" % i: out[p] for i, p in enumerate(ports)})
+    for p in ports:
+        print(p, len(out[p]), "results")
+```
+
+<!-- file: twoboard/beat.py -->
+```python
+#!/usr/bin/env python3
+"""Analyse a lockin_log.py file: the phase of the other board's signal against this
+board's own time, its slope (the beat between the two crystals), and what is left.
+
+    python3 beat.py beat.npz
+"""
+import sys
+
+import numpy as np
+
+z = np.load(sys.argv[1])
+f = float(z["f"])
+T = 2**20 / 25e6 * int(z["every"]) if "every" in z.files else 2**20 / 25e6
+#   one row, in this board's time: every result, or every `every`-th one
+for name in [k for k in z.files if k.startswith("board")]:
+    d = z[name]
+    xy = d[:, 1] + 1j * d[:, 2]
+    phase = np.unwrap(np.angle(xy))           # radians, of the other board's sine
+    t = np.arange(len(phase)) * T
+    slope, _ = np.polyfit(t, phase, 1)
+    beat = slope / (2 * np.pi)                # Hz: f_other - f_this, in this board's units
+    rest = phase - np.polyval(np.polyfit(t, phase, 1), t)
+    volts = abs(xy) * 2 / 127 / 25.35         # Part 4's conversion to volts at the ADC
+    print("%s: %d points over %.0f s; beat %+.6f Hz = %+.4f ppm of %.0f Hz; amplitude %.3f V; "
+          "phase residual %.2f deg rms" % (name, len(t), t[-1], beat, beat / f * 1e6, f,
+                                          volts.mean(), np.degrees(rest.std())))
+```
+
+```bash
+openFPGALoader -b icepi-zero --usb-serial-num DP0525BU lockin.bit
+openFPGALoader -b icepi-zero --usb-serial-num DP051TLX lockin.bit
+python3 twoboard/lockin_log.py beat.npz 60 1e6 $A $B     # 60 s at 1 MHz
+python3 twoboard/beat.py beat.npz
+```
+
+```console
+board0: 1431 points over 60 s; beat -0.759075 Hz = -0.7591 ppm of 1000000 Hz; amplitude 3.857 V; ...
+board1: 1431 points over 60 s; beat +0.759076 Hz = +0.7591 ppm of 1000000 Hz; amplitude 3.856 V; ...
+```
+
+![Two crystals beating](IcepiZeroADCDAC_tutorials/img/tb_beat.png)
+
+Board A sees B's sine slipping back by 0.759 turns per second, and B sees A's
+pulling ahead by the same amount. B's crystal is 0.759 ppm slower than A's. Each
+board timed its own results by its own clock (result *k* is *k* × 2²⁰ / 25 MHz),
+and still the two numbers agree to six digits, as they must. A 1 MHz comparison
+resolves a frequency difference of a few parts in 10⁹ in a few seconds. That
+is the power of a lock-in: it measures phase, and phase keeps accumulating.
+
+The lower panel is what's left after a smooth fit. It isn't noise in either
+measurement, because the two boards' views are exact mirror images. It's the
+two crystals wandering against each other, by ±7° at 1 MHz, or ±20 ns over a
+minute. That is a frequency instability of about one part in 10⁹, typical of
+small crystal oscillators. 10.3 shows the biggest reason: temperature.
+
+**How steady is steady?** The standard measure of a clock's stability is the
+*Allan deviation* σ_y(τ). Average the fractional frequency over a time τ, and
+ask how much one such average differs from the next. For these two crystals,
+compared over 60 s, over 15 minutes, and through a night of 5 hours
+(`tools/twoboard/fig_adev.py`):
+
+![Allan deviation of two crystals](IcepiZeroADCDAC_tutorials/img/tb_adev.png)
+
+From 0.1 s to a few seconds, σ_y is about 1 × 10⁻⁹. Averaging longer doesn't
+help, because something else takes over. In the 15-minute run the beat moved
+between 0.38 and 0.69 Hz as the boards' temperatures changed (10.3), so by
+100 s σ_y has grown to 5 × 10⁻⁸. Through the night it keeps growing, more
+slowly: 1.5 × 10⁻⁷ at 1000 s, and 3.5 × 10⁻⁷ at 1.7 hours. It never turns down
+again. A good oven-controlled oscillator stays near 10⁻¹² at 100 s, and an
+atomic clock lower still.
+
+**Through the night.** Logged for five hours from 00:41
+(`lockin_log.py overnight.npz 18000 1e6 $A $B`), the two crystals' difference
+wandered between +0.7 and +2.4 ppm:
+
+![Two crystals through a night](IcepiZeroADCDAC_tutorials/img/tb_overnight.png)
+
+B was now the faster crystal, as it was in the 15-minute run. A's crystal had
+ended lower after it was heated in 10.3, and both boards had run 10.6's
+Linux computer for a few minutes just before the log began. Most of the change
+is slow, but there are sudden steps of 0.3 to 0.5 ppm, within a minute or two,
+as at 01:05, 01:25 and 03:52. A's and B's lock-ins agree on every point, so
+the steps are real. What causes them, this log can't say.
+
+**The laptop as a clock.** The lower panel uses the laptop's clock instead, as 9.10
+does. Each board sends a result every 2²⁰ of its own samples, and the laptop
+time-stamps them as they arrive. Ten minutes at a time, both boards seem to
+move *together*, by up to 3 ppm, so it is the laptop's clock that moves. Ubuntu's
+`systemd-timesyncd` asked an NTP server across the internet every 34 minutes
+(the dotted lines, from a log of the kernel's clock discipline). Each time, it
+found the clock up to 1.35 ms off and changed its rate by up to 0.33 ppm, and
+between polls the kernel slewed the offset away at up to 0.85 ppm. The
+difference B − A cancels all of that. Over the five hours it averaged
++1.527 ppm, against the beat's +1.502 ppm. So a laptop's clock is a good ruler
+over a night, and a poor one over ten minutes.
+
+**A second opinion.** The NTP method of 9.10, run on both boards at once,
+measured A at +0.06 ppm and B at −0.65 ppm, ten minutes later. Their difference,
+−0.71 ppm, is free of the laptop clock's own error, and it agrees with the beat's
+−0.76 ppm to within how much these crystals drift in ten minutes. (Earlier the
+same day, the same two crystals had measured −3.30 ppm, before that board had
+its module, and −1.70 ppm. A crystal's offset isn't a constant.)
+
+**Try this:**
+
+- Put a finger on one board's oscillator and watch the beat change within
+  seconds. It is Y1, a 2.5 × 2.0 mm package just off the FPGA's upper-left
+  corner (USB connectors pointing down). Which way does the beat go?
+- Put a thermometer beside the boards and log the beat overnight again. Do
+  the steps line up with the room's temperature, or with the building's
+  heating switching on and off?
+- Run the comparison at 10 MHz instead of 1 MHz. The beat is ten times faster
+  (7.6 Hz). The lock-in delivers 23.8 results a second; at what beat does that
+  stop working, and why?
+
+### 10.3 Warming a crystal
+
+Why do the crystals wander, and why did they read so differently earlier in the
+day? The usual suspect is temperature: a quartz crystal's frequency changes by a
+fraction of a ppm per degree. To test it, heat one board, using nothing but its
+own logic.
+
+`warmup.v` keeps playing a 1 MHz sine for the other board's lock-in to follow,
+and adds two things:
+
+- **A heater.** 8192 flip-flops, clocked at 100 MHz by the PLL of Part 2,
+  each scrambling its neighbours. Every flip-flop that toggles charges and
+  discharges a little capacitance, and that energy ends up as heat. Send "H"
+  to switch it on and "C" to switch it off.
+- **A thermometer.** The ECP5 has one built in, the *DTR* (digital temperature
+  readout). A pulse on `STARTPULSE` starts a reading, and `DTROUT` returns a
+  6-bit code. Lattice's table (FPGA-TN-02210) gives 1 °C steps only from 21 to
+  29 °C and from 80 to 89 °C. In between it jumps: code 29 is 29 °C, 30 is 40,
+  31 is 50, 32 is 60. So it's coarse, but it's on the die. For safety, the
+  heater switches itself off at code 33 (70 °C).
+
+<!-- file: twoboard/warmup.v -->
+```verilog
+// warmup.v -- heat the FPGA with its own logic and watch the crystal move.
+//
+// The DAC plays a 1 MHz sine (the tutorial's sine.v), so another board's lock-in can
+// follow this board's crystal.  A "heater" -- W flip-flops scrambling each other at
+// 100 MHz -- burns power on command, and the ECP5's on-chip thermometer (the DTR
+// primitive) reports the die temperature code.
+//
+// Serial port, 1,000,000 baud:  "H" heater on, "C" heater off.
+// Every 2^23 clocks (0.168 s) the board sends "TT h\n": the DTR code in hex (bit 7 =
+// valid, bits 5:0 = Lattice's temperature code) and the heater state.
+// For safety the heater switches itself off if the code reaches 33 (70 C).
+module warmup #(parameter W = 8192) (
+    input  wire       clk,
+    output wire [7:0] dac_d,
+    output wire       dac_clk,
+    input  wire       uart_rx,
+    output wire       uart_tx,
+    output wire [4:0] led
+);
+    sine #(.TW(32'd85899346)) u_sine (.clk(clk), .dac_d(dac_d), .dac_clk(dac_clk));   // 1 MHz
+
+    // ---- 100 MHz for the heater -----------------------------------------------
+    wire clk100, locked;
+    pll100 u_pll (.clk(clk), .clk100(clk100), .locked(locked));
+
+    // ---- the heater: a wide register that keeps scrambling itself ------------
+    reg heat = 0;
+    reg heat100a = 0, heat100 = 0;
+    always @(posedge clk100) begin heat100a <= heat; heat100 <= heat100a; end
+    (* keep *) reg [W-1:0] h = 1;
+    always @(posedge clk100)
+        if (heat100) h <= {h[W-2:0], h[W-1]} ^ {h[W-3:0], h[W-1:W-2]} ^ ~(h >> 5);
+    // reduce it to one bit so the tools cannot throw it away
+    reg [63:0] fold = 0; reg sink = 0;
+    integer k;
+    always @(posedge clk100) begin
+        for (k = 0; k < 64; k = k + 1) fold[k] <= ^h[k*(W/64) +: (W/64)];
+        sink <= ^fold;
+    end
+
+    // ---- the thermometer ------------------------------------------------------
+    reg [22:0] div = 0;
+    always @(posedge clk) div <= div + 1;
+    wire [7:0] dtrout;
+    DTR #(.DTR_TEMP(25)) u_dtr (.STARTPULSE(div[22:4] == 0), .DTROUT7(dtrout[7]), .DTROUT6(dtrout[6]),
+        .DTROUT5(dtrout[5]), .DTROUT4(dtrout[4]), .DTROUT3(dtrout[3]), .DTROUT2(dtrout[2]),
+        .DTROUT1(dtrout[1]), .DTROUT0(dtrout[0]));
+    reg [7:0] code = 0;
+    always @(posedge clk) if (dtrout[7]) code <= dtrout;
+
+    // ---- serial port ----------------------------------------------------------
+    wire [7:0] rx; wire rxv, busy;
+    uart_rx #(.CLKS_PER_BIT(50)) u_rx (.clk(clk), .rx(uart_rx), .data(rx), .valid(rxv));
+    reg [2:0] idx = 7; reg st = 0; reg [7:0] d = 0;
+    uart_tx #(.CLKS_PER_BIT(50)) u_tx (.clk(clk), .data(d), .start(st), .busy(busy), .tx(uart_tx));
+    function [7:0] hex(input [3:0] n); hex = n < 10 ? "0" + n : "A" + n - 10; endfunction
+    always @(posedge clk) begin
+        if (rxv && rx == "H") heat <= 1;
+        if ((rxv && rx == "C") || (code[7] && code[5:0] >= 6'd33)) heat <= 0;
+        st <= 0;
+        if (div == 23'h400000) idx <= 0;
+        else if (idx < 5 && !busy && !st) begin
+            d <= idx == 0 ? hex(code[7:4]) : idx == 1 ? hex(code[3:0]) : idx == 2 ? " " :
+                 idx == 3 ? (heat ? "1" : "0") : "\n";
+            st <= 1; idx <= idx + 1;
+        end
+    end
+    assign led = {heat, sink, code[2:0]};
+endmodule
+```
+
+<!-- file: twoboard/warmup_run.py -->
+```python
+#!/usr/bin/env python3
+"""Warm one board with its own logic while another board's lock-in follows its crystal.
+
+    python3 warmup_run.py HEATER_PORT LOCKIN_PORT --on 600 --off 1500 --end 2700 -o warm.npz
+
+HEATER board: warmup.bit (1 MHz sine, heater, thermometer).  LOCKIN board: lockin.bit,
+set to 1 MHz.  The lock-in's phase drifts at f_heater - f_lockin, so its slope is the
+heater board's crystal frequency relative to the lock-in board's.
+"""
+import argparse
+import threading
+import time
+
+import numpy as np
+import serial
+
+
+def s32(v):
+    return v - (1 << 32) if v & (1 << 31) else v
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument("heater")
+ap.add_argument("lockin")
+ap.add_argument("--on", type=float, default=600, help="heater on at this time (s)")
+ap.add_argument("--off", type=float, default=1500, help="heater off at this time (s)")
+ap.add_argument("--end", type=float, default=2700, help="stop recording (s)")
+ap.add_argument("-o", "--out", default="warm.npz")
+a = ap.parse_args()
+
+TW = int(round(1e6 / 50e6 * 2**32))                 # 1 MHz
+li = serial.Serial(a.lockin, 1_000_000, timeout=1)
+hs = serial.Serial(a.heater, 1_000_000, timeout=1)
+time.sleep(0.05)
+li.reset_input_buffer()
+hs.reset_input_buffer()
+li.write(b"%08x\n" % TW)
+hs.write(b"C")                                      # start with the heater off
+
+L, H = [], []                                       # lock-in results; heater reports
+t0 = time.time()
+stop = False
+
+
+def read_lockin():
+    while not stop:
+        p = li.readline().split()
+        if len(p) != 3:
+            continue
+        try:
+            t, x, y = (int(v, 16) for v in p)
+        except ValueError:
+            continue
+        if t == TW:
+            L.append((time.time() - t0, s32(x) / 65536, s32(y) / 65536))
+
+
+def read_heater():
+    while not stop:
+        p = hs.readline().split()               # "TT h": DTR code (hex), heater on/off
+        if len(p) != 2:
+            continue
+        try:
+            H.append((time.time() - t0, int(p[0], 16), int(p[1])))
+        except ValueError:
+            pass
+
+
+threads = [threading.Thread(target=read_lockin), threading.Thread(target=read_heater)]
+for t in threads:
+    t.start()
+state = "cold"
+while time.time() - t0 < a.end:
+    t = time.time() - t0
+    if state == "cold" and t > a.on:
+        hs.write(b"H")
+        state = "hot"
+        print("%.0f s heater on" % t, flush=True)
+    if state == "hot" and t > a.off:
+        hs.write(b"C")
+        state = "cooling"
+        print("%.0f s heater off" % t, flush=True)
+    time.sleep(0.5)
+    if int(t) % 60 == 0 and L and H:                # a progress line once a minute
+        print("%5.0f s  %d lock-in points, DTR code %d (%s)" %
+              (t, len(L), H[-1][1] & 63, "on" if H[-1][2] else "off"), flush=True)
+        time.sleep(0.6)
+stop = True
+for t in threads:
+    t.join()
+hs.write(b"C")
+np.savez(a.out, lockin=np.array(L), heater=np.array(H), on=a.on, off=a.off)
+```
+
+```bash
+cd twoboard
+make warmup.bit
+openFPGALoader -b icepi-zero --usb-serial-num DP0525BU warmup.bit
+openFPGALoader -b icepi-zero --usb-serial-num DP051TLX ../lockin.bit
+python3 warmup_run.py $A $B --on 600 --off 1500 --end 2700 -o warm.npz
+```
+
+![Heating one board](IcepiZeroADCDAC_tutorials/img/tb_warmup.png)
+
+The upper panel is A's crystal relative to B's, from B's lock-in, in 10 s
+pieces:
+
+- **When the heater comes on (minute 10), A's frequency drops at once.** It
+  falls by 0.5 ppm (500 parts per billion) in the first minute, and keeps
+  falling for the whole 15 minutes, by 3.0 ppm in all. The die thermometer
+  moves from its 40 °C step to its 50 °C step after about 3 minutes.
+- **When it goes off (minute 25), the frequency comes back quickly** at first,
+  1.5 ppm in two minutes, and then slowly.
+- **There are two speeds.** The oscillator sits right beside the FPGA, and
+  follows its die within a minute. The whole board, and the oscillator's own
+  package, take ten minutes or more.
+- **Even the "cold" start drifts down by 0.6 ppm.** The heater's 100 MHz clock
+  reaches all 8192 flip-flops even when they hold still, and loading the design
+  alone warms the board.
+
+The frequency did not return to where it started, but settled 1.4 ppm lower.
+Which crystal moved? The laptop's clock can referee, roughly. B's lock-in sends a
+result every 2²⁰ of B's own samples, so the times they arrive at the laptop
+(`warmup_run.py` saves them) measure B's crystal against the laptop's clock. NTP
+keeps that clock right only to about a ppm over ten minutes (10.2), but that
+is enough here. Against it, B stayed within 0.3 ppm of where it started,
+while A fell by 2.6 ppm and came back by only 0.8. So it was A that moved. Whether A's lasting offset is the
+crystal's own hysteresis or its board still cooling, one run can't tell.
+
+So a degree or two of warming, from a hand, a draught, or the module's own
+power, moves these crystals by about a ppm. That is the likely reason the
+boards measured −3.30 and −1.70 ppm in the afternoon and +0.06 and −0.65 ppm
+in the evening, with their modules fitted and running. Laboratory oscillators fix this by keeping the
+crystal at a constant temperature in an *oven* (an OCXO), or by measuring its
+temperature and correcting for it (a TCXO).
+
+**Try this:**
+
+- Fit the warming curve with two exponentials. What are the two time
+  constants, and what are the two parts of the board they belong to?
+- Make a TCXO. Run the heater at several duty cycles, fit frequency against
+  the DTR code, and let the laptop correct the lock-in's reference for the
+  measured temperature. How much of the wander is left?
+- Use the heater as an oven. Switch it on and off to hold the DTR code
+  constant (a thermostat in Verilog), and see how much steadier the crystal
+  becomes.
+
+### 10.4 What time is it over there?
+
+Two observers, each with a clock, want to agree on what time it is. The only
+way to compare clocks at a distance is to send a signal, and the signal takes
+time to arrive. If A sends "it's noon" and B receives it, B knows only that it
+was noon when A sent it, plus however long the trip took. That isn't known
+unless the clocks already agree. Einstein met this in 1905 and settled it by
+convention: *send a signal from A to B and straight back, and define the event
+at B to be halfway through the round trip.* National time laboratories compare
+their atomic clocks the same way across the Atlantic. Each station transmits
+at once through a satellite, so the trip out and the trip back cancel. It is
+called *two-way satellite time and frequency transfer*.
+
+Two boards can do exactly this. The tool is a design that is both a signal
+generator and a recorder, `awgcap.v`. It plays any 16384-sample waveform from
+block RAM over and over at 50 MS/s, which is one loop every 327.68 µs. On
+command it records 16384 ADC samples, starting *exactly* at the beginning of
+its own loop. The loop start is each board's clock: its "noon".
+
+<!-- file: twoboard/awgcap.v -->
+```verilog
+// awgcap.v -- an arbitrary waveform generator and a digitizer in one design.
+//
+// The DAC plays a 16384-sample waveform from block RAM, over and over, at
+// 50 MS/s (one loop = 327.68 us).  The ADC records 16384 samples at 25 MS/s
+// (655.36 us = exactly two loops), starting on the first sample of a loop, so
+// every record has the same timing relative to this board's own waveform.
+//
+// Serial port, 1,000,000 baud:
+//   "W" then 16384 bytes   load a new waveform (the DAC keeps playing as it loads)
+//   "C"                    record, then send back the 16384 ADC samples
+//
+// Two boards running this, cross-connected, can send each other any signal.
+module awgcap (
+    input  wire       clk,          // 50 MHz
+    output reg  [7:0] dac_d = 8'd128,
+    output wire       dac_clk,
+    input  wire [7:0] adc_d,
+    output wire       adc_clk,
+    input  wire       uart_rx,
+    output wire       uart_tx,
+    output wire [4:0] led
+);
+    localparam N = 16384;
+
+    // ---- the waveform: one sample per clock -----------------------------------
+    reg [7:0]  wave [0:N-1];
+    reg [13:0] play = 0;                     // which sample the DAC is playing
+    integer i;
+    initial for (i = 0; i < N; i = i + 1) wave[i] = 8'd128;
+    always @(posedge clk) begin
+        play  <= play + 1;
+        dac_d <= wave[play];
+    end
+    assign dac_clk = ~clk;                   // as in the earlier designs
+
+    // ---- the ADC: 25 MS/s, as in capture.v ------------------------------------
+    reg adc_clk_r = 0, new_sample = 0;
+    reg [7:0] sample = 0;
+    always @(posedge clk) begin
+        adc_clk_r  <= ~adc_clk_r;
+        new_sample <= 0;
+        if (adc_clk_r == 0) begin
+            sample     <= adc_d;
+            new_sample <= 1;
+        end
+    end
+    assign adc_clk = adc_clk_r;
+
+    // ---- serial port ----------------------------------------------------------
+    wire [7:0] rx_data; wire rx_valid, tx_busy;
+    reg  [7:0] tx_data = 0; reg tx_start = 0;
+    uart_rx #(.CLKS_PER_BIT(50)) urx (.clk(clk), .rx(uart_rx), .data(rx_data), .valid(rx_valid));
+    uart_tx #(.CLKS_PER_BIT(50)) utx (.clk(clk), .data(tx_data), .start(tx_start), .busy(tx_busy), .tx(uart_tx));
+
+    // ---- load, record, send ---------------------------------------------------
+    reg [7:0]  rec [0:N-1];
+    reg [13:0] addr = 0;
+    reg [7:0]  rd = 0;
+    localparam IDLE = 0, LOAD = 1, ARM = 2, RECORD = 3, SEND = 4, SEND2 = 5;
+    reg [2:0]  state = IDLE;
+    always @(posedge clk) begin
+        tx_start <= 0;
+        rd <= rec[addr];
+        case (state)
+            IDLE:
+                if (rx_valid && rx_data == "W") begin addr <= 0; state <= LOAD; end
+                else if (rx_valid && rx_data == "C") state <= ARM;
+            LOAD:
+                if (rx_valid) begin
+                    wave[addr] <= rx_data;
+                    addr <= addr + 1;
+                    if (addr == N - 1) state <= IDLE;
+                end
+            ARM:                                 // start with the first sample of a loop
+                if (new_sample && play == 14'd1) begin
+                    rec[0] <= sample; addr <= 1; state <= RECORD;
+                end
+            RECORD:
+                if (new_sample) begin
+                    rec[addr] <= sample;
+                    addr <= addr + 1;
+                    if (addr == N - 1) begin addr <= 0; state <= SEND; end
+                end
+            SEND:  state <= SEND2;               // one clock for the RAM read
+            SEND2:
+                if (!tx_busy && !tx_start) begin
+                    tx_data <= rd; tx_start <= 1;
+                    if (addr == N - 1) state <= IDLE;
+                    else begin addr <= addr + 1; state <= SEND; end
+                end
+        endcase
+    end
+    assign led = {state, 2'b0};
+endmodule
+```
+
+<!-- file: twoboard/awgcap.py -->
+```python
+#!/usr/bin/env python3
+"""The laptop side of awgcap.v: load waveforms into boards and record their ADCs.
+
+    import awgcap
+    awgcap.upload("/dev/ttyUSB0", wave)        # wave: 16384 numbers 0..255, played at 50 MS/s
+    codes = awgcap.record("/dev/ttyUSB0")      # 16384 ADC codes at 25 MS/s
+    a, b = awgcap.record_many([port_a, port_b])   # both boards at (nearly) the same moment
+"""
+import threading
+import time
+
+import numpy as np
+import serial
+
+N = 16384
+FS_DAC, FS_ADC = 50e6, 25e6
+
+
+def upload(port, wave):
+    w = np.clip(np.round(np.asarray(wave)), 0, 255).astype(np.uint8)
+    assert len(w) == N
+    with serial.Serial(port, 1_000_000, timeout=2) as s:
+        s.write(b"W" + w.tobytes())
+        s.flush()
+    time.sleep(0.05)
+
+
+def record(port):
+    with serial.Serial(port, 1_000_000, timeout=2) as s:
+        time.sleep(0.02)
+        s.reset_input_buffer()
+        s.write(b"C")
+        raw = s.read(N)
+    if len(raw) != N:
+        raise RuntimeError("got %d of %d bytes -- is awgcap.bit loaded?" % (len(raw), N))
+    return np.frombuffer(raw, np.uint8).astype(int)
+
+
+def record_many(ports):
+    """Ask several boards to record at once.  Each port is read in its own thread:
+    a port nobody is reading loses data after about 4 kB."""
+    sers = [serial.Serial(p, 1_000_000, timeout=2) for p in ports]
+    time.sleep(0.02)
+    for s in sers:
+        s.reset_input_buffer()
+    out = [None] * len(sers)
+    def go(i):
+        sers[i].write(b"C")
+        out[i] = sers[i].read(N)
+    th = [threading.Thread(target=go, args=(i,)) for i in range(len(sers))]
+    for t in th: t.start()
+    for t in th: t.join()
+    for s in sers: s.close()
+    if any(len(o) != N for o in out):
+        raise RuntimeError("short record: %s" % [len(o) for o in out])
+    return [np.frombuffer(o, np.uint8).astype(int) for o in out]
+```
+
+Each board plays a different noise-like waveform: a few thousand tones from
+0.2 to 10 MHz, with random phases. Each records the other's. In board A's
+record, B's waveform appears delayed by
+
+  τ_A = θ + d_BA
+
+where θ is how far B's loop start lags A's (the clock offset) and d_BA is the
+travel time from B's DAC to A's ADC. In B's record, A's waveform appears after
+
+  τ_B = −θ + d_AB
+
+Neither alone separates the clock offset from the delay. Together, they do:
+
+  τ_A + τ_B = d_AB + d_BA          (the round trip: no clocks in it at all)
+  (τ_A − τ_B) / 2 = θ + (d_BA − d_AB)/2
+
+The second line is the clock offset, *if* the two paths are equally long:
+that's Einstein's convention. Each τ comes from the *phase* of the cross-spectrum
+between the record and the known waveform. A delay τ turns the phase by
+−2πfτ, so a straight-line fit across the band gives τ to a small fraction of a
+sample. A whole sample is 40 ns.
+
+<!-- file: twoboard/twoway.py -->
+```python
+#!/usr/bin/env python3
+"""Two-way time transfer between two boards running awgcap.v, cross-connected.
+
+    python3 twoway.py PORT_A PORT_B [--seconds 120] [-o out.npz]
+
+Each board loops its own noise-like waveform (a random-phase multitone, 0.2-10 MHz)
+and records the other's.  From each record, the delay of the other board's waveform
+relative to THIS board's loop start:
+
+    tau_A = theta + d_BA        tau_B = -theta + d_AB        (mod one loop, 327.68 us)
+
+theta = how far B's loop start is behind A's (the clock offset), d = the one-way
+delays.  So tau_A + tau_B = d_AB + d_BA, the round trip, whatever the clocks do, and
+(tau_A - tau_B)/2 = theta if the two delays are equal (Einstein's convention).
+"""
+import argparse
+import time
+
+import numpy as np
+
+import awgcap
+
+N, P = awgcap.N, awgcap.N / awgcap.FS_DAC          # one loop: 327.68 us
+
+
+def multitone(seed, fmin=0.2e6, fmax=10e6):
+    """A real waveform, periodic in N samples at 50 MS/s, with flat spectrum fmin..fmax."""
+    rng = np.random.default_rng(seed)
+    X = np.zeros(N // 2 + 1, complex)
+    k = np.arange(len(X)); f = k * awgcap.FS_DAC / N
+    band = (f >= fmin) & (f <= fmax)
+    X[band] = np.exp(2j * np.pi * rng.random(band.sum()))
+    x = np.fft.irfft(X, N)
+    return 128 + 100 * x / np.abs(x).max()
+
+
+def delay(record, wave, fmin=0.3e6, fmax=9.5e6):
+    """Delay (s, mod one loop) of `wave` (as played at 50 MS/s) inside `record` (25 MS/s,
+    starting at this board's loop start).  The record holds exactly two loops: average them,
+    then fit the cross-spectrum's phase against frequency -- coarse lag from the
+    correlation peak, fine lag from the slope."""
+    r = record.reshape(2, N // 2).mean(0); r = r - r.mean()
+    w = wave[::2] - wave.mean()                     # the waveform at 25 MS/s
+    R, W = np.fft.rfft(r), np.fft.rfft(w)
+    C = R * np.conj(W)
+    lag0 = np.argmax(np.fft.irfft(C, N // 2))      # integer samples at 25 MS/s
+    f = np.fft.rfftfreq(N // 2, 1 / awgcap.FS_ADC)
+    band = (f >= fmin) & (f <= fmax)
+    ph = np.unwrap(np.angle(C[band] * np.exp(2j * np.pi * f[band] * lag0 / awgcap.FS_ADC)))
+    slope = np.polyfit(f[band], ph, 1)[0]
+    return (lag0 / awgcap.FS_ADC - slope / (2 * np.pi)) % P
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("port_a"); ap.add_argument("port_b")
+    ap.add_argument("--seconds", type=float, default=120)
+    ap.add_argument("-o", "--out", default="twoway.npz")
+    a = ap.parse_args()
+    wa, wb = multitone(1), multitone(2)
+    awgcap.upload(a.port_a, wa); awgcap.upload(a.port_b, wb)
+    rows = []; t0 = time.time()
+    while time.time() - t0 < a.seconds:
+        ra, rb = awgcap.record_many([a.port_a, a.port_b])
+        ta, tb = delay(ra, wb), delay(rb, wa)
+        rows.append((time.time() - t0, ta, tb))
+        print("%7.2f s  tau_A %10.3f ns  tau_B %10.3f ns  sum %9.3f ns" %
+              (rows[-1][0], ta * 1e9, tb * 1e9, ((ta + tb) % P) * 1e9), flush=True)
+    np.savez(a.out, rows=np.array(rows), wa=wa, wb=wb)
+```
+
+```bash
+cd twoboard
+make awgcap.bit
+make load-awgcap SERIAL=DP0525BU; make load-awgcap SERIAL=DP051TLX
+python3 twoway.py $A $B --seconds 120
+```
+
+![Two-way time transfer](IcepiZeroADCDAC_tutorials/img/tb_twoway.png)
+
+Over two minutes, 571 exchanges:
+
+- **The round trip doesn't move:** 425.63 ns, with a scatter of 0.15 ns rms.
+  For comparison, one module looped back to its own ADC measures 212.92 ns one
+  way. Twice that is 425.83 ns: the two new modules' paths average within
+  0.2 ns of the old one's. (Whether A → B equals B → A, this measurement
+  can't say. See below.)
+  Almost all of each one-way delay is in the converters and their analog
+  circuits: 16.5 cm of RG-316 is only 0.75 ns, while the AD9280 alone hands
+  out each sample 3 conversion cycles (120 ns) after taking it (Part 3).
+- **The clock offset grows in a straight line**, by 747.8 ns every second:
+  0.748 ppm, the beat of 10.2 measured a completely different way. Both
+  numbers say how fast B's clock falls behind A's.
+- Around that straight line, the offset wanders by 37 ns rms over the two
+  minutes. That is the crystals' frequency wander of 10.2, now seen as time.
+
+Neither board ever learns the one-way delay. Only the round trip is measured,
+and splitting it in half is the convention. It is a natural one, but no
+measurement made this way can test it.
+
+**Try this:**
+
+- Replace one of the two cables with a longer one. The round trip grows by
+  the extra delay, about 4.6 ns per metre for RG-316, and the inferred clock
+  offset jumps by *half* of it. Nothing in the data shows which cable
+  changed. (This is why GPS receivers need to know their antenna-cable
+  delays.)
+- Correct for the offset's drift: fit θ(t) and subtract it, and the two boards
+  share a timescale to a fraction of a nanosecond. What limits it, the
+  crystals' wander or the measurement?
+- Swap the noise waveform for a single tone. Why does the delay then become
+  ambiguous, and by how much?
+
+### 10.5 Two oscillators that listen to each other
+
+In 1665 Christiaan Huygens, ill in bed, noticed that two pendulum clocks hanging
+from the same beam always ended up keeping exactly the same time, with their
+pendulums swinging in opposite directions. Each clock pushed the beam a little,
+and the beam pushed the other clock. The same thing makes fireflies
+flash together, keeps the generators of a power grid in step, and locks a laser
+to a seed laser. Two oscillators that each nudge their frequency towards the
+other's phase *lock*, as long as their natural frequencies are close enough. If
+they are too far apart, they slip past each other, but more slowly than they
+would on their own.
+
+Two boards running Part 4's `lockin.v` are already two oscillators (each DDS)
+and two phase meters (each lock-in sees the other board's sine). All that's
+missing is the nudge. `coupled.py` reads both phases every 42 ms and resets each
+board's frequency:
+
+  f_A = f₀ + K_A sin(φ_A − c/2)        f_B = f₀ + δ + K_B sin(φ_B − c/2)
+
+φ_A is the phase of B's sine at A, relative to A's own sine, and φ_B is the
+reverse. δ is a deliberate detuning. The *coupling constants* K_A and K_B, in
+hertz, say how hard each one listens.
+
+The c/2 matters, and it is 10.4 again. Each measured phase includes a path
+delay: φ_A = ψ + c_A and φ_B = −ψ + c_B, where ψ is the true phase difference
+between the two oscillators. Their *sum* φ_A + φ_B = c_A + c_B = c is the
+round-trip phase, which doesn't depend on ψ at all, so the laptop can measure it
+all the time. Subtracting c/2 from each side leaves both looking at ψ itself.
+Without it, the delays (about 77° each way at 1 MHz) would weaken the coupling
+by a factor cos(c/2), and could even reverse it.
+
+<!-- file: twoboard/coupled.py -->
+```python
+#!/usr/bin/env python3
+"""Two coupled oscillators: each board's lockin.v is an oscillator (its DDS) and a phase
+meter (its lock-in sees the OTHER board's sine).  Every 42 ms the laptop reads both phases
+and sets each frequency to
+
+    f_i = f0 + detune_i + K_i * sin(phi_i - c/2)        (Hz)
+
+where phi_i is the phase of the other board's signal relative to board i's own, and
+c = phi_A + phi_B is the round-trip phase (cable and converter delays, both ways).
+c does not depend on the oscillators' phases at all, so it can be measured all along;
+subtracting half of it from each side makes the coupling symmetric, as in Adler's
+equation (without it, the delays would scale the coupling by cos(c/2)).
+K_A = 0, K_B > 0 is a phase-locked loop (B follows A).  K_A = K_B > 0 is mutual
+coupling (Kuramoto / Adler): the two lock when |natural detuning| < K_A + K_B.
+
+    python3 coupled.py PORT_A PORT_B --KA 0.5 --KB 0.5 --seconds 60 [--detune 0.3] -o out.npz
+"""
+import argparse
+import threading
+import time
+
+import numpy as np
+import serial
+
+F_CLK = 50e6
+
+
+def tw(f):
+    return int(round(f / F_CLK * 2**32)) & 0xFFFFFFFF
+
+
+def s32(v):
+    return v - (1 << 32) if v & (1 << 31) else v
+
+
+class Board:
+    def __init__(self, port):
+        self.s = serial.Serial(port, 1_000_000, timeout=1)
+        time.sleep(0.05)
+        self.s.reset_input_buffer()
+        self.tw = None
+
+    def set(self, f):
+        self.tw = tw(f)
+        self.s.write(b"%08x\n" % self.tw)
+
+    def result(self):
+        """The next complete average taken with the current tuning word."""
+        while True:
+            p = self.s.readline().split()
+            if len(p) != 3:
+                continue
+            try:
+                t, x, y = (int(v, 16) for v in p)
+            except ValueError:
+                continue
+            if t == self.tw:
+                return complex(s32(x), s32(y)) / 65536
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("port_a"); ap.add_argument("port_b")
+    ap.add_argument("--f0", type=float, default=1e6)
+    ap.add_argument("--KA", type=float, default=0.0)
+    ap.add_argument("--KB", type=float, default=0.5)
+    ap.add_argument("--detune", type=float, default=0.0, help="added to B's frequency, Hz")
+    ap.add_argument("--seconds", type=float, default=60)
+    ap.add_argument("-o", "--out", default="coupled.npz")
+    a = ap.parse_args()
+    A, B = Board(a.port_a), Board(a.port_b)
+    fa, fb = a.f0, a.f0 + a.detune
+    A.set(fa); B.set(fb)
+    rows = []; t0 = time.time(); csum = 1
+    while time.time() - t0 < a.seconds:
+        res = {}
+        th = [threading.Thread(target=lambda n, b: res.__setitem__(n, b.result()), args=(n, b)) for n, b in (("A", A), ("B", B))]
+        for t in th: t.start()
+        for t in th: t.join()
+        pa, pb = np.angle(res["A"]), np.angle(res["B"])
+        csum = 0.9 * csum + 0.1 * np.exp(1j * (pa + pb)) if rows else np.exp(1j * (pa + pb))
+        half = np.angle(csum) / 2
+        fa = a.f0 + a.KA * np.sin(pa - half)
+        fb = a.f0 + a.detune + a.KB * np.sin(pb - half)
+        A.set(fa); B.set(fb)
+        rows.append((time.time() - t0, pa, pb, abs(res["A"]), abs(res["B"]), fa, fb))
+    np.savez(a.out, rows=np.array(rows), KA=a.KA, KB=a.KB, detune=a.detune, f0=a.f0)
+    r = np.array(rows)
+    print("%d updates in %.1f s; final half: phi_A %.1f +- %.1f deg, phi_B %.1f +- %.1f deg; f_B - f_A %.4f Hz" %
+          (len(r), r[-1, 0], np.degrees(np.mean(r[len(r)//2:, 1])), np.degrees(np.std(np.unwrap(r[len(r)//2:, 1]))),
+           np.degrees(np.mean(r[len(r)//2:, 2])), np.degrees(np.std(np.unwrap(r[len(r)//2:, 2]))), np.mean(r[len(r)//2:, 6] - r[len(r)//2:, 5])))
+```
+
+The theory is *Adler's equation*. With natural detuning Δ = f_B − f_A and total
+coupling K = K_A + K_B, the phase difference obeys
+
+  dψ/dt = 2π (Δ − K sin ψ)
+
+If |Δ| < K, it settles where sin ψ = Δ/K: **locked**, with a phase lag that
+makes up the difference. If |Δ| > K, it keeps turning, but at the average rate
+√(Δ² − K²) instead of Δ, and unevenly: it lingers where the coupling holds it
+back, then slips a whole turn quickly.
+
+```bash
+openFPGALoader -b icepi-zero --usb-serial-num DP0525BU lockin.bit
+openFPGALoader -b icepi-zero --usb-serial-num DP051TLX lockin.bit
+python3 twoboard/coupled.py $A $B --KA 0 --KB 0 --seconds 20            # free-running: slip = natural detuning
+python3 twoboard/coupled.py $A $B --KA 0 --KB 1.0 --seconds 30          # one-way: B follows A (a PLL)
+python3 twoboard/coupled.py $A $B --KA 0.25 --KB 0.25 --detune 0.3      # mutual, K = 0.5 Hz
+```
+
+The natural detuning here was about −0.7 Hz: B's crystal is the slower one,
+as in 10.2. With one-way coupling (K_B = 1 Hz) B's frequency settles 0.694 Hz
+above its nominal, and both phases hold still to ±0.1°. That is a phase-locked
+loop, and B is now a copy of A's clock. With mutual coupling, each moves part of
+the way. For the figure, K_A = K_B = 0.25 Hz (K = 0.5 Hz), and δ was stepped
+so that Δ ran from −1.5 to +1.4 Hz, 25 s per step:
+
+![Adler locking](IcepiZeroADCDAC_tutorials/img/tb_adler.png)
+
+- **Inside |Δ| < 0.5 Hz, every run locked**, with slips of under 0.001 Hz.
+  The edges fall where K says.
+- **Outside, the slip rate follows √(Δ² − K²) to 0.033 Hz rms.** Far from
+  the edges it agrees to 0.002 Hz. Nearer the edges the slip rate depends
+  steeply on Δ, which drifted with the crystals (see below).
+- **Just outside the range** the phase slips one turn at a time, with long
+  pauses between: the middle panel, at Δ = −0.55 Hz.
+- **Inside, the locked phase χ = (φ_A − φ_B)/2 follows arcsin(Δ/K)**, the
+  bottom panel. That is the lag the oscillators need to keep pulling each
+  other to a common frequency.
+
+One honest complication: the crystals drifted during the 9-minute sweep, and
+the natural detuning went from −0.69 Hz before it to −0.89 Hz after. The
+figure assumes the drift was steady and interpolates. Without that, the slip
+rates sit 0.1 Hz off the curve.
+
+**Try this:**
+
+- Unequal coupling: K_A = 0.4, K_B = 0.1. Who moves, and to what common
+  frequency? (Measure f_A and f_B, saved in the `.npz`.)
+- Negative K. The pair still locks, but where?
+- The laptop updates every 42 ms. Raise K until the loop overshoots and rings.
+  The update delay limits it, much as the cable's latency does in 9.9.
+- Put a finger on one oscillator while locked (10.2). The lock holds, and
+  the locked phase moves to make up the difference.
+
+**The same loop in hardware.** The laptop updates the frequencies 24 times a
+second. Put the whole loop inside the FPGA instead and it can update 24,414
+times a second. `pll.v` is a hardware phase-locked loop. Its phase detector is a
+lock-in summed over 1024 samples (41 µs), and its *loop filter* adds a
+proportional and an integral correction to the DDS tuning word. The integral
+is what lets it settle with zero phase error even when the two crystals differ,
+as a GPS-disciplined oscillator does.
+
+<!-- file: twoboard/pll.v -->
+```verilog
+// pll.v -- a phase-locked loop in hardware: this board's oscillator follows the sine
+// arriving at its ADC, updating 24 414 times a second.
+//
+// The oscillator is a DDS (tuning word tw).  The phase detector is a lock-in: ADC
+// samples times sin and cos of the oscillator's phase, summed over 1024 samples
+// (41 us), give I and Q; Q is proportional to the sine of the phase error.  A
+// proportional-plus-integral loop filter turns Q into a correction of tw:
+//
+//     integ += Q >>> 17          tw = tw0 + (Q >>> 10) + integ
+//
+// For a full-scale input that is a loop bandwidth of about 50 Hz, damping 0.7.
+// The DAC plays either the locked oscillator itself (command L) or, for testing on
+// one board looped back, an independent test tone (command X).
+//
+// Serial port, 1,000,000 baud.  laptop -> board, one line each:
+//   "Fhhhhhhhh"   centre tuning word tw0 (also resets the integrator)
+//   "Thhhhhhhh"   test-tone tuning word; "L" = DAC plays the oscillator, "X" = test tone
+//   "O" / "C"     loop open (tw = tw0) / closed
+// Board -> laptop, about 12 times a second: "tw I Q" as three 32-bit hex numbers.
+module pll (
+    input  wire       clk,
+    output reg  [7:0] dac_d = 128,
+    output wire       dac_clk,
+    input  wire [7:0] adc_d,
+    output wire       adc_clk,
+    input  wire       uart_rx,
+    output wire       uart_tx,
+    output wire [4:0] led
+);
+    reg signed [7:0] sine_table [0:255];
+    integer i;
+    initial for (i = 0; i < 256; i = i + 1)
+        sine_table[i] = $rtoi($floor(127.0 * $sin(6.283185307179586 * i / 256) + 0.5));
+
+    // ---- control registers (set over the serial port, below) --------------------
+    reg [31:0] tw0 = 32'd85899346, tw_test = 32'd85899346;   // 1 MHz
+    reg closed = 1, play_test = 0, cmd_reset = 0;
+
+    // ---- the oscillator and the test tone -------------------------------------
+    reg [31:0] tw = 32'd85899346, phase = 0, tphase = 0;
+    always @(posedge clk) begin
+        phase  <= phase + tw;
+        tphase <= tphase + tw_test;
+        dac_d  <= (play_test ? sine_table[tphase[31:24]] : sine_table[phase[31:24]]) + 128;
+    end
+    assign dac_clk = ~clk;
+
+    // ---- ADC at 25 MS/s, and the phase detector --------------------------------
+    reg adc_clk_r = 0;
+    reg signed [8:0] x = 0;
+    reg [7:0] ph_at_sample = 0;
+    reg new_sample = 0;
+    always @(posedge clk) begin
+        adc_clk_r <= ~adc_clk_r;
+        new_sample <= 0;
+        if (adc_clk_r == 0) begin
+            x <= $signed({1'b0, adc_d}) - 9'sd128;
+            ph_at_sample <= phase[31:24];
+            new_sample <= 1;
+        end
+    end
+    assign adc_clk = adc_clk_r;
+    reg signed [7:0] rs = 0, rc = 0;
+    reg mult = 0;
+    always @(posedge clk) begin
+        mult <= new_sample;
+        if (new_sample) begin
+            rs <= sine_table[ph_at_sample];
+            rc <= sine_table[ph_at_sample + 8'd64];
+        end
+    end
+    reg signed [31:0] acc_i = 0, acc_q = 0, I = 0, Q = 0;
+    reg [9:0] n = 0;
+    reg update = 0;
+    always @(posedge clk) begin
+        update <= 0;
+        if (mult) begin
+            n <= n + 1;
+            if (n == 10'd1023) begin
+                I <= acc_i + x * rs; Q <= acc_q + x * rc;
+                acc_i <= 0; acc_q <= 0; update <= 1;
+            end else begin
+                acc_i <= acc_i + x * rs; acc_q <= acc_q + x * rc;
+            end
+        end
+    end
+    // ---- loop filter --------------------------------------------------------------
+    // The correction is formed as a SIGNED value first.  Written inline as
+    // tw0 + (Q >>> 10) + integ, Verilog would treat the whole sum as unsigned (tw0
+    // is), turn >>> into a logical shift, and a negative Q into a huge positive kick.
+    reg signed [31:0] integ = 0;
+    wire signed [31:0] corr = (Q >>> 10) + integ;
+    reg upd2 = 0;
+    always @(posedge clk) begin
+        upd2 <= update;
+        if (update && closed) integ <= integ + (Q >>> 17);
+        if (upd2) tw <= closed ? tw0 + corr : tw0;
+        if (cmd_reset) integ <= 0;
+    end
+
+    // ---- serial port: commands in, reports out --------------------------------------
+    wire [7:0] rx; wire rxv, busy;
+    uart_rx #(.CLKS_PER_BIT(50)) u_rx (.clk(clk), .rx(uart_rx), .data(rx), .valid(rxv));
+    reg [7:0] cmd = 0; reg [31:0] val = 0;
+    function [3:0] unhex(input [7:0] c);
+        unhex = (c >= "a") ? c - "a" + 10 : (c >= "A") ? c - "A" + 10 : c - "0";
+    endfunction
+    always @(posedge clk) begin
+        cmd_reset <= 0;
+        if (rxv) begin
+            if (rx == "F" || rx == "T") begin cmd <= rx; val <= 0; end
+            else if (rx == "L") play_test <= 0;
+            else if (rx == "X") play_test <= 1;
+            else if (rx == "O") closed <= 0;
+            else if (rx == "C") closed <= 1;
+            else if (rx == "\n" || rx == "\r") begin
+                if (cmd == "F") begin tw0 <= val; cmd_reset <= 1; end
+                if (cmd == "T") tw_test <= val;
+                cmd <= 0;
+            end else val <= {val[27:0], unhex(rx)};
+        end
+    end
+    reg [21:0] tick = 0;
+    reg [31:0] r_tw = 0, r_i = 0, r_q = 0;
+    reg [4:0] idx = 31; reg st = 0; reg [7:0] d = 0;
+    uart_tx #(.CLKS_PER_BIT(50)) u_tx (.clk(clk), .data(d), .start(st), .busy(busy), .tx(uart_tx));
+    function [7:0] hex(input [3:0] v); hex = v < 10 ? "0" + v : "a" + v - 10; endfunction
+    wire [31:0] word = (idx < 8) ? r_tw : (idx < 17) ? r_i : r_q;
+    wire [4:0]  nib  = (idx < 8) ? 7 - idx : (idx < 17) ? 16 - idx : 25 - idx;
+    always @(posedge clk) begin
+        tick <= tick + 1; st <= 0;
+        if (tick == 0) begin r_tw <= tw; r_i <= I; r_q <= Q; idx <= 0; end
+        else if (idx < 27 && !busy && !st) begin
+            d <= (idx == 8 || idx == 17) ? " " : (idx == 26) ? "\n" : hex(word[nib*4 +: 4]);
+            st <= 1; idx <= idx + 1;
+        end
+    end
+    assign led = {closed, play_test, 3'b0};
+endmodule
+```
+
+One lesson in that file is worth knowing. The correction was first written inline,
+`tw0 + (Q >>> 10) + integ`. Because `tw0` is unsigned, Verilog evaluates the
+*whole* expression as unsigned, so `>>>` quietly becomes a logical shift and a
+negative Q becomes a huge positive one. The oscillator jumped by
+2³² / 2¹⁰ tuning-word steps, 48.8 kHz, whenever Q went negative. Computing the
+correction as a `signed` wire first fixed it.
+
+<!-- file: twoboard/pll_test.py -->
+```python
+#!/usr/bin/env python3
+"""Drive pll.v: set it up, close the loop, and print what it reports.
+
+    python3 pll_test.py PORT --test-offset 100        # one board looped back: lock to a test tone 100 Hz off
+    python3 pll_test.py PORT --seconds 60 -o pll.npz  # follow whatever arrives (another board)
+"""
+import argparse
+import time
+
+import numpy as np
+import serial
+
+
+def tw(f):
+    return int(round(f / 50e6 * 2**32))
+
+
+def s32(v):
+    return v - (1 << 32) if v & (1 << 31) else v
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("port")
+    ap.add_argument("--f0", type=float, default=1e6, help="centre frequency (Hz)")
+    ap.add_argument("--test-offset", type=float, help="play a test tone this far from f0, and lock to it")
+    ap.add_argument("--seconds", type=float, default=3)
+    ap.add_argument("-o", "--out")
+    a = ap.parse_args()
+
+    s = serial.Serial(a.port, 1_000_000, timeout=1)
+    time.sleep(0.05)
+    commands = ["O", "F%08x\n" % tw(a.f0)]               # open the loop, set the centre
+    if a.test_offset is not None:
+        commands += ["T%08x\n" % tw(a.f0 + a.test_offset), "X"]   # the DAC plays a test tone
+    else:
+        commands += ["L"]                                  # the DAC plays the oscillator
+    commands += ["C"]                                      # close the loop
+    for c in commands:
+        s.write(c.encode())
+        time.sleep(0.02)
+
+    s.reset_input_buffer()
+    s.readline()                                           # drop a partial line
+    rows = []
+    t0 = time.time()
+    while time.time() - t0 < a.seconds:
+        p = s.readline().split()
+        if len(p) != 3:
+            continue
+        t, i, q = int(p[0], 16), s32(int(p[1], 16)), s32(int(p[2], 16))
+        rows.append((time.time() - t0, (t - tw(a.f0)) * 50e6 / 2**32, i, q))
+        print("%6.2f s  oscillator %+10.4f Hz from f0   I %9d  Q %8d  phase error %+7.3f deg" %
+              (rows[-1][0], rows[-1][1], i, q, np.degrees(np.arctan2(q, i))), flush=True)
+    if a.out:
+        np.savez(a.out, rows=np.array(rows), f0=a.f0)
+```
+
+Looped back on one board (the DAC playing a test tone, the PLL following it
+through the cable), it locked to tones 2 Hz, 100 Hz and ±1000 Hz away, with a
+phase error under 1°. A tone 1 kHz away took about a second to pull in, since
+the integrator has to wind up first. One 3 kHz away was out of its reach in
+the 1.2 s allowed. Between two boards, B locks to A's sine and plays its own
+oscillator back, and A's lock-in watches:
+
+<!-- file: twoboard/pll_pair.py -->
+```python
+#!/usr/bin/env python3
+"""Discipline one board's oscillator to another's, in hardware.
+
+    python3 pll_pair.py PORT_A PORT_B --open 20 --closed 40 -o pll_pair.npz
+
+A runs lockin.v at 1 MHz: it plays A's sine and measures whatever comes back.
+B runs pll.v with its DAC playing its own oscillator (command L), locked to A's sine.
+With B's loop open, A sees B's free-running crystal: a beat.  Closed, B sends A's
+own frequency back, and the beat stops.
+"""
+import argparse
+import threading
+import time
+
+import numpy as np
+import serial
+
+
+def tw(f):
+    return int(round(f / 50e6 * 2**32))
+
+
+def s32(v):
+    return v - (1 << 32) if v & (1 << 31) else v
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument("port_a")
+ap.add_argument("port_b")
+ap.add_argument("--open", type=float, default=20, help="seconds with B's loop open")
+ap.add_argument("--closed", type=float, default=40, help="then seconds with it closed")
+ap.add_argument("-o", "--out", default="pll_pair.npz")
+a = ap.parse_args()
+
+A = serial.Serial(a.port_a, 1_000_000, timeout=1)
+B = serial.Serial(a.port_b, 1_000_000, timeout=1)
+time.sleep(0.05)
+A.reset_input_buffer()
+B.reset_input_buffer()
+TW = tw(1e6)
+A.write(b"%08x\n" % TW)                            # A: lock-in at 1 MHz
+for c in ("O", "F%08x\n" % TW, "L"):               # B: loop open, centre 1 MHz, play the oscillator
+    B.write(c.encode())
+    time.sleep(0.02)
+
+LA, LB = [], []
+t0 = time.time()
+stop = False
+
+
+def read_a():                                      # A's lock-in: B's sine, as A sees it
+    while not stop:
+        p = A.readline().split()
+        if len(p) != 3:
+            continue
+        try:
+            t, x, y = (int(v, 16) for v in p)
+        except ValueError:
+            continue
+        if t == TW:
+            LA.append((time.time() - t0, s32(x), s32(y)))
+
+
+def read_b():                                      # B's PLL: its correction, I and Q
+    while not stop:
+        p = B.readline().split()
+        if len(p) != 3:
+            continue
+        try:
+            LB.append((time.time() - t0, (int(p[0], 16) - TW) * 50e6 / 2**32,
+                       s32(int(p[1], 16)), s32(int(p[2], 16))))
+        except ValueError:
+            pass
+
+
+threads = [threading.Thread(target=read_a), threading.Thread(target=read_b)]
+for t in threads:
+    t.start()
+time.sleep(a.open)
+B.write(b"C")                                      # close B's loop
+t_close = time.time() - t0
+time.sleep(a.closed)
+stop = True
+for t in threads:
+    t.join()
+
+LA, LB = np.array(LA), np.array(LB)
+np.savez(a.out, A=LA, B=LB, t_close=t_close)
+phase = np.unwrap(np.angle(LA[:, 1] + 1j * LA[:, 2])) / (2 * np.pi)      # turns
+for name, sel in (("open", LA[:, 0] < t_close - 1), ("closed (last 20 s)", LA[:, 0] > LA[-1, 0] - 20)):
+    p = np.polyfit(LA[sel, 0], phase[sel], 1)
+    rest = (phase[sel] - np.polyval(p, LA[sel, 0])) * 360
+    print("%-20s A sees B's sine turning at %+.5f Hz; phase scatter %.3f deg rms" % (name, p[0], rest.std()))
+locked = LB[:, 0] > LB[-1, 0] - 20
+print("B's correction when locked: %+.4f Hz (= A's crystal minus B's, at 1 MHz)" % LB[locked, 1].mean())
+```
+
+```console
+$ python3 pll_pair.py $A $B --open 20 --closed 40
+open                 A sees B's sine turning at +1.22035 Hz; phase scatter 28.052 deg rms
+closed (last 20 s)   A sees B's sine turning at -0.00000 Hz; phase scatter 0.067 deg rms
+B's correction when locked: -1.0750 Hz (= A's crystal minus B's, at 1 MHz)
+```
+
+![A hardware PLL between two boards](IcepiZeroADCDAC_tutorials/img/tb_pllpair.png)
+
+Once the loop closes, B's oscillator is a copy of A's clock. What A sees of it
+wanders by 0.07° at 1 MHz, which is 0.2 ns, against the tens of nanoseconds of
+two free-running crystals (10.2, 10.4). The bottom panel is B's correction
+creeping from −1.2 to −1.05 Hz over 40 s. That's A's crystal drifting (A had
+just been heated in 10.3), and B following it. This is exactly how a
+GPS-disciplined oscillator works, with A's sine in place of GPS.
+
+**Try this:**
+
+- Change the shifts (`>>> 10` and `>>> 17`) to make the loop faster or
+  slower. Measure its step response with `pll_test.py --test-offset`, by
+  jumping the test tone 10 Hz.
+- Make the loop wider than the crystals' wander (10.2), and then narrower.
+  Which one lets more of A's wander through, and which more of B's?
+- Close the loop on both boards at once. What frequency do they agree on?
+  (Compare 10.5's mutual coupling.)
+
+### 10.6 A modem in Verilog
+
+Until now the laptop did the thinking. This experiment needs no laptop arithmetic at
+all. `modem.v` is a *frequency-shift-keying* modem, like the ones that once
+carried the internet over telephone lines, only a thousand times faster. The
+line from your laptop picks the transmitted tone, and the receiver turns tones back
+into a line to the other laptop. Type into one board's terminal, and the text
+comes out of the other's.
+
+- **Transmit:** a DDS whose tuning word follows the laptop's serial line: 6.25 MHz
+  for a 1 (*mark*), 3.125 MHz for a 0 (*space*). Only the step size changes,
+  never the phase, so the tone switches without a jump.
+- **Receive:** the lock-in idea again, twice. Each ADC sample is multiplied by
+  cos and sin of both tones, and the products are summed over the last 16
+  samples (0.64 µs). In 16 samples the mark makes exactly 4 cycles and the
+  space 2, so each detector sums the *other* tone to zero. That is the same
+  orthogonality that makes OFDM work. Whichever tone has more energy, I² + Q²,
+  drives the line to the other laptop.
+
+The modem never looks at the bits. It doesn't know where a byte starts, or what
+baud rate the laptops chose. It carries a level, and the UARTs at either end do the
+rest.
+
+<!-- file: twoboard/modem.v -->
+```verilog
+// modem.v -- a frequency-shift-keying modem: text typed into this board's serial
+// port travels down the cable as two tones and comes out of the other board's port.
+//
+// Transmit: the line from the laptop (uart_rx: 1 when idle) picks the DAC's tone,
+//           MARK = 6.25 MHz for 1, SPACE = 3.125 MHz for 0, without phase jumps.
+// Receive:  the ADC's samples (25 MS/s) are mixed with both tones and summed over a
+//           16-sample (0.64 us) window -- 4 cycles of MARK, 2 of SPACE, so the two
+//           detectors ignore each other's tone -- and whichever tone has more energy
+//           sets the line back to the laptop (uart_tx).  No signal at all reads as idle (1).
+//
+// The modem never looks at the bits: it carries whatever baud rate the laptops use, up to
+// what a 0.64 us window can resolve (about 1 Mbaud).
+module modem (
+    input  wire       clk,          // 50 MHz
+    input  wire       uart_rx,      // from the laptop
+    output reg        uart_tx = 1,  // to the laptop
+    output reg  [7:0] dac_d = 128,
+    output wire       dac_clk,
+    input  wire [7:0] adc_d,
+    output wire       adc_clk,
+    output wire [4:0] led
+);
+    // ---- transmitter: a phase accumulator whose step follows the laptop's line ------
+    reg rx1 = 1, rx2 = 1;
+    always @(posedge clk) begin rx1 <= uart_rx; rx2 <= rx1; end
+    reg [31:0] phase = 0;
+    localparam [31:0] TW_MARK = 32'h2000_0000, TW_SPACE = 32'h1000_0000;   // 1/8 and 1/16 of 50 MHz
+    reg signed [7:0] sine_table [0:255];
+    integer i;
+    initial for (i = 0; i < 256; i = i + 1)
+        sine_table[i] = $rtoi($floor(100.0 * $sin(6.283185307179586 * i / 256) + 0.5));
+    always @(posedge clk) begin
+        phase <= phase + (rx2 ? TW_MARK : TW_SPACE);
+        dac_d <= sine_table[phase[31:24]] + 128;
+    end
+    assign dac_clk = ~clk;
+
+    // ---- the ADC at 25 MS/s, as in capture.v ------------------------------------
+    reg adc_clk_r = 0, new_sample = 0;
+    reg signed [8:0] x = 0;
+    always @(posedge clk) begin
+        adc_clk_r  <= ~adc_clk_r;
+        new_sample <= 0;
+        if (adc_clk_r == 0) begin
+            x <= $signed({1'b0, adc_d}) - 9'sd128;
+            new_sample <= 1;
+        end
+    end
+    assign adc_clk = adc_clk_r;
+
+    // ---- receiver: mix with both tones, sum over 16 samples ----------------------
+    // MARK  = fs/4: cos = 1,0,-1,0   sin = 0,1,0,-1
+    // SPACE = fs/8: cos = 1,c,0,-c,-1,-c,0,c  with c = 181/256 = 0.707
+    reg [2:0] n = 0;
+    reg signed [17:0] pmi, pmq, psi, psq;            // this sample times each reference
+    wire signed [17:0] xc = (x * 181) >>> 8;
+    always @(posedge clk) if (new_sample) begin
+        n <= n + 1;
+        case (n[1:0]) 0: begin pmi <= x;  pmq <= 0;  end
+                      1: begin pmi <= 0;  pmq <= x;  end
+                      2: begin pmi <= -x; pmq <= 0;  end
+                      3: begin pmi <= 0;  pmq <= -x; end endcase
+        case (n)      0: begin psi <= x;   psq <= 0;   end
+                      1: begin psi <= xc;  psq <= xc;  end
+                      2: begin psi <= 0;   psq <= x;   end
+                      3: begin psi <= -xc; psq <= xc;  end
+                      4: begin psi <= -x;  psq <= 0;   end
+                      5: begin psi <= -xc; psq <= -xc; end
+                      6: begin psi <= 0;   psq <= -x;  end
+                      7: begin psi <= xc;  psq <= -xc; end endcase
+    end
+    // running sums over the last 16 products (a 16-deep delay line for each)
+    reg signed [17:0] dmi [0:15], dmq [0:15], dsi [0:15], dsq [0:15];
+    reg signed [21:0] smi = 0, smq = 0, ssi = 0, ssq = 0;
+    reg [3:0] k = 0;
+    reg step = 0;
+    always @(posedge clk) begin
+        step <= new_sample;                       // one clock after the products update
+        if (step) begin
+            smi <= smi + pmi - dmi[k]; dmi[k] <= pmi;
+            smq <= smq + pmq - dmq[k]; dmq[k] <= pmq;
+            ssi <= ssi + psi - dsi[k]; dsi[k] <= psi;
+            ssq <= ssq + psq - dsq[k]; dsq[k] <= psq;
+            k <= k + 1;
+        end
+    end
+    // energies and the decision
+    reg [43:0] em = 0, es = 0;
+    always @(posedge clk) begin
+        em <= smi * smi + smq * smq;
+        es <= ssi * ssi + ssq * ssq;
+        uart_tx <= (em >= es) || (em + es < 44'd40000);   // no signal: idle
+    end
+    assign led = {~uart_tx, ~rx2, 3'b0};
+endmodule
+```
+
+```bash
+cd twoboard
+make load-modem SERIAL=DP0525BU; make load-modem SERIAL=DP051TLX
+screen $A 115200        # in one terminal
+screen $B 115200        # in another: type in either, read in the other
+```
+
+<!-- file: twoboard/modem_test.py -->
+```python
+#!/usr/bin/env python3
+"""Full-duplex test of two boards running modem.v: each laptop port sends random bytes to the
+other at the same time, and each checks what arrives.
+
+    python3 modem_test.py PORT_A PORT_B [--baud 1000000] [--bytes 20000]
+"""
+import argparse
+import os
+import threading
+import time
+
+import serial
+
+ap = argparse.ArgumentParser()
+ap.add_argument("port_a")
+ap.add_argument("port_b")
+ap.add_argument("--baud", type=int, default=1_000_000)
+ap.add_argument("--bytes", type=int, default=20000)
+a = ap.parse_args()
+
+A = serial.Serial(a.port_a, a.baud, timeout=0.5)
+B = serial.Serial(a.port_b, a.baud, timeout=0.5)
+time.sleep(0.05)
+A.reset_input_buffer()
+B.reset_input_buffer()
+data_a, data_b = os.urandom(a.bytes), os.urandom(a.bytes)
+got = {"A": bytearray(), "B": bytearray()}
+
+
+def reader(name, port):
+    """Read until the line goes quiet for 0.5 s.  Reading while writing matters: Linux keeps
+    only about 4 kB for a port that nobody is reading."""
+    while True:
+        chunk = port.read(65536)
+        if not chunk:
+            break
+        got[name].extend(chunk)
+
+
+readers = [threading.Thread(target=reader, args=("A", A)), threading.Thread(target=reader, args=("B", B))]
+for t in readers:
+    t.start()
+writers = [threading.Thread(target=A.write, args=(data_a,)), threading.Thread(target=B.write, args=(data_b,))]
+for t in writers:
+    t.start()
+for t in writers + readers:
+    t.join()
+
+for src, dst, sent in (("A", "B", data_a), ("B", "A", data_b)):
+    received = bytes(got[dst])
+    wrong = sum(x != y for x, y in zip(sent, received)) + abs(len(sent) - len(received))
+    print("%s -> %s at %d baud: %d of %d bytes arrived, %d wrong" %
+          (src, dst, a.baud, len(received), len(sent), wrong))
+```
+
+Between two boards, both directions at once (`modem_test.py`, 20,000 random
+bytes each way, sent at the same time), and looped back on one board, there
+were **no errors at any speed up to 2.5 Mbaud**:
+
+| baud | bit length | errors in 20 000 bytes |
+| ---: | ---: | ---: |
+| 115 200 to 1 000 000 | 25–217 samples | 0 (both ways, and looped back) |
+| 1 500 000 | 16.7 samples | 0 (looped back) |
+| 2 000 000 | 12.5 samples | 0 (both ways, and looped back) |
+| 2 500 000 | 10.0 samples | 0 (both ways, and looped back) |
+| 3 000 000 | 8.3 samples | 19 938 (everything; looped back) |
+
+The limit is the window. The detector decides on the last 16 samples, so a
+lone bit has to fill more than half of it, at least 8 samples, or the
+neighbouring bits outvote it. That puts the limit near 25 MS/s ÷ 8 ≈ 3.1 Mbaud,
+and 3 Mbaud (8.3 samples per bit) is right on the edge. A longer window would
+reject more noise but carry fewer bits. A shorter one needs tones further apart.
+This trade between time and bandwidth is the uncertainty principle of signal
+processing.
+
+**Two Linux computers on one cable.** The modem doesn't care what drives its
+serial line, so it can be a serial port of Part 8's Linux SoC instead of the laptop.
+`make_modem_linux.py` builds the stock Icepi Zero SoC with a second LiteX UART.
+Its transmit line drives `modem.v`'s transmitter inside the FPGA, and the
+modem's receiver drives its receive line. A node in the device tree tells
+Linux about it, and it appears as `/dev/ttyLXU1`.
+
+<!-- file: twoboard/make_modem_linux.py -->
+```python
+#!/usr/bin/env python3
+"""A Linux SoC whose second serial port is modem.v: two FPGA Linux computers, talking
+through their DACs, ADCs and the cables.
+
+Run it from the linux-on-litex-vexriscv directory, like Part 8's make_linux.py:
+
+    cd ~/openfpga/linux-on-litex-vexriscv
+    python3 <this dir>/make_modem_linux.py --board=icepi_zero_modem --build --uart-baudrate=460800
+
+The SoC is the stock icepi_zero (as in Part 8) plus a second LiteX UART at 115200 baud
+with 512-byte FIFOs.  (At 1 Mbaud, with 64-byte FIFOs, Linux on this 50 MHz CPU could not
+empty the receive FIFO in time and lost most of a 32 kB file; the modem itself carries
+2.5 Mbaud.)
+Inside the FPGA, that UART's transmit line drives modem.v's transmitter and modem.v's
+receiver drives the UART's receive line, so Linux sees /dev/ttyLXU1, and whatever is
+written to it on one board can be read from it on the other.  The device tree goes to
+images_modem/rv32.dtb (copy Image, rootfs.cpio.gz and opensbi.bin there from images_adda).
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "litex"))
+sys.path.insert(0, os.getcwd())
+
+from migen import ClockSignal, Instance, Record, Signal
+from litex.soc.cores.uart import RS232PHY, UART
+import make      # linux-on-litex-vexriscv's make.py
+import boards
+from litex_boards.targets import icepi_zero
+from adda_litex import adda_pins
+
+IMAGES = "images_modem"
+
+
+def add_modem(soc, baudrate=115_200, fifo=512):
+    soc.platform.add_extension(adda_pins)
+    soc.platform.add_source(os.path.join(HERE, "modem.v"))
+    pins = soc.platform.request("adda")
+    line = Record([("tx", 1), ("rx", 1)])          # a serial line that never leaves the chip
+    soc.uart1_phy = RS232PHY(line, soc.sys_clk_freq, baudrate=baudrate)
+    soc.uart1 = UART(soc.uart1_phy, tx_fifo_depth=fifo, rx_fifo_depth=fifo)
+    soc.irq.add("uart1", use_loc_if_exists=True)
+    soc.specials += Instance("modem",
+        i_clk=ClockSignal("sys"),
+        i_uart_rx=line.tx,                         # what Linux sends -> tones
+        o_uart_tx=line.rx,                         # tones from the other board -> Linux
+        o_dac_d=pins.dac_d, o_dac_clk=pins.dac_clk,
+        i_adc_d=pins.adc_d, o_adc_clk=pins.adc_clk,
+        o_led=Signal(5))
+
+
+class IcepiZeroModemSoC(icepi_zero.BaseSoC):
+    def __init__(self, **kwargs):
+        icepi_zero.BaseSoC.__init__(self, **kwargs)
+        add_modem(self)
+
+
+class Icepi_zero_modem(boards.Icepi_zero):
+    def __init__(self):
+        boards.Board.__init__(self, IcepiZeroModemSoC, soc_capabilities={"serial", "sdcard", "leds"})
+
+
+make.supported_boards["icepi_zero_modem"] = Icepi_zero_modem
+
+DTS_NODE = """
+/ {{
+    soc {{
+        liteuart1: serial@{base:x} {{
+            compatible = "litex,liteuart";
+            reg = <0x{base:x} 0x100>;
+            interrupts = <{irq}>;
+            status = "okay";
+        }};
+    }};
+}};
+"""
+
+
+def write_dtb(board_name):
+    build = os.path.join("build", board_name)
+    csr = json.load(open(os.path.join(build, "csr.json")))
+    dts_file = os.path.join(build, board_name + ".dts")
+    dts = open(dts_file).read()
+    import re
+    m = re.search(r"linux,initrd-start = <(0x[0-9a-f]+)>", dts)
+    if m:
+        end = int(m.group(1), 16) + os.path.getsize(os.path.join(IMAGES, "rootfs.cpio.gz"))
+        dts = re.sub(r"linux,initrd-end   = <0x[0-9a-f]+>", "linux,initrd-end   = <0x%x>" % end, dts)
+    dts += DTS_NODE.format(base=csr["csr_bases"]["uart1"], irq=csr["constants"]["uart1_interrupt"])
+    open(dts_file, "w").write(dts)
+    subprocess.check_call(["dtc", "-O", "dtb", "-o", os.path.join(IMAGES, "rv32.dtb"), dts_file])
+    shutil.copy(os.path.join("images", "boot_ram0.json"), os.path.join(IMAGES, "boot.json"))
+    print(f"Device tree with a second liteuart: {IMAGES}/rv32.dtb")
+
+
+if __name__ == "__main__":
+    os.makedirs(IMAGES, exist_ok=True)
+    stock_dtb = os.path.join("images", "rv32.dtb")
+    saved = open(stock_dtb, "rb").read() if os.path.exists(stock_dtb) else None
+    try:
+        make.main()
+    finally:
+        if saved is not None:
+            open(stock_dtb, "wb").write(saved)
+    write_dtb([a.split("=", 1)[1] for a in sys.argv if a.startswith("--board=")][0])
+```
+
+Two things had to change before it worked, and both are worth knowing:
+
+- **The kernel allowed only one LiteX UART.** The first boot printed
+  `liteuart f0003800.serial: probe with driver liteuart failed with error -22`.
+  The driver registers `CONFIG_SERIAL_LITEUART_MAX_PORTS` ports, and the
+  default is 1. `linux/kernel_modules.config` (Part 8) now sets it to 2. The
+  kernel and root file system rebuild in 35 s
+  (`make O=$HOME/openfpga/buildroot-icepi linux-reconfigure all`), and the
+  change makes no difference to boards with one UART.
+- **Linux on a 50 MHz CPU can't keep up with 1 Mbaud.** With the UART at
+  1 Mbaud and 64-byte FIFOs, a 32 kB file arrived as 1040 bytes: the receive
+  FIFO filled in 0.64 ms and overflowed before Linux emptied it. At
+  115 200 baud with 512-byte FIFOs, Linux has 45 ms of slack, and it copes.
+
+```bash
+cd ~/openfpga/linux-on-litex-vexriscv
+python3 <path>/twoboard/make_modem_linux.py --board=icepi_zero_modem --build --uart-baudrate=460800
+mkdir -p images_modem; cp ~/openfpga/buildroot-icepi/images/{Image,rootfs.cpio.gz} images_adda/opensbi.bin images_modem/
+python3 <path>/twoboard/make_modem_linux.py --board=icepi_zero_modem --uart-baudrate=460800   # device tree for these files
+# then for each board, one at a time (8.3):
+openFPGALoader -b icepi-zero --usb-serial-num DP0525BU build/icepi_zero_modem/gateware/icepi_zero_modem.bit && \
+litex_term --speed=460800 --images=images_modem/boot.json $A
+```
+
+Then, on the receiving board, *first*, then the sending one:
+
+```console
+B# cat /dev/ttyLXU1 > /tmp/rx.bin &                 (B starts listening first)
+A# dd if=/dev/urandom of=/tmp/tx.bin bs=1024 count=32; md5sum /tmp/tx.bin
+59a83427647b4d109a532a400ddb2448  /tmp/tx.bin
+A# time cat /tmp/tx.bin > /dev/ttyLXU1
+real	0m 3.18s
+B# killall cat; ls -l /tmp/rx.bin; md5sum /tmp/rx.bin
+-rw-r--r--    1 root     root         32768 Jan  1 00:03 /tmp/rx.bin
+59a83427647b4d109a532a400ddb2448  /tmp/rx.bin
+```
+
+That is 32 kB in 3.2 s (10 kB/s, near the 11.5 kB/s that 115,200 baud allows),
+from one Linux computer to another through two FPGAs, a DAC, a cable and an ADC.
+It worked in both directions (three files A → B and one B → A), with one
+exception. The very first file, sent seconds after B had booted, arrived
+6% short, because B's start-up scripts were still running and its receive
+FIFO overflowed. Bytes sent to a serial port that nobody has open are thrown
+away too, so the receiver has to be listening first.
+
+**A network.** A serial line can carry IP. SLIP, from 1988, is the simplest
+way: each IP packet is sent as raw bytes, with a special byte marking the end.
+With `CONFIG_SLIP=y` in the kernel and BusyBox's `slattach` and `nc` (both are
+in Part 8's configuration files), the two boards become a two-computer network:
+
+```console
+A# slattach -p slip -s 115200 /dev/ttyLXU1 &
+A# ifconfig sl0 10.0.0.1 pointopoint 10.0.0.2 up
+B# slattach -p slip -s 115200 /dev/ttyLXU1 &
+B# ifconfig sl0 10.0.0.2 pointopoint 10.0.0.1 up
+A# ping -c 5 10.0.0.2
+64 bytes from 10.0.0.2: seq=0 ttl=64 time=51.036 ms
+64 bytes from 10.0.0.2: seq=1 ttl=64 time=49.892 ms
+64 bytes from 10.0.0.2: seq=2 ttl=64 time=48.847 ms
+64 bytes from 10.0.0.2: seq=3 ttl=64 time=43.247 ms
+64 bytes from 10.0.0.2: seq=4 ttl=64 time=44.433 ms
+5 packets transmitted, 5 packets received, 0% packet loss
+B# nc -l -p 5000 > /tmp/rx.bin &
+A# nc 10.0.0.2 5000 < /tmp/tx.bin              (32 kB of random bytes, by TCP)
+B# md5sum /tmp/rx.bin                           (the same as A's /tmp/tx.bin)
+192d7b31e257c3332917de1af9880f3b  /tmp/rx.bin
+A# ping -c 20 -s 1000 10.0.0.2 | tail -2
+20 packets transmitted, 20 packets received, 0% packet loss
+round-trip min/avg/max = 253.146/258.960/283.574 ms
+```
+
+That's `ping` and TCP between two computers built inside FPGAs, over two DACs,
+two cables, two ADCs and two FSK modems. The round trip time is mostly
+physics. A 1000-byte ping is 1028 bytes of IP, 10 bits a byte on the wire at
+115,200 baud: 89 ms each way, or 178 ms of the 259. The rest is two 50 MHz CPUs
+handling the packets, and that rest is also most of a small ping's 47 ms.
+
+**How much noise can it take?** A receiver's real test is noise: how fast do
+its errors grow as the signal gets weaker? `modem_noise.v` is `modem.v` with
+three knobs. `NOISE` adds white noise to the transmitted tone, `AMP` sets the
+tone's amplitude, and `LOGWIN` sets the receiver's window to 2^LOGWIN samples.
+With the defaults it *is* `modem.v`. The noise is made in the FPGA. A 32-bit
+xorshift generator produces four random bytes every clock, and their sum is
+nearly Gaussian, as the central limit theorem promises for a sum of a few
+independent things. Its standard deviation is 147.8, scaled by NOISE/256, or
+0.577 × NOISE DAC codes.
+
+<!-- file: twoboard/modem_noise.v -->
+```verilog
+// modem_noise.v -- modem.v with three knobs, for measuring error rate against noise:
+//
+//   NOISE   white noise added to the transmitted tone: about 0.577 * NOISE DAC codes rms
+//   AMP     the tone's amplitude in DAC codes (modem.v: 100)
+//   LOGWIN  the receiver's window is 2^LOGWIN samples (modem.v: 4, i.e. 16 samples)
+//
+// With the defaults (NOISE = 0, AMP = 100, LOGWIN = 4) it is modem.v.  Everything else
+// is as in modem.v: MARK = 6.25 MHz for 1, SPACE = 3.125 MHz for 0; the ADC at 25 MS/s
+// is mixed with both tones and summed over the window, and the stronger tone wins.
+module modem_noise #(parameter integer NOISE = 0, parameter integer AMP = 100,
+                     parameter integer LOGWIN = 4) (
+    input  wire       clk,          // 50 MHz
+    input  wire       uart_rx,      // from the laptop
+    output reg        uart_tx = 1,  // to the laptop
+    output reg  [7:0] dac_d = 128,
+    output wire       dac_clk,
+    input  wire [7:0] adc_d,
+    output wire       adc_clk,
+    output wire [4:0] led
+);
+    localparam integer W = 1 << LOGWIN;                   // window, in samples
+    // ---- transmitter: a phase accumulator whose step follows the laptop's line ------
+    reg rx1 = 1, rx2 = 1;
+    always @(posedge clk) begin rx1 <= uart_rx; rx2 <= rx1; end
+    reg [31:0] phase = 0;
+    localparam [31:0] TW_MARK = 32'h2000_0000, TW_SPACE = 32'h1000_0000;   // 1/8 and 1/16 of 50 MHz
+    reg signed [7:0] sine_table [0:255];
+    integer i;
+    initial for (i = 0; i < 256; i = i + 1)
+        sine_table[i] = $rtoi($floor(AMP * $sin(6.283185307179586 * i / 256) + 0.5));
+    // ---- noise: the four bytes of a 32-bit xorshift generator, added up (a sum of
+    //      four nearly independent bytes is nearly Gaussian); it repeats after 2^32 - 1
+    //      clocks, 86 s
+    reg  [31:0] r = 32'h2545_f491;
+    wire [31:0] r1 = r ^ (r << 13), r2 = r1 ^ (r1 >> 17), r3 = r2 ^ (r2 << 5);
+    reg signed [10:0] gsum = 0;                     // sum of four bytes, minus the mean
+    reg signed [19:0] scaled = 0;
+    reg signed [9:0]  tone = 0;
+    always @(posedge clk) begin
+        r      <= r3;
+        gsum   <= $signed({3'b0, r[7:0]}) + $signed({3'b0, r[15:8]}) + $signed({3'b0, r[23:16]})
+                + $signed({3'b0, r[31:24]}) - 11'sd510;
+        scaled <= gsum * NOISE;
+        phase  <= phase + (rx2 ? TW_MARK : TW_SPACE);
+        tone   <= sine_table[phase[31:24]];
+    end
+    wire signed [11:0] v = 12'sd128 + tone + (scaled >>> 8);
+    always @(posedge clk) dac_d <= (v < 0) ? 8'd0 : (v > 255) ? 8'd255 : v[7:0];   // clip
+    assign dac_clk = ~clk;
+
+    // ---- the ADC at 25 MS/s, as in capture.v ------------------------------------
+    reg adc_clk_r = 0, new_sample = 0;
+    reg signed [8:0] x = 0;
+    always @(posedge clk) begin
+        adc_clk_r  <= ~adc_clk_r;
+        new_sample <= 0;
+        if (adc_clk_r == 0) begin
+            x <= $signed({1'b0, adc_d}) - 9'sd128;
+            new_sample <= 1;
+        end
+    end
+    assign adc_clk = adc_clk_r;
+
+    // ---- receiver: mix with both tones, sum over the window ----------------------
+    reg [2:0] n = 0;
+    reg signed [17:0] pmi, pmq, psi, psq;            // this sample times each reference
+    wire signed [17:0] xc = (x * 181) >>> 8;
+    always @(posedge clk) if (new_sample) begin
+        n <= n + 1;
+        case (n[1:0]) 0: begin pmi <= x;  pmq <= 0;  end
+                      1: begin pmi <= 0;  pmq <= x;  end
+                      2: begin pmi <= -x; pmq <= 0;  end
+                      3: begin pmi <= 0;  pmq <= -x; end endcase
+        case (n)      0: begin psi <= x;   psq <= 0;   end
+                      1: begin psi <= xc;  psq <= xc;  end
+                      2: begin psi <= 0;   psq <= x;   end
+                      3: begin psi <= -xc; psq <= xc;  end
+                      4: begin psi <= -x;  psq <= 0;   end
+                      5: begin psi <= -xc; psq <= -xc; end
+                      6: begin psi <= 0;   psq <= -x;  end
+                      7: begin psi <= xc;  psq <= -xc; end endcase
+    end
+    reg signed [17:0] dmi [0:W-1], dmq [0:W-1], dsi [0:W-1], dsq [0:W-1];
+    reg signed [17+LOGWIN:0] smi = 0, smq = 0, ssi = 0, ssq = 0;
+    reg [LOGWIN-1:0] k = 0;
+    reg step = 0;
+    always @(posedge clk) begin
+        step <= new_sample;
+        if (step) begin
+            smi <= smi + pmi - dmi[k]; dmi[k] <= pmi;
+            smq <= smq + pmq - dmq[k]; dmq[k] <= pmq;
+            ssi <= ssi + psi - dsi[k]; dsi[k] <= psi;
+            ssq <= ssq + psq - dsq[k]; dsq[k] <= psq;
+            k <= k + 1;
+        end
+    end
+    // energies and the decision.  "No signal" is now less than a third of the amplitude
+    // that a tone of AMP codes gives (modem.v's 40000 is this for AMP = 100, LOGWIN = 4).
+    localparam [63:0] QUIET = (AMP * W / 8) * (AMP * W / 8);
+    reg [2*(18+LOGWIN)-1:0] em = 0, es = 0;
+    always @(posedge clk) begin
+        em <= smi * smi + smq * smq;
+        es <= ssi * ssi + ssq * ssq;
+        uart_tx <= (em >= es) || (em + es < QUIET);
+    end
+    assign led = {~uart_tx, ~rx2, 3'b0};
+endmodule
+```
+
+One board looped back is enough: its DAC's tones go through the cable to its
+own ADC. `modem_ber.py` sends 100,000 random bytes through the modem at
+115,200 baud and counts the bits that come back wrong. It lines up what came
+back with what was sent first, because a corrupted start bit makes the laptop's
+UART lose or invent a byte, and comparing position by position would then call
+everything after it wrong.
+
+<!-- file: twoboard/modem_ber.py -->
+```python
+#!/usr/bin/env python3
+"""Count a modem's bit errors, on one board whose DAC is cabled to its own ADC.
+
+    python3 modem_ber.py PORT [--bytes 100000] [--baud 115200]
+
+Sends random bytes through the modem and lines up what comes back with what was sent.
+A corrupted start bit makes the laptop's UART lose or invent a byte, so a byte-by-byte
+comparison would count everything after it as wrong; difflib finds the matching runs.
+"""
+import argparse
+import difflib
+import os
+import threading
+import time
+
+import serial
+
+ap = argparse.ArgumentParser()
+ap.add_argument("port")
+ap.add_argument("--bytes", type=int, default=100000)
+ap.add_argument("--baud", type=int, default=115200)
+a = ap.parse_args()
+
+s = serial.Serial(a.port, a.baud, timeout=0.5)
+time.sleep(0.05)
+s.reset_input_buffer()
+sent, got = os.urandom(a.bytes), bytearray()
+deadline = time.time() + a.bytes * 10 / a.baud + 1
+
+
+def reader():
+    # until the line is quiet for 0.5 s, or the deadline: in heavy noise the idle tone
+    # makes false start bits, and garbage keeps arriving for ever
+    while time.time() < deadline:
+        chunk = s.read(65536)
+        if not chunk:
+            break
+        got.extend(chunk)
+
+
+t = threading.Thread(target=reader)
+t.start()
+s.write(sent)
+t.join()
+got = bytes(got)
+
+bits = 0
+for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, sent, got, autojunk=False).get_opcodes():
+    if op == "replace":                          # bytes that came back different
+        n = min(i2 - i1, j2 - j1)
+        bits += sum(bin(x ^ y).count("1") for x, y in zip(sent[i1:i1 + n], got[j1:j1 + n]))
+        bits += 8 * abs((i2 - i1) - (j2 - j1))
+    elif op == "delete" or (op == "insert" and i1 < len(sent)):   # lost, or invented
+        bits += 8 * max(i2 - i1, j2 - j1)
+print("%d bytes sent, %d received; %d bit errors in %d bits: BER %.2e" %
+      (len(sent), len(got), bits, 8 * len(sent), bits / (8 * len(sent))))
+```
+
+```console
+$ cd twoboard
+$ make modem_noise NOISE=86                        # makes modem_noise_86_100_4.bit
+$ make load-modem_noise_86_100_4 SERIAL=DP0525LR
+$ python3 modem_ber.py /dev/serial/by-id/usb-FTDI_FT231X_USB_UART_DP0525LR-if00-port0
+100000 bytes sent, 100000 received; 226 bit errors in 800000 bits: BER 2.82e-04
+```
+
+**What to expect.** Each detector sums W samples. A tone of amplitude A (in
+ADC codes) puts A·W/2 into its own detector and nothing into the other. Noise
+of σ per sample puts a variance of σ²W/2 into the I and the Q of both. The
+decision goes wrong when the detector with only noise in it comes out
+stronger than the one with the tone, and for two such detectors the
+probability works out to
+
+  P = ½ exp(−(AW/2)² / (4 · σ²W/2)) = ½ exp(−W · SNR / 4),  with SNR = A²/2σ²
+
+the signal-to-noise ratio of a single ADC sample. This is the textbook result
+for non-coherent FSK, ½ exp(−E/2N₀), where E/N₀ = W·SNR/2 is the SNR of the
+whole window. A window twice as long collects twice the energy, so it reaches
+the same error rate at half the SNR. A 128-sample window should need
+10 log₁₀ 8 = 9 dB less than 16 samples.
+
+**What happened.** For each setting the SNR per sample was measured, not
+assumed: a steady MARK tone plus the same noise, recorded with `capture.v`. A
+fitted sine is the signal, and what's left over is the noise. (It agrees with
+the knobs' prediction, SNR ≈ (AMP²/2) / (0.577·NOISE)² = 1.5 (AMP/NOISE)², to
+within 0.6 dB.) The same records, put through the receiver's arithmetic in
+numpy, give the error rate of the *decisions* alone, before any UART is
+involved. Each line is one run of 800,000 bits:
+
+| window | SNR per sample | theory | decisions | through the UART | bytes lost |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 16 (AMP 100) | 6.0 dB | 6 × 10⁻⁸ | 0 | 0 | 0 |
+| | 4.8 dB | 3.0 × 10⁻⁶ | 0 | 7.5 × 10⁻⁶ | 0 |
+| | 3.8 dB | 3.5 × 10⁻⁵ | 2.5 × 10⁻⁵ | 4.6 × 10⁻⁵ | 0 |
+| | 2.9 dB | 2.1 × 10⁻⁴ | 2.1 × 10⁻⁴ | 3.7 × 10⁻⁴ | 1 |
+| | 2.0 dB | 9.4 × 10⁻⁴ | 7.7 × 10⁻⁴ | 3.1 × 10⁻³ | 6 |
+| | 1.1 dB | 2.8 × 10⁻³ | 2.3 × 10⁻³ | 8.1 × 10⁻³ | 26 |
+| | 0.3 dB | 6.8 × 10⁻³ | 5.5 × 10⁻³ | 2.8 × 10⁻² | 139 |
+| | −1.6 dB | 3.2 × 10⁻² | 2.8 × 10⁻² | 0.27 | 2131 |
+| 128 (AMP 25) | −2.9 dB | 3 × 10⁻⁸ | 0 | 0 | 0 |
+| | −4.6 dB | 7.4 × 10⁻⁶ | 0 | 7.5 × 10⁻⁶ | 0 |
+| | −5.5 dB | 6.0 × 10⁻⁵ | 2.1 × 10⁻⁵ | 6.0 × 10⁻⁴ | 8 |
+| | −6.4 dB | 3.5 × 10⁻⁴ | 3.3 × 10⁻⁴ | 2.6 × 10⁻³ | 20 |
+| | −7.5 dB | 1.7 × 10⁻³ | 8.4 × 10⁻⁴ | 1.4 × 10⁻² | 113 |
+| | −8.4 dB | 4.9 × 10⁻³ | 3.1 × 10⁻³ | 4.3 × 10⁻² | 297 |
+| | −9.5 dB | 1.4 × 10⁻² | 1.3 × 10⁻² | 0.11 | 733 |
+| | −10.5 dB | 2.8 × 10⁻² | 2.2 × 10⁻² | 0.21 | 1311 |
+
+![FSK bit error rate against SNR](IcepiZeroADCDAC_tutorials/img/tb_fskber.png)
+
+- **The detector is as good as theory says.** The open circles, decisions
+  made on the recorded samples, sit on the lines for both windows. The
+  128-sample window does need 9 dB less SNR. At −10.5 dB it still decides
+  correctly 98% of the time, with noise 3.3 times stronger (in rms) than the
+  tone it is looking for.
+- **The UART makes it worse,** by a factor of 2 to 5 with 16 samples (more
+  at the lowest SNR) and 8 to 30 with 128. A UART times every byte from the
+  1 → 0 edge of its start bit, and hunts for that edge from the middle of the
+  previous stop bit. One wrong decision there makes it start the byte early,
+  and then several bits come out wrong instead of one, or a byte is lost (the
+  last column). A long
+  window adds a second problem: it blurs each edge over the whole window, so
+  noise moves the edge the UART sees. A simulation of the whole chain
+  (`tools/twoboard/fsk_sim.py`, with a plain 16×-oversampling UART) puts that
+  wander at 3 samples rms for 16-sample windows, against 101 samples of margin
+  ((217 − 16)/2), but at 14–22 samples rms for 128-sample windows, against
+  only 45. The simulated link error rates come within a factor of 2 of the
+  measured ones at the lower SNRs, and within 4 to 6 at the highest, where
+  errors are rare. (The FT231X's UART is surely not exactly the simulated
+  one.) With perfect bit timing, the simulation's errors fall back onto the
+  theory lines.
+- **The textbook receiver does better still.** It sums over the *whole* bit,
+  from one edge to the next ("integrate and dump"): 217 samples at
+  115,200 baud, 11.3 dB better than 16 samples in theory. But it has to know
+  the baud rate and find the bit edges itself. `modem.v` gives all that up to
+  stay blind to the baud rate, and pays for it in SNR.
+
+**The textbook receiver, built.** `tools/twoboard/modem_sync.v` (green in the
+figure) sums each tone over 216 samples, which hold whole cycles of both
+tones, and runs its own bit clock. At the end of each bit it decides, and
+sends the bit on to the laptop, so the laptop gets a clean copy of the line one bit
+late. To stay centred on the bits, it notes |E_m − E_s| 40 samples before and
+40 samples after each decision. If the decision comes late, the later window
+reaches further into the next bit, and whenever that bit differs, it shows
+less than the earlier window. Eight more votes one way than the other move the
+clock by a sample. This is an *early–late gate*, the simplest kind of clock
+recovery.
+
+Its first version got 11% of the bits wrong with no noise at all. The FT231X
+can't make 115,200 baud exactly: it divides 3 MHz by 26 and sends
+115,385 baud, so a bit is 216.67 samples, not 217. A UART starts afresh at
+every byte and never notices 0.16%. A free-running bit clock gains a third of
+a sample every bit, faster than eight votes can correct. With 216⅔ samples a
+bit (a fractional counter makes two bits in three 217 samples long), it carried
+100,000 bytes without an error. With noise, through the UART, it reaches a
+bit error rate of 10⁻³ at about −7.5 dB. That is 1.7 dB better than the
+128-sample window and 10 dB better than `modem.v`, against 2.3 and 11.3 dB in
+theory. Its link is still 10 to 35 times worse than the theory for single
+decisions, mostly because the UART pays for every wrong start or stop bit with
+a byte or more. (Its open circles count every window position, and neighbouring
+windows share most of their samples, so the rare-error end of the green
+circles rests on only a handful of independent events.)
+
+**Try this:**
+
+- Bring the tones closer together (say 4.6875 and 6.25 MHz) and find the new
+  limit. Is it what Δf × window ≥ 1 predicts?
+- Build the textbook receiver another way: find each start bit's falling
+  edge with a fast detector, then sum each tone over exactly one bit, ten sums
+  a byte, and compare it with `modem_sync.v`. (In a simulation, a 16-sample
+  edge detector was hopeless below −8 dB, where it is wrong a quarter of the
+  time. A bit clock averages over many edges.)
+- Let `modem_sync.v`'s votes adjust the bit length as well as the phase (a
+  second integrator, like `pll.v`'s), so that it follows a laptop whose baud rate
+  is off by a percent or two.
+- Drive a speaker with the DAC (through an amplifier) and make the tones
+  audible: 1200 Hz and 2200 Hz at 1200 baud is the Bell 202 standard of the
+  1970s.
+
+### 10.7 How fast can a cable talk? OFDM and Shannon's limit
+
+The modem of 10.6 spends a whole 6 MHz of bandwidth on a single bit at a time.
+Modern links (Wi-Fi, 4G and 5G, DSL, digital TV) do much better with
+*orthogonal frequency-division multiplexing*, OFDM, and it is Fourier analysis
+put to work:
+
+1. **Split the band into many narrow subcarriers.** Here a 256-point FFT at
+   25 MS/s gives subcarriers 97.66 kHz apart, and 113 of them (0.29 to
+   11.2 MHz) are used.
+2. **Put one complex number on each:** a point of a *QAM constellation*.
+   QAM-16 is a 4 × 4 grid of amplitudes and phases (4 bits); QAM-64 is 8 × 8
+   (6 bits); QAM-256 is 16 × 16 (8 bits).
+3. **The inverse FFT turns the 113 numbers into one stretch of waveform**, 256
+   samples, a *symbol*. Copy its last 32 samples in front, as a *cyclic
+   prefix*.
+4. **At the receiver, drop the prefix and take the FFT.** Because of the
+   prefix, the channel's smearing (a few samples long, as Part 3's loopback
+   showed) acts on each subcarrier as a single complex multiplication H(f). One
+   known *pilot* symbol measures H(f), and dividing by it undoes the whole
+   channel: cable, converters, filters, and the clock offset.
+
+`ofdm.py` builds 28 symbols per 8192-sample loop (a pilot and 27 data symbols)
+and plays them through `awgcap.v` at 50 MS/s, upsampled by 2. It records them
+on the other board, finds the frame by correlation, and decodes.
+
+<!-- file: twoboard/ofdm.py -->
+```python
+#!/usr/bin/env python3
+"""OFDM over the cable: a transmitter board (awgcap.v) loops an OFDM frame, a receiver
+board (awgcap.v) records it, and this script demodulates it.
+
+    python3 ofdm.py PORT_TX PORT_RX --qam 16 [--records 10]
+    python3 ofdm.py PORT_TX PORT_RX --sound         (channel sounding and Shannon capacity)
+
+The frame is designed at the ADC's 25 MS/s: 256-point FFT (97.66 kHz per subcarrier),
+a 32-sample cyclic prefix, one pilot symbol and 27 data symbols per 8192-sample loop,
+on subcarriers 3..115 (0.29-11.2 MHz).  It is played at 50 MS/s (upsampled by 2).
+The receiver's record starts at ITS OWN loop start, so the frame is found by
+correlation, and the transmitter's and receiver's clocks differ by about 1 ppm.
+"""
+import argparse
+import numpy as np
+import awgcap
+
+NFFT, CP, NSYM = 256, 32, 28
+L = 8192                         # one loop at 25 MS/s
+KS = np.arange(3, 116)           # used subcarriers
+FS = awgcap.FS_ADC
+
+
+def qam_map(bits, M):
+    """Gray-coded square QAM, unit average power."""
+    m = int(np.sqrt(M)); b = int(np.log2(m))
+    def pam(bb):
+        g = bb @ (1 << np.arange(b)[::-1])                 # Gray index
+        n = g ^ (g >> 1)
+        for s in (2, 4, 8):
+            n ^= n >> s
+        return 2 * n - (m - 1)
+    bits = bits.reshape(-1, 2 * b)
+    s = pam(bits[:, :b]) + 1j * pam(bits[:, b:])
+    return s / np.sqrt(2 * (M - 1) / 3)
+
+
+def qam_demap(s, M):
+    m = int(np.sqrt(M)); b = int(np.log2(m))
+    s = s * np.sqrt(2 * (M - 1) / 3)
+    def unpam(x):
+        n = np.clip(np.round((x + m - 1) / 2), 0, m - 1).astype(int)
+        g = n ^ (n >> 1)
+        return ((g[:, None] >> np.arange(b)[::-1]) & 1)
+    return np.hstack([unpam(s.real), unpam(s.imag)]).ravel()
+
+
+def frame(M, seed=7, rms=28.0, noise=0.0):
+    """Returns (waveform at 50 MS/s as codes, pilot symbols, data bits).  noise: rms of white
+    noise added to the data symbols' subcarriers, relative to the signal (0.1 = -20 dB)."""
+    rng = np.random.default_rng(seed)
+    pilot = np.exp(1j * np.pi / 2 * rng.integers(0, 4, len(KS)))        # QPSK
+    nb = int(np.log2(M)) * len(KS) * (NSYM - 1)
+    bits = rng.integers(0, 2, nb)
+    data = qam_map(bits, M).reshape(NSYM - 1, len(KS))
+    x = np.zeros(L)
+    for i in range(NSYM):
+        X = np.zeros(NFFT // 2 + 1, complex)
+        X[KS] = pilot if i == 0 else data[i - 1]
+        if i > 0 and noise:                          # in-band noise on the data symbols only
+            X[KS] += noise * (rng.normal(size=len(KS)) + 1j * rng.normal(size=len(KS))) / np.sqrt(2)
+        s = np.fft.irfft(X, NFFT)
+        x[i * (NFFT + CP):(i + 1) * (NFFT + CP)] = np.concatenate([s[-CP:], s])
+    x *= rms / x.std()
+    # play at 50 MS/s: perfect periodic interpolation by zero-padding the spectrum
+    Xf = np.fft.rfft(x); X2 = np.zeros(L + 1, complex); X2[:len(Xf)] = Xf
+    x50 = np.fft.irfft(X2, 2 * L) * 2
+    return np.clip(np.round(128 + x50), 0, 255), pilot, bits, x
+
+
+def demod(rec, M, pilot, bits, x_ref):
+    """Align, strip prefixes, FFT, equalise with the pilot, slice.  Returns per-loop
+    (bit errors, EVM per subcarrier)."""
+    out = []
+    for half in rec.reshape(2, L):
+        r = half - half.mean()
+        lag = np.argmax(np.fft.irfft(np.fft.rfft(r) * np.conj(np.fft.rfft(x_ref)), L))
+        r = np.roll(r, -lag)
+        Y = np.array([np.fft.rfft(r[i * (NFFT + CP) + CP:(i + 1) * (NFFT + CP)], NFFT)[KS] for i in range(NSYM)])
+        H = Y[0] / pilot
+        Z = Y[1:] / H
+        rb = qam_demap(Z.ravel(), M)
+        ideal = qam_map(bits, M).reshape(NSYM - 1, len(KS))
+        evm = np.sqrt(np.mean(np.abs(Z - ideal)**2, axis=0))           # per subcarrier, rms
+        out.append((int((rb != bits).sum()), evm, Z))
+    return out
+
+
+def sound(port_tx, port_rx, nrec=20):
+    """Multitone on every 25 MS/s bin; average records -> H(f), noise -> SNR(f)."""
+    rng = np.random.default_rng(11)
+    X = np.zeros(L // 2 + 1, complex); band = np.arange(1, L // 2 - 40)
+    X[band] = np.exp(2j * np.pi * rng.random(len(band)))
+    x = np.fft.irfft(X, L); x *= 28 / x.std()
+    Xf = np.fft.rfft(x); X2 = np.zeros(L + 1, complex); X2[:len(Xf)] = Xf
+    awgcap.upload(port_tx, np.clip(np.round(128 + np.fft.irfft(X2, 2 * L) * 2), 0, 255))
+    # Signal and noise from inside each record: it holds two loops of the same waveform,
+    # 327.68 us apart, so (loop1 + loop2)/2 is signal and (loop1 - loop2)/2 is noise.
+    # (Comparing DIFFERENT records would count the slow drift of the two boards' relative
+    # sampling phase as noise.)
+    f = np.fft.rfftfreq(L, 1 / FS)
+    sig = np.zeros(len(f)); noi = np.zeros(len(f)); Hs = []
+    for _ in range(nrec):
+        A, B = np.fft.rfft(awgcap.record(port_rx).reshape(2, L).astype(float), axis=1)
+        sig += np.abs((A + B) / 2)**2; noi += 2 * np.abs((A - B) / 2)**2
+        Hs.append(np.abs((A + B) / 2))
+    with np.errstate(invalid='ignore', divide='ignore'):
+        snr_single = sig / noi                    # SNR of ONE loop (8192 samples)
+    S = np.mean(Hs, axis=0)
+    sel = band
+    C = np.sum(np.log2(1 + snr_single[sel])) * FS / L
+    return f[sel], S[sel] / np.abs(np.fft.rfft(x)[sel]), snr_single[sel], C
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("port_tx"); ap.add_argument("port_rx")
+    ap.add_argument("--qam", type=int, default=16)
+    ap.add_argument("--records", type=int, default=10)
+    ap.add_argument("--sound", action="store_true")
+    ap.add_argument("-o", "--out", help="save the results (.npz)")
+    a = ap.parse_args()
+    if a.sound:
+        f, H, snr, C = sound(a.port_tx, a.port_rx)
+        for fm in (0.5e6, 2e6, 5e6, 8e6, 11e6, 12e6):
+            i = np.argmin(abs(f - fm)); print("%5.1f MHz: |H| %.3f, SNR %.1f dB" % (fm / 1e6, H[i], 10 * np.log10(snr[i])))
+        print("Shannon capacity of one record's worth of channel: %.1f Mbit/s" % (C / 1e6))
+        if a.out:
+            np.savez(a.out, f=f, H=H, snr=snr, C=C)
+    else:
+        wave, pilot, bits, x = frame(a.qam)
+        awgcap.upload(a.port_tx, wave)
+        rate = np.log2(a.qam) * len(KS) * (NSYM - 1) / (L / FS)
+        errs = nbits = 0; evms = []; Zs = []
+        for _ in range(a.records):
+            for e, evm, Z in demod(awgcap.record(a.port_rx), a.qam, pilot, bits, x):
+                errs += e; nbits += len(bits); evms.append(evm); Zs.append(Z)
+        evm = np.sqrt(np.mean(np.array(evms)**2, axis=0))
+        print("QAM-%d: %.1f Mbit/s while sending; %d errors in %d bits (BER %.2e); EVM %.1f%% rms (%.1f dB), best %.1f%%, worst %.1f%% at %.2f MHz" %
+              (a.qam, rate / 1e6, errs, nbits, errs / nbits, 100 * np.sqrt(np.mean(evm**2)), 20 * np.log10(np.sqrt(np.mean(evm**2))),
+               100 * evm.min(), 100 * evm.max(), KS[np.argmax(evm)] * FS / NFFT / 1e6))
+        if a.out:
+            np.savez(a.out, M=a.qam, Z=np.array(Zs[:4]), evm=evm, fk=KS * FS / NFFT, errs=errs, nbits=nbits, rate=rate)
+```
+
+```bash
+cd twoboard
+python3 ofdm.py $A $B --qam 64 --records 10       # A sends, B receives
+python3 ofdm.py $A $B --sound                     # channel sounding
+```
+
+| constellation | bits per subcarrier | data rate while sending | errors, board to board | errors, one board looped back | EVM |
+| --- | ---: | ---: | --- | --- | --- |
+| QAM-4 | 2 | 18.6 Mbit/s | — | 0 in 61 020 | 3.1% |
+| QAM-16 | 4 | 37.2 Mbit/s | 0 in 244 080 (each way) | 0 in 244 080 | 3.2–3.5% |
+| QAM-64 | 6 | **55.9 Mbit/s** | 0–17 in 366 120 (four runs) | 0 in 366 120 | 3.1–3.8% |
+| QAM-256 | 8 | 74.5 Mbit/s | — | BER 2.2 × 10⁻³ | 3.8% |
+
+![OFDM over the cable](IcepiZeroADCDAC_tutorials/img/tb_ofdm.png)
+
+The *error-vector magnitude* (EVM) is the rms distance of the received points
+from where they should be, relative to the signal. 3.1% is −30 dB: an SNR of
+30 dB, for all impairments together. That carries fifty-six megabits a second
+through two 8-bit converters, with at most 17 bit errors in 366,120
+(5 × 10⁻⁵). A 16 × 16 grid needs better than about 3% EVM, which is why
+QAM-256 starts to fail.
+
+**Shannon's limit.** A channel of bandwidth B and signal-to-noise ratio S/N
+carries at most C = B log₂(1 + S/N) bits per second, however clever the
+coding. `--sound` plays a flat multitone and compares each record's two
+loops: their sum is signal, their difference is noise. Against random noise
+alone the SNR is about 40 dB in every 3 kHz bin from 0 to 12.5 MHz, a capacity
+of 150–170 Mbit/s. But the 30 dB from the EVM, which counts *everything*
+(8-bit quantization, the converters' distortion, a channel measured from one
+noisy pilot), gives 11 MHz × log₂(1001) ≈ 110 Mbit/s for the band used. So
+QAM-64 at 56 Mbit/s reaches half of what Shannon allows, with no error-correcting
+code at all. Real links get within a few dB of the limit by adding one.
+
+**Errors against noise.** How does the error rate depend on SNR? Add known
+noise to the transmitted symbols (`frame(..., noise=...)`), and measure both
+the SNR, from the received points, and the error rate. Then compare with the
+textbook formula for Gray-coded square QAM in white noise:
+
+<!-- file: twoboard/ber_curve.py -->
+```python
+#!/usr/bin/env python3
+"""Bit error rate against signal-to-noise ratio for OFDM with QAM, by adding known
+noise to the transmitted symbols.  Compares with the textbook curve for Gray-coded
+square M-QAM.
+
+    python3 ber_curve.py PORT_TX PORT_RX -o ber.npz
+"""
+import argparse
+import numpy as np
+from math import erfc, sqrt
+import awgcap, ofdm
+
+
+def ber_theory(M, snr):
+    """Gray-coded square M-QAM in white noise; snr = Es/N0 per symbol (linear)."""
+    k = np.log2(M); m = sqrt(M)
+    return 4 / k * (1 - 1 / m) * 0.5 * np.array([erfc(sqrt(3 * s / (2 * (M - 1)))) for s in np.atleast_1d(snr)])
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("port_tx"); ap.add_argument("port_rx")
+    ap.add_argument("--records", type=int, default=4)
+    ap.add_argument("-o", "--out", default="ber.npz")
+    a = ap.parse_args()
+    rows = []
+    for M in (4, 16, 64):
+        for nz in (0.0, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35, 0.5, 0.7):
+            wave, pilot, bits, x = ofdm.frame(M, noise=nz)
+            awgcap.upload(a.port_tx, wave)
+            errs = nb = 0; ev = []
+            for _ in range(a.records):
+                for e, evm, Z in ofdm.demod(awgcap.record(a.port_rx), M, pilot, bits, x):
+                    errs += e; nb += len(bits); ev.append(evm)
+            evm = np.sqrt(np.mean(np.array(ev)**2))
+            snr = 1 / evm**2                       # measured Es/N0, everything included
+            rows.append((M, nz, snr, errs, nb))
+            print("QAM-%-3d added noise %.2f: SNR %5.1f dB, BER %.2e (%d/%d), theory at that SNR %.2e" %
+                  (M, nz, 10 * np.log10(snr), errs / nb, errs, nb, ber_theory(M, snr)[0]), flush=True)
+    np.savez(a.out, rows=np.array(rows))
+```
+
+![Bit error rate against SNR](IcepiZeroADCDAC_tutorials/img/tb_ber.png)
+
+The measured points sit on the theory curves. QAM-4 at 9.2 dB gave
+2.01 × 10⁻³ (theory 2.00 × 10⁻³), QAM-16 at 14.8 dB gave 4.85 × 10⁻³ (theory
+5.42 × 10⁻³), and QAM-64 at 21.3 dB gave 3.25 × 10⁻³ (theory 3.19 × 10⁻³).
+Each step from QAM-4 to 16 to 64 adds two bits per symbol, one each in I and Q,
+and costs about 6 dB, because halving the grid spacing in each direction
+needs the noise amplitude halved. Once you know a link's SNR, you know its
+error rate. Only at the noisiest end, where the formula's approximations stop
+holding, do the points leave the curves.
+
+Two things about 8-bit converters that the experiment shows:
+
+- **The signal level is a compromise.** An OFDM signal is noise-like, and its
+  peaks are 3–4 times its rms. Too quiet, and the 8-bit steps are a large
+  part of the signal. Too loud, and the peaks hit 0 or 255 and clip. For
+  QAM-256 the bit error rate was 4.2 × 10⁻³ at 20 codes rms, 2.3 × 10⁻³ at 28,
+  and 3.0 × 10⁻³ at 40 (where 0.14% of samples clip).
+- **Two clocks, again.** The DAC's 50 MS/s steps leave an image of each tone
+  f at 50 − f, and the 25 MS/s ADC folds it back exactly onto f. On one board
+  the image's phase is fixed. Between two boards it rotates once every
+  1 / (50 MHz × 0.75 ppm) ≈ 27 ms, as the two sample clocks slide past each
+  other. Within one 0.66 ms record that hardly moves, so the pilot takes care
+  of it. But records taken at different times disagree, and comparing them
+  makes the channel look 15–20 dB noisier than it is. Even within one record,
+  the board-to-board noise grows with frequency (38 dB at low frequencies, 33 dB
+  near 12 MHz, in the bottom panel). The two clocks jitter against each other
+  by a few hundred picoseconds over the 0.33 ms between loops, and a timing
+  error makes an error in proportion to frequency.
+
+**Try this:**
+
+- Bit-loading: give each subcarrier the largest constellation its own EVM
+  allows (the middle panel), as DSL modems do. How close to Shannon do you
+  get?
+- Add a convolutional or LDPC code (Python libraries exist) and run QAM-256
+  error-free.
+- Replace the pilot symbol with two, at the start and end of the loop, and
+  track the slow phase drift between them. Then record ten loops in a row
+  without re-measuring the channel.
+
+### 10.8 With a little more hardware
+
+Each of these starts from a design above:
+
+| idea | add | start from |
+| --- | --- | --- |
+| **Einstein's convention, tested** | one long cable in place of a short one | 10.4: the round trip grows, the inferred offset jumps by half, and nothing tells you which cable it was |
+| **Radio** | two loops of wire, a few turns each, as antennas | 10.6 or 10.7 at a few MHz. The near-field coupling falls as 1/r³, so plot signal against distance, and find where the link breaks |
+| **Light** | an LED and a photodiode with an amplifier (9.8) | 10.6 over a beam, then 10.4 over a beam: time transfer by light, as some labs do over fibre |
+| **Sound** | two 40 kHz ultrasonic transducers (9.7) | 10.4 at audio speed: a two-way exchange through air measures the speed of sound in each direction. Blow across the path and the two directions differ: a wind meter |
+| **A better clock** | a 10 MHz GPS-disciplined reference into one board's ADC | 10.5 with K_A = 0: the board follows GPS, and 10.2 then shows how much better it is than its own crystal |
+| **Thermal noise** | a resistor, a preamplifier, and a tee to both ADCs | Each ADC's own noise is independent, but the resistor's noise is common. Cross-correlating the two records averages away the ADCs and leaves Johnson noise, 4kTRB, below either ADC's floor |
+| **A network** | a third board, in a ring | 10.4 around a triangle: can three clocks agree, and what do the three pairwise offsets add up to? |
+| **Remote login** | BusyBox's `telnet` and `telnetd` (`CONFIG_TELNET`, `CONFIG_TELNETD` and `CONFIG_FEATURE_TELNETD_STANDALONE` in `linux/busybox.config`; Buildroot then starts `telnetd` at every boot) | 10.6's SLIP link: log in to one FPGA computer from the other, across the cable |
+
 ---
+
 
 ## Appendix A: Troubleshooting
 
@@ -4783,6 +7300,7 @@ the Icepi Zero's oscillator and watch its temperature coefficient happen.
 | capture shows a flat line at code ~127 | nothing connected to the ADC input (it reads 0 V) |
 | capture shows codes stuck at 0 or 255 | input beyond ±5 V, or the module not powered / plugged in backwards |
 | LiteX build: `No module named 'litex'` | you sourced OSS CAD Suite's `environment`, which puts its own Python first. `export PATH=/usr/bin:$PATH` ([`README.md`](README.md)) |
+| `ImportError: cannot import name 'RemoteClient' from 'litex' (unknown location)` | you ran a LiteX tool from `IcepiZeroADCDAC_tutorials/`, and your `PYTHONPATH` includes the current directory (an empty entry, such as a trailing `:`), so the folder `litex/` hides the real package. Run it from another folder, or remove the empty entry |
 | firmware: `undefined reference to 'atoi'` (or `sqrtf`, `strtok`) | the SoC was built without `--libc-mode full` |
 | firmware: `undefined reference to '__floatdisf'` | converting a 64-bit integer to `float`; LiteX's runtime library lacks it. Shift down to 32 bits first, as `main.c` does |
 | `litex_term` exits with `Lost connection to the device` | a bitstream was loaded while it was running. Load first, then start `litex_term` |
@@ -4791,7 +7309,8 @@ the Icepi Zero's oscillator and watch its temperature coefficient happen.
 | `insmod: ... Invalid module format` | `adda.ko` was built against a different kernel than the one running. Rebuild it in `linux/driver/` |
 | characters go missing when you paste into the board's console | its UART receive buffer is small. Paste slowly, or a line at a time |
 | `install-sd.sh` says `missing /boot/sd/mbr.bin` | the board was booted from `images_adda`, not `images_install` (8.7) |
-| the BIOS can't boot from the card | no card, or no `boot.json` on its first (FAT) partition. Run 8.7's installer |
+| no `litex>` prompt after loading the Linux SoC; the BIOS sits at `Booting from SDCard in SD-Mode... Booting from boot.json...` | the slot is empty. The BIOS tries 1000 times to wake a card and waits up to 1 s for each answer, so it's stuck for about 17 minutes (it was still trying after 9½). Load the bitstream and start `litex_term` in one command (8.3). Or insert a card: one pushed in mid-wait was found, and booted |
+| the BIOS can't boot from a card that's in the slot | no `boot.json` on its first (FAT) partition. Run 8.7's installer |
 | Linux stops at `Waiting for root device /dev/mmcblk0p2...` | the card has no second partition, or isn't seated. From a serial-booted system, `ls /dev/mmcblk0*` shows what Linux sees |
 | the flashed board boots the RAM-disk system instead of the card | `litex_term` was started with `--images`, so it answered the BIOS's serial-boot request. Start it without |
 | a PLL design does nothing | the logic waits for `locked`. Check the `ecppll` numbers, and that the VCO is within 400–800 MHz |
@@ -4857,6 +7376,101 @@ which repeat the earlier ones to 0.2% in amplitude and 0.13° in phase; 3 with
 are in `data/cable_*.npz` and `data/loopback_*.npz` (`tools/cable_sweep.py`,
 `tools/fig_cable.py`, `tools/fig_loopback.py`, `tools/fig_pll.py`).
 
+**On a second board.** An Icepi Zero built by JLCPCB from the same design,
+with substitute passives, connectors and buttons, was taken through
+Part 1 and Part 8 before its header was fitted. Part 1's counter, as written.
+Part 8: the serial boot (one-command form of 8.3: 3 of 3), every sysfs file
+without the module, and the boot from flash and card, timed twice from
+`openFPGALoader -r` (login at 60.9 and 61.0 s, matching the first board to
+0.1 s), using the first board's card. The BIOS's `mem_test` passed over all 32
+MB of SDRAM, twice. The flash read back identical to the bitstream, and
+configured the FPGA in quad mode at 62 MHz (3 of 3). The card was written and
+read back (8 MB, matching checksums, 215 kB/s write, 287 kB/s read) and read
+at its last sector. The crystal measured −3.30 ppm against NTP. The test
+designs and scripts that need no header, module or card are in
+`tools/boardtest/`.
+
+**On a third board, with the module.** A second JLCPCB board, fitted with the
+header, carried the same module and 16.5 cm cable. Everything above was repeated
+against the first board's recordings, with only the ADC as an instrument:
+
+- **Part 1:** the counter, watched counting correctly.
+- **Part 2:** each design ran on the DAC while `capture.v` recorded the ADC
+  through the cable: `sawtooth.v` 195.3 kHz, `sine.v` and `sine_pll.v` 1 MHz
+  at 3.86 V.
+- **Part 3:** `loopback.v` in all four modes, identical to the first board's to
+  0.00–0.10 codes on average. The impulse responses agree, and so does the
+  staircase: code = 0.7763 × DAC + 26.95, against 0.7765 and 27.03.
+- **Part 4:** sweeps with `lockin.v` and `lockin_pll.v`. They match the first
+  board's to 0.06–0.17% rms and 0.08° rms below 25 MHz, and to 1.1% from 25 to
+  50 MHz, all within each board's own repeat scatter. The delay agrees to
+  0.02 ns.
+- **Parts 5–7:** the firmware's `sweep` matches its transcript to 0.02% up to
+  3.3 MHz, and 0.2% at 8 MHz.
+- **Part 8:** the boot from flash and card (login at 61.2 s), and the driver,
+  `sweep.sh` and captures through the cable.
+
+The memory test and the flash, card and crystal checks also passed (−1.70 ppm).
+Then two new measurements, which Parts 1 and 3 quote: the DAC from 50 to
+200 MS/s under four drive settings, and the ADC's data window at 31.25 and 25 MS/s
+(`tools/pinspeed/`, data in `data/pinspeed_*.npz`).
+
+**On a fourth board.** A third JLCPCB board, again with no header, using the
+same card, repeated the second board's tests:
+
+- **Part 1:** the counter loaded. Its LEDs were later seen working, running
+  the LiteX SoC's LED chase.
+- **8.3:** as written, ending at a login.
+- **Booting from flash and card:** login at 61.3 and 61.1 s.
+- **Linux:** every sysfs file.
+- **The card:** 8 MB written and read back (199 and 285 kB/s, matching MD5s).
+- **Memory and flash:** `mem_test` over all 32 MB twice, a flash read-back, and
+  configuration in quad mode at 62 MHz (3 of 3).
+- **The crystal:** −2.10 ppm.
+
+**On a fifth board.** The last JLCPCB board, also without a header, passed
+the same tests: 8.3 as written, the boot from flash and card (login at 61.0 and
+61.7 s), the card (274 kB/s read, 190 kB/s write, matching MD5s), `mem_test`
+over 32 MB twice, flash read-back, and quad mode at 62 MHz (3 of 3). Its
+crystal measured −2.00 ppm. Its LEDs were not watched.
+
+**Part 10** was done with three JLCPCB boards fitted with modules: one pair
+cross-connected (16.5 cm cables), and one looped back as a check. The
+board-level checks above were repeated on each first: JTAG, flash and quad SPI,
+`mem_test`, and the crystal against NTP. Every number and figure in Part 10
+comes from those runs. The raw data is in `data/tb_*.npz`, the figure scripts
+are in `tools/twoboard/`, and `tools/twoboard/boards.py` addresses the boards
+by serial number. Each experiment ran once, as described, apart from these
+repeats: the 100 and 125 MS/s drive tests three times; the two-clock beat at
+60 s, at 15 minutes and for 5 hours overnight; OFDM QAM-64 four times board to
+board; the modem at four baud rates both ways, plus a text exchange; and the
+Linux modem twice on one board and once across the pair. The modem's error
+rate against noise
+(10.6) was measured on the looped-back board, all nineteen settings in one
+run. An earlier run, with a noise source of four 16-bit shift registers that
+repeats every 1.3 ms, gave the same picture, apart from fewer errors at the two
+highest-SNR settings of the 128-sample window. The table and figure come from
+the run with the xorshift generator that is printed, and the two
+`modem_ber.py` runs shown were done after it, by hand. `modem_sync.v` was
+measured once at eight noise levels (`tools/twoboard/fsk_sync_run.py`), each
+time after 400 bytes of 0x55 for its bit clock to lock to. The next morning,
+every Part 10 script was run once more, briefly, on the pair
+(`tools/twoboard/smoke_pair.sh`), and all of them still worked as printed.
+
+**Five cards at once.** Afterwards, all five boards got new 16 GB cards with the
+final Buildroot build (the one with Part 10's SLIP). 8.7's steps, flash, serial
+boot of `images_install/`, `install-sd.sh`, and the start-up tuning, were run
+on all five together by `tools/boardtest/sd_provision.py`, one process per
+board. To start each serial boot it types `reboot` at the board's `litex>`
+prompt instead of loading a bitstream. Five uploads at once each ran at full
+speed. Then each board booted from its card seven times, four by `reboot` and
+three from flash (`openFPGALoader -r`). After every boot it checked the root
+device, that the driver had loaded, and the serial link both ways, with 32 kB
+of random data from the board and 4 kB typed in, each compared by md5. All 35
+boots passed, 57.5–60.1 s from reset to `login:`. With every DAC playing 1 MHz,
+the three module boards' ADCs read 3.820–3.829 V
+(`tools/boardtest/adda_check.py`).
+
 **Not tested:**
 
 - **Part 0's Apio / VS Code route**, as intended.
@@ -4869,8 +7483,11 @@ are in `data/cable_*.npz` and `data/loopback_*.npz` (`tools/cable_sweep.py`,
   PLL, DDS and DAC timing were measured through `lockin_pll.v`.
 - **A true power-on boot.** The boot times start at `openFPGALoader -r`,
   which makes the FPGA reload itself from flash as it does at power-up.
-- **The open-ended "Try this" suggestions**, except the loop oscillator and the
-  lock-in above 12.5 MHz, which were.
+- **The open-ended "Try this" suggestions**, except the loop oscillator, the
+  lock-in above 12.5 MHz, and the quad-SPI bitstream, which were.
+- **The DAC above 200 MS/s, the ADC above 31.25 MS/s**, and drive settings
+  other than the four in `tools/pinspeed/`. Nor were the new rates built into
+  the tutorial's designs.
 - **Part 9's experiments.** Their predictions are calculations, not
   measurements. Only the baseline for 9.5 (the loop's own harmonics) was
   measured.

@@ -1,6 +1,6 @@
 # iCEBreaker: a much smaller open-source FPGA board
 
-This is the little sibling to [openfpga.md](openfpga.md). Same open-source toolchain philosophy (Yosys, nextpnr, no vendor tools), completely different scale of chip: the iCEBreaker carries a Lattice **iCE40UP5K** (5,280 4-input LUTs, 128 KB of on-chip SPRAM, no SDRAM pins on the board at all) instead of an ECP5. It's not a Linux candidate -- it's the board for "how small can the whole open FPGA + RISC-V stack actually get."
+This is the little sibling to [README.md](README.md). Same open-source toolchain philosophy (Yosys, nextpnr, no vendor tools), completely different scale of chip: the iCEBreaker carries a Lattice **iCE40UP5K** (5,280 4-input LUTs, 128 KB of on-chip SPRAM, no SDRAM pins on the board at all) instead of an ECP5. It's not a Linux candidate -- it's the board for "how small can the whole open FPGA + RISC-V stack actually get."
 
 The board plugged in right now identifies itself over USB as `1BitSquared iCEBreaker V1.0e` (confirmed via `udevadm info` on `/dev/ttyUSB0`), serial `ibP54Olo`.
 

@@ -370,3 +370,907 @@ what's still untested.
   the trimmed system, so the board boots to a login with `adda.ko` loaded, by itself, in
   about a minute. The 16.5 cm cable is still DAC → ADC. To go back to bare-Verilog designs,
   load them to SRAM as before (`make load-...`); they're gone again at the next power-up.
+
+## Prompt 4
+
+I had JLCPCB manufacture the IcePi Zero designs in `~/OpticsPCBs/IcepiZeroADCDAC/jlcbuild` using the substitution parts that were selected there. One of these is plugged in and at `/dev/ttyUSB0`. Go through the `IcepiZeroADCDAC_tutorials.md` and test as much as you can. At the moment, there is no header soldered to it and no SD card. See if you can configure the LED counter and then stop. Then see if you can boot and test Linux. Then stop and I'll insert the SD card, which you should test. Then I'll solder on the header and plug in the ADC and DAC unit for you to test.
+
+## Response 4 2026-09-30 15:50:00 - 2026-09-30 16:20:00 Claude Opus 5.5
+
+The board under test: JLCPCB-built Icepi Zero (`jlcbuild/release_revA`), FT231X serial
+`DP0525BU`, no 2x20 header, no SD card at first. Its big parts are the same as the original
+board's (LFE5U-25F-6BG256C, FT231XQ, W25Q128JVSIQ, W9825G6KH-6I, SG-8018CG 50 MHz); the
+substitutions are passives, connectors, and the TS-1088C buttons.
+
+### 1. Part 1, the LED counter: works
+
+- `openFPGALoader -b icepi-zero --detect`: LFE5U-25, IDCODE 0x41111043.
+- The tutorial's four commands, verbatim: nextpnr reports `305.06 MHz (PASS at 50.00 MHz)`,
+  the same number as the tutorial; the load takes 1.7 s. The user watched the LEDs: they
+  count, MSB on the left.
+- A throwaway test design (not in the tutorial) streamed both buttons over the UART at
+  1 Mbaud and echoed a received byte: TX and RX both work, and both buttons (C4, C5) read 1
+  when released. The line period, 2^19 clocks, came out at 10.5 ms, i.e. the 50 MHz
+  oscillator runs.
+
+### 2. Part 8, Linux from a serial boot: works, but 8.3's instructions don't, without a card
+
+The gateware and images are the ones already built (`build/icepi_zero_adda`, `images_adda`).
+
+- **Loading the SoC and pressing Enter gives no `litex>` prompt.** The BIOS runs (`Memtest OK`
+  on 2 MiB, 14.6 MiB/s write, 20.2 MiB/s read, identical to the first board), offers serial
+  boot for 0.25 s, then sits at `Booting from SDCard in SD-Mode... Booting from boot.json...`.
+  LiteX's `add_sdcard()` gives the PHY a 1 s command timeout (`cmd_timeout=10e-1`) and the
+  BIOS's `sdcard_init()` retries CMD8 1000 times, so an empty slot costs about 17 minutes
+  (still waiting after 6 min here). The first board always had a card, so this was never seen.
+  8.3's "press Enter for the litex> prompt, then serialboot" therefore only works with a card
+  that has no `boot.json`; with an installed card the BIOS boots the card instead.
+- **What works:** have the loader listening *before* the FPGA starts, and answer the BIOS's
+  serial-boot request inside its 0.25 s window. The port comes back ~1 s before the request.
+  (A script that reopens `/dev/ttyUSB0` must close the old handle when the port vanishes, or
+  the FT231X comes back as `/dev/ttyUSB1`.)
+- Upload 236 s (tutorial: 3 min 56 s), Liftoff to `/init` 19.2 s, then 44 s to `login:`.
+- Checked without the module: `uname`, `cpuinfo` (rv32ima, sv32), `free` (22988 kB total), the
+  device tree (`adda@f0002000`, `mmc@f0004000`), `time /bin/true` 0.35 s, 8 MB of
+  `/dev/urandom` through tmpfs with matching `md5sum`s, `devmem` write/read-back of the tuning
+  word, `insmod adda.ko`, every sysfs file (frequency reads `123455.992`), a free-running
+  capture (16384 bytes in 0.39 s, all code 0: the ECP5's default pull-downs on the bare
+  header), a triggered capture (`Operation timed out` after 60 s, as it should with no
+  signal), the lock-in, `sweep.sh`, `dump.sh`, and `rmmod`/`insmod`.
+
+### 3. The flash
+
+- `openFPGALoader --detect -f`: JEDEC 0xef4018, Winbond W25Q128, blank, no protection bits.
+- `openFPGALoader -f icepi_zero_adda.bit`: 53.0 s (tutorial: 53 s). The FPGA reloads from
+  flash and the BIOS comes up the same as from SRAM.
+
+
+## Prompt 5
+
+I put the microSD card in while the Icepi Zero was on. It's the same card as before. Test that. Also, test the FPGA configuration flash and RAM. Have you tested everything that you can reasonably test without an HDMI display or USB peripherals?
+
+With the PLLs on board, can the ADC achieve 32 MS/s?
+
+I don't understand the phrase you've used at least twice: "The AD9708 is rated for 100 MS/s (125 typical)". Does this mean that all AD9708 chips are spec'd to do 100 MS/s, but a typical chip can be pushed up to 125 MS/s?
+
+61 s to boot Linux seems to make this unusable as anything but a teaching tool for students simultaneously interested in Linux and with a lot of patience. Are other SoC's that boot linux much faster because they are not 50 MHz verilog designs running on an FPGA, because they can read and write faster to the SD card (perhaps using a different protocol), or because their Linux has had every extra second of boot time squeezed out of it?
+
+For this stack of modules through 0.1 inch headers, how fast would you expect to be able to drive the DAC and ADC pins without issues? In the icepi_adda.lpf constraint file, you set DRIVE=4 SLEWRATE=SLOW for adc_clk, dac_clk, and dac_d. Why is this the right choice? Is this drive strength and speed good enough to go up to 100 MS/s on the DAC but not so strong or fast that it would cause excessive noise? What led to this choice? Why don't the LEDs and UART pins have DRIVE and SLEWRATE settings? Maybe their defaults are fine, but a sentence or two about this in the tutorial might be helpful for students who want to take this design as a starting point for their own.
+
+
+## Response 5 2026-09-30 16:23:00 - 2026-09-30 17:20:52 Claude Opus 5.5
+
+### Short version
+
+- **SD card: works.** The BIOS was still retrying the empty slot 9½ minutes in when the
+  card went in. It found the card and booted it by itself. Timed boot from flash + card,
+  twice: login at 60.9 and 61.0 s, matching the first board to 0.1 s at every step.
+- **Flash: works**, including the two data lines that one-bit configuration never uses.
+  It reads back identical to the bitstream, and configures the FPGA in quad-SPI mode at
+  62 MHz (3 of 3). Packing the Linux SoC that way gets to login 1.1–1.2 s sooner.
+- **RAM: works.** BIOS `mem_test` over all 32 MiB passed twice (random data, so a stuck or
+  shorted address line would have shown up). 14.6 MiB/s write, 20.2 MiB/s read.
+- **Oscillator: 49,999,835.0 Hz, −3.30 ppm** against the PC's NTP clock.
+- **Not tested yet:** pressing the buttons and pulling the card (each needs a finger), the
+  40-pin header (not fitted), the two FPGA-side USB-C ports, HDMI, and the power rails'
+  voltages. Details and a plan are below.
+- **32 MS/s:** yes, the chip and a PLL can do it, but three things need care: an in-spec
+  PLL frequency, the clock's duty cycle, and when to read the data. 31.25 MS/s is the easy
+  version. I'll measure it when the module is on.
+- **"100 MS/s (125 typical)":** your reading is right, and the tutorial now says it that
+  way.
+- **61 s:** all three of your reasons apply, in roughly this order: the CPU and memory
+  (~37 s), the card path (~20 s, and it's the CPU, not the card or the protocol), and how
+  much the system does at boot. Explained below and in a new paragraph in 8.7.
+- **DRIVE/SLEWRATE:** the defaults are 8 mA and SLOW, so `SLEWRATE=SLOW` changes nothing
+  and `DRIVE=4` is the only real change. The choice came from reasoning during the adapter
+  design, not from measurement. It works at 100 MS/s. A paragraph now explains it in Part 1.
+
+### The SD card (the same 64 GB card as before)
+
+- Card: SanDisk (manfid 0x03) SC64G, SDXC, 59.5 GiB, made 10/2018. p1 64 MiB + p2 4 GiB,
+  the trimmed system with `S90adda`. Linux found it at 7.0 s.
+- 8 MB with `dd` (BusyBox's `dd` prints no rate, so timed with `time`): raw read 287 kB/s,
+  file read 299 kB/s, write with `fsync` 215 kB/s (tutorial: ~290 and ~210).
+- 4 MB of `/dev/urandom` written with `fsync`, caches dropped, read back: same MD5. The
+  last 488 sectors of the card (sector 124,735,000) read fine.
+- A marker file written and `sync`ed survived the hard reset (with the expected
+  `mounting unchecked fs` warning).
+- Timed boots from `openFPGALoader -r` (a logger opened the port 0.98 s earlier, which is
+  subtracted):
+
+| event | run 1 (s) | run 2 (s) | tutorial (s) |
+| --- | ---: | ---: | ---: |
+| BIOS tries serial boot | 2.8 | 2.8 | 2.8 |
+| starts reading `Image` | 3.1 | 3.1 | 3.1 |
+| `Image` loaded | 17.4 | 17.4 | 17.5 |
+| OpenSBI starts Linux | 17.9 | 17.9 | 17.9 |
+| `/sbin/init` | 27.2 | 27.2 | 27.2 |
+| `adda` loaded | 59.5 | 59.5 | — |
+| `login:` | 60.9 | 61.0 | 61 |
+
+### The flash
+
+- JEDEC 0xef4018, W25Q128, no protection bits.
+- `--dump-flash` of the bitstream's length: identical to `icepi_zero_adda.bit` after its
+  28-byte text header (`Part: LFE5U-25F-6CABGA256`), which openFPGALoader doesn't write.
+- The LiteX build packs with ecppack's defaults: one-bit SPI at 2.4 MHz. So booting from
+  flash had never used IO2/IO3 (M7, N7). The button/UART test design, packed with
+  `--spimode qspi --freq 38.8` and then `62.0`, configured the FPGA from flash every time
+  (1 + 1 at 38.8 MHz, 3 at 62 MHz). So all six flash wires work, and the flash's
+  quad-enable (QE) bit must already be set, because nothing here set it.
+- The Linux SoC packed with `--spimode qspi --freq 62.0`: `Memtest OK` 1.07 s after
+  `-r`, instead of 2.51 s. Login at 59.7 and 59.9 s. Then I put the tutorial's bitstream
+  back and verified it by reading it back. This is now a Try-this in 8.7.
+
+### The RAM
+
+The BIOS's own boot-time memtest covers 2 MiB. Its stack is in the 6 KiB on-chip SRAM
+(0x10000000), so `mem_test 0x40000000 0x2000000` can cover all of main RAM. It ran twice,
+both `Memtest OK`. Its address test only covers 32 KiB, but the random-data pass over 32 MiB
+would catch aliasing from a stuck or shorted address line. The Linux tests of Response 4
+(8 MB through tmpfs, the initrd at +16 MiB) agree.
+
+### The oscillator
+
+A throwaway design sends one byte every 2²² clocks (83.886 ms). The PC time-stamped 8584 of
+them over 720 s (`time.monotonic()`, NTP-disciplined by timesyncd, offset −466 µs;
+low-latency mode on the FT231X). A straight-line fit gives 49,999,834.99 Hz,
+**−3.30 ppm ± 0.02 statistical**, with 0.30 ms rms residual. The PC clock's own error
+adds perhaps a few tenths of a ppm. The first board was 2.8 ppm slow against the M2k.
+Added to 9.10 as a reference-free way to measure your own board.
+
+### What else is on the board, and what's been tested
+
+| feature | status |
+| --- | --- |
+| JTAG, ECP5 configuration from SRAM and flash (x1 and x4) | tested |
+| 50 MHz oscillator | tested, −3.30 ppm |
+| 32 MiB SDRAM | tested, all of it |
+| 16 MiB SPI flash | tested: ID, write, read-back, quad |
+| micro-SD, native 4-bit | tested: boot, read, write, last sector, hot insertion |
+| FT231X serial | tested: 1 Mbaud both ways, 460800 under the SoC |
+| 5 white LEDs | tested by eye (the counter) |
+| red LED D14 | the FT231X's RXLED: lights while the PC sends. Did you see it flicker during uploads? |
+| buttons SW1 (C4, LiteX reset) and SW2 (C5) | both read 1 (released). Pressing not tested |
+| card detect, `SD_DET` on M16 | reads 1 with a card in. Removal not tested. Nothing in LiteX uses it |
+| two FPGA USB-C ports, J3 (`/USB/D0I`) and J4 (`/USB/D1I`) | not tested |
+| HDMI (GPDI), its DDC through the PCA9306, hot-plug detect | not tested: needs a display |
+| 40-pin header | not fitted. The module will exercise 18 of the 28 GPIOs and the 5 V pins |
+| the three regulators | working, since everything else works. Voltages not measured |
+
+What's reasonable to do while you're at the bench:
+
+1. **Buttons and card detect: 1 minute.** `tools/boardtest/iotest.v` reports
+   `B<C4><C5><SD_DET>` over the serial port every 10 ms. I'll load it, you press each
+   button and pull the card, and I'll watch the bits change.
+2. **The FPGA's USB ports: about 10 minutes**, needing only a second USB-C cable to the PC.
+   LiteX's `icepi_zero` target can make `usb` 0 a USB serial device
+   (`--uart-name=usb_acm`), so its BIOS would appear as `/dev/ttyACM0`. That tests one
+   port's D+/D− and pull-up. J4 would need its pins swapped in the build.
+3. HDMI needs a display, and the voltages need a meter.
+
+### With the PLLs, can the ADC do 32 MS/s?
+
+The AD9280 is specified at exactly that rate: a 32 MHz clock with a 50% duty cycle,
+t<sub>CH</sub> and t<sub>CL</sub> ≥ 14.7 ns, and t<sub>OD</sub> = 25 ns *typical*, with no
+min or max given. "Running the part at slightly faster clock rates may be possible, although
+at reduced performance levels." Three things need care:
+
+1. **An in-spec clock.** The ECP5 datasheet (Table 3.23) guarantees the PLL's jitter only
+   when its phase-detector input is at least 10 MHz. From 50 MHz, that means a reference
+   divider of 1–5 (PFD 50, 25, 16.7, 12.5 or 10 MHz). 32 MHz isn't a whole multiple of any
+   of those, so `ecppll -i 50 -o 32` uses divider 14 (PFD 3.57 MHz) and gives 32.14 MHz:
+   out of the jitter spec, and slightly over the ADC's rating. Two clean options:
+   - **31.25 MS/s, 98% of the maximum:** a 62.5 MHz PLL clock (divider 4, PFD 12.5 MHz,
+     VCO 625 MHz) toggling `adc_clk`, with the DAC at 62.5 MS/s, still in a whole-number
+     ratio. The same VCO also gives 125 MHz for the DAC (its typical, not guaranteed,
+     limit).
+   - **Exactly 32 MS/s:** VCO 640 MHz = PFD 10 MHz × 64, with feedback taken from a
+     secondary output at 80 MHz and CLKOP ÷ 20 = 32 MHz (or ÷ 10 = 64 MHz to toggle).
+     That's a hand-written `EHXPLLL`, since `ecppll` only feeds back from CLKOP. The DAC
+     could run at 128 MS/s (÷ 5, past even the typical limit) or 91.4, and only 128 is a
+     whole-number ratio.
+2. **The duty cycle.** At 32 MHz each half-period is 15.6 ns against the 14.7 ns minimum,
+   so the clock must stay within 47–53% at the ADC's pin. Toggling a flip-flop at 64 MHz
+   gives exactly 50% inside the FPGA. Unequal rise and fall times through the weak 4 mA
+   driver and two connectors then eat into a 0.9 ns margin. The AD9280's datasheet asks
+   for HC/AC-family clock drivers for exactly this reason. So `adc_clk` may want more drive
+   at 32 MS/s.
+3. **When to read the data.** With t<sub>OD</sub> ≈ 25 ns and a 31.25 ns period, the
+   present rule ("read just before the next rising edge") would read data only ~6 ns after
+   it settles, if t<sub>OD</sub> is typical, and t<sub>OD</sub> has no stated maximum. The
+   middle of the valid window is ~9 ns *after* the next rising edge. With a PLL, the capture
+   clock can be a second output with a phase shift, and the right phase can be found by
+   sweeping it and watching where the codes go bad: an "eye scan".
+
+Planned for when the module is on: capture at 31.25 MS/s with a phase sweep, and compare the
+effective bits with the 7.1 measured at 25 MS/s. Part 3 now mentions the 31.25 MS/s option
+and the timing problem. Part 2's PLL section has a short note on the 10 MHz rule.
+
+### "The AD9708 is rated for 100 MS/s (125 typical)"
+
+Yes. The datasheet's dynamic-specifications table has one row, "Maximum Output Update Rate
+(f<sub>CLOCK</sub>)", with **Min 100, Typ 125 MSPS**. The minimum column is the guarantee:
+every part keeps up at 100 MS/s. The typical column is what a typical part manages, but no
+part is promised it. One more catch: the table's conditions are AVDD = DVDD = +5 V, and this
+module's DVDD measured 3.3 V, so strictly the 100 MS/s guarantee doesn't cover this module.
+It did run at 100 MS/s (Response 3). The tutorial now says this in plain words in both
+places (Part 2's PLL section and Part 3). The phrase also appears in Response 3 above, which
+I've left as written.
+
+### Why does Linux take 61 s, and why are other SoCs faster?
+
+All three of your reasons, and here is roughly how the 61 s divides:
+
+- **About 3 s: FPGA configuration and the BIOS.** That's 1.5 s to load the bitstream at
+  one bit and 2.4 MHz (quad SPI saves 1.4 s), then the memory test.
+- **About 37 s: the CPU and memory.** The kernel takes 9.3 s, and the scripts 34 s minus
+  their card reads. VexRiscv runs at 50 MHz, at most one instruction per clock, with 4 KiB
+  direct-mapped I- and D-caches (the core's name has `Is4096Iy1` and `Ds4096Dy1`) and a 16-bit SDRAM at
+  20 MiB/s. Starting any program (`/bin/true`) costs 0.35 s. A Pi Zero 2 W has 4 × 1 GHz
+  Cortex-A53 with LPDDR2: very roughly 100× the single-thread speed and 100× the memory
+  bandwidth. Process start-up there is about a millisecond.
+- **About 20 s: the card path, though not the card or the protocol.** The BIOS clocks the
+  standard 4-bit SD bus at 25 MHz (`SDCARD_CLK_FREQ`), good for 12.5 MB/s, and gets
+  633 kB/s (5%), because the 50 MHz CPU does the per-block work and the copy. Linux gets
+  290 kB/s. A Pi's SD host does 20–25 MB/s (high-speed mode), and the Pi 4/5 more with UHS
+  1.8 V signalling. The 9.1 MB uncompressed `Image` costs 14.4 s here and a fraction of a
+  second there.
+- **Squeezing.** Raspberry Pi OS isn't squeezed: dozens of systemd services, and still
+  ~10–30 s to login depending on the model. Systems tuned for boot time (a minimal kernel,
+  the application as `init`, no udev) reach their application in about a second on ARM
+  SoCs. On this board, the same ideas would give roughly: the application as `init` → ~28 s
+  (the kernel starts `/sbin/init` at 27.2 s), a kernel stripped to this hardware → several
+  seconds less loading, quad SPI → −1.4 s. That's a floor of perhaps 20 s. These are
+  estimates, not tried.
+
+So yes: Linux on a 50 MHz soft CPU is a teaching tool, or useful when you want Linux's
+tooling and can wait a minute. For an instrument that has to be ready at power-up, the
+bare-metal firmware of Parts 5–7 is the right model: no OS, and the BIOS that would start it
+is running 2.5 s after power-up (1.1 s with quad SPI). This is now a short "Why does a
+Raspberry Pi boot so much faster?" paragraph in 8.7.
+
+### DRIVE=4 SLEWRATE=SLOW: why, and is it right?
+
+**The defaults, and why the LEDs and UART have none.** Lattice's sysIO guide (FPGA-TN-02032
+§4.11.2): "The software default for slew rate is SLEWRATE=SLOW." The default drive "depends
+on the I/O standard". The Trellis bit database settles it: `OUTPUT_LVCMOS33` itself sets
+the F4/F5/F6 fuses, which with F7/F8 clear is the **8 mA** pattern. nextpnr writes no DRIVE
+or SLEWRATE for the LED pins in `counter.config`, so they run at 8 mA SLOW. In our `.lpf`,
+`SLEWRATE=SLOW` therefore changes nothing, and `DRIVE=4` (half the default) is the only real
+setting. For LEDs (DC) and a UART at ≤ 1 Mbaud on the Icepi Zero's own short traces, the
+defaults are fine.
+
+**What led to it.** It was decided on 2026-09-12 while designing the adapter
+(`~/OpticsPCBs/IcepiZeroADCDAC/README.md` §4, and the `write_lpf()` docstring in
+`adapters/make_boards.py`), by reasoning, not measurement. The 40–60 mm runs have ~0.3 ns
+of flight time, and an edge several times longer than that makes the line electrically
+short: no termination, no series resistors on the adapter. Slow, weak edges also limit
+simultaneous-switching ground bounce through a connector with few ground pins. The "fast
+≈ 1 ns, slow ≈ 3 ns" edge times quoted there were estimates. Lattice's datasheet doesn't
+give edge times (the IBIS models do).
+
+**Is it right?** For the DAC's data lines, yes, and the AD9708 datasheet agrees:
+"the selection of the slowest logic family that satisfies the above conditions will result
+in the lowest data feedthrough and noise", and it suggests 20–100 Ω series resistors
+against ringing, a job the weak driver does instead. For the **DAC clock** the same
+datasheet asks for the opposite: "Fast clock edges will help minimize any jitter that will
+manifest itself as phase noise". The same goes for the **ADC clock**, where the duty cycle
+matters at 32 MS/s (above). So the most defensible setting is probably weak and slow on the
+eight data lines, and stronger and faster on the two clocks. That's a hypothesis to measure,
+not a fact yet.
+
+**How fast?** Measured: 100 MS/s works with these settings (Response 3, `lockin_pll.v`,
+tones to 49.9 MHz). Lattice rates LVCMOS33 outputs to 150 MHz for all drives, characterized
+at fast slew (Table 3.21). At 100 MS/s the data lines toggle at ≤ 50 MHz, and `dac_clk`, a
+100 MHz square wave, is the hardest signal. So I'd expect 100 MS/s to be comfortable and
+125 MS/s (the AD9708's typical limit) plausible, perhaps needing a faster clock edge. Above
+that, the DAC itself isn't rated. The ADC side is limited by the AD9280 (32 MS/s), not the
+pins.
+
+Planned once the module is on, with the DAC cabled to the ADC: DAC at 50/100/125 MS/s ×
+{4 mA SLOW, 8 mA SLOW, 8 mA FAST on the clock only, 16 mA FAST}, looking at the DAC output's
+spurs and harmonics, and at the highest rate where codes still arrive correctly.
+
+### Changes to the tutorial
+
+- Part 1: a paragraph on `DRIVE` and `SLEWRATE`: the defaults, why the converter pins
+  differ, and that the values were reasoned, not measured.
+- Part 2: "Every AD9708 is guaranteed to run at 100 MS/s". The crystal error is now "2.8
+  and 3.3 ppm slow" on the two boards. A note that `ecppll` doesn't enforce the PLL's
+  10 MHz PFD minimum.
+- Part 3: the AD9708's min/typ rating in plain words (and the 5 V caveat), the 31.25 MS/s
+  option, and why reading the ADC at that rate needs a later sampling point.
+- 8.3 and 8.7's installer: `openFPGALoader ... && litex_term ...` as one command, tested
+  3 of 3. The old "press Enter for the litex> prompt, then serialboot" fails with an empty
+  slot (no prompt) and with an installed card (it boots the card).
+- 8.7: the "Why does a Raspberry Pi boot so much faster?" paragraph, and a quad-SPI Try-this
+  with the measured saving.
+- 9.10: measure your own crystal against NTP.
+- Appendix A: the empty-slot BIOS stall (with the hot-insertion rescue), split from the
+  "card with no `boot.json`" row.
+- Appendix B: "On a second board", and two more not-tested items.
+- `tools/sync_md.py --check`: all code blocks match their files. Nothing committed.
+
+### New: `tools/boardtest/`, for the next new board
+
+The tests above, kept so the second JLCPCB board can be checked the same way. None of them
+needs the header, the module or a card:
+
+- `iotest.v`: buttons and card detect, streamed over the serial port (`make load-iotest`).
+- `tick.v` + `measure_osc.py`: the oscillator against NTP (`make load-tick`, then 12 min).
+- `bootload.py`: a serial boot that answers the BIOS as the FPGA starts. `serialboot.py`
+  needs the `litex>` prompt, which the Linux SoC never shows with an empty slot. It closes
+  the port when it vanishes, so the port comes back as `/dev/ttyUSB0`.
+- `boardtest.lpf`, `Makefile`.
+
+Each was rerun from the repo copy: `iotest` (B111 with the card in), `tick` (a 20 s smoke
+run), and `bootload.py` (request seen 8.46 s after the load started, upload begun, then
+stopped).
+
+**Board state:** flash holds the tutorial's `icepi_zero_adda.bit` (verified), and the card is
+in, so it boots to a login in 61 s by itself.
+
+## Prompt 6
+
+You now have a second JLCPCB-produced Icepi Zero, this time with the ADC+DAC module attached. Do all of the tests on this board and add the ADC+DAC tests.
+
+Are there enough available IO pins to make an adapter board that can accommodate 2 of these boards? 2*20 > 8*4+4, but I don't know how many pins are reserved for power, ground, or other special functions. If we combined the DAC clocks and ADC clocks to save 2 pins, would that then work?
+
+## Response 6 2026-09-30 18:30:00 - 2026-09-30 19:39:12 Claude Opus 5.5
+
+Names used here: **original** = the first Icepi Zero (Prompts 1–3), which made every
+recording in `data/`; **JLC 1** = FT231X `DP0525BU` (Prompts 4–5, no header); **JLC 2** =
+`DP051TLX`, this board, with the header, the same module, and the 16.5 cm cable DAC → ADC.
+No M2k: the board's own ADC was the only instrument.
+
+### Short version
+
+- **JLC 2 passes everything that could be run, and with the module it reproduces the
+  original board's recordings** to within their own repeat-to-repeat scatter.
+- **Drive strength, measured:** at 100 MS/s the tutorial's 4 mA SLOW gives the least
+  noise, by 0.3–3 dB depending on the measure. That's repeatable to 0.1 dB. A faster
+  clock edge doesn't help. Every setting still converts correctly at 200 MS/s.
+- **The ADC at 31.25 MS/s, measured:** the data is valid for all but about 4 ns of the
+  32 ns period, and the quality at the best point equals 25 MS/s (7.0 effective bits).
+- **New effect:** when the ADC samples while the DAC is switching, the noise rises by
+  about 5 dB. That's a bigger effect than any drive setting.
+- **Two modules on one Icepi Zero:** not as they are. The header has only 28 I/O, and
+  sharing the clocks still needs 34. Sharing the DAC *data* bus does fit, in 27. Details
+  below.
+
+### The board itself (JLC 2)
+
+| test | result |
+| --- | --- |
+| JTAG | LFE5U-25, IDCODE 0x41111043 |
+| flash | W25Q128, blank, unprotected; Linux SoC written in 52.9 s, read back identical; quad SPI at 62 MHz configures the FPGA (3 of 3) |
+| SDRAM | BIOS `mem_test` over all 32 MiB, twice, OK; 14.6 / 20.2 MiB/s |
+| oscillator | 49,999,914.8 Hz, **−1.70 ppm** (12 min against NTP; JLC 1 was −3.30, the original −2.8 against the M2k) |
+| buttons, card detect | both buttons read released. `SD_DET` read **0 with the slot empty**, and **1** once you had moved JLC 1's card across, so the switch works and 1 = card present |
+| boot from flash + card | login at 61.2 s (JLC 1: 60.9, 61.0) |
+| SD card | 8 MB raw read 285 kB/s, write with `fsync` 201 kB/s, MD5s match; the marker file written on JLC 1 was there |
+| Linux | `uname`, `cpuinfo`, `free` (22992 kB), `/bin/true` 0.37 s, `devmem`, every sysfs file |
+| Part 1 counter | builds (305.06 MHz, the tutorial's number) and loads. Nobody was watching the LEDs, so they're unverified on this board |
+
+### Parts 2–8 with the module, against the original board's recordings
+
+| part | on JLC 2 | compared with |
+| --- | --- | --- |
+| 2: `sawtooth`, `sine`, `sine_pll` | Each ran on the DAC while `capture.v` recorded the ADC: a wrapper instantiates both tutorial modules unchanged. Results: 195.3 kHz; 1,000,000.15 Hz at 3.859 V; 999,999.98 Hz at 3.852 V. Harmonics −40 to −58 dBc | the tutorial's 195.3 kHz and 3.82 V (M2k) |
+| 3: `capture.py` | 16384 samples at 25 and 6.25 MS/s | — |
+| 3: `loopback.v` s, t, r, p | mean difference 0.00, 0.01, 0.10 codes (s, t, r). Impulse response: main tap 0.910 vs 0.896 at the same 6-sample delay, DC gain 0.745 both. Staircase 0.7763 × DAC + 26.95 vs 0.7765 × DAC + 27.03 | `data/loopback_16cm.npz` |
+| 4: `make sim-lockin` | runs | — |
+| 4: `lockin.v`, 0.1–24.9 MHz | amplitude 0.17% rms, phase 0.08° rms, delay 214.48 vs 214.46 ns (both boards repeat to 0.18–0.28%) | `data/cable_16cm_dac50.npz` |
+| 4: `lockin_pll.v`, 0.1–24.9 MHz | 0.06% rms, 0.08° rms (repeat 0.11%) | `data/cable_16cm_dac100.npz` |
+| 4: `lockin_pll.v`, 25.1–49.9 MHz | 1.1% rms, 0.94° rms (repeat 1.6–1.7%) | `..._dac100_hi.npz` |
+| 5: BIOS `mem_write`/`mem_read` | the same dump, byte for byte | the tutorial |
+| 6–7: firmware `fg`, `cap`, `li`, `sweep`; `cap_plot.py` | `sweep 100000 8000000 6`: 3871.3 mV / −10.77° … 3965.2 mV / −125.61° | the transcript: 0.02% to 3.3 MHz, 0.2% at 8 MHz, ≤ 0.14° |
+| 8: driver through the cable | lock-in at 100 kHz 3.873 V; `sweep.sh` 3.8270 V at 1 MHz; a 250 kHz triangle capture | 8.7's 3.83 V |
+
+Sweeps excluded points within 0.35 MHz of 12.5, 25, 37.5 and 50 MHz, where a lock-in at
+25 MS/s is degenerate. New raw data: `data/cable_16cm_jlc2_*.npz`, `data/loopback_16cm_jlc2.npz`.
+
+### New measurement 1: drive strength and DAC speed
+
+The DAC plays a DDS sine (1.1 or 10.1 MHz, on exact FFT bins) from a PLL at 50, 100,
+125, 150 or 200 MS/s. Four settings went on `dac_d` / `dac_clk`: 4 SLOW / 4 SLOW (the
+tutorial's), 8 SLOW / 8 SLOW (Lattice's default), 4 SLOW / 8 FAST, and 16 FAST / 16 FAST.
+`capture.v` records each through the cable, 4 × 16384 samples. Results at 100 MS/s, which
+repeat to 0.1 dB over 3 runs (total SNR counts the spurs; broadband SNR leaves out bins more
+than 15 dB above the floor):
+
+| `dac_d` / `dac_clk` | total SNR, 1.1 / 10.1 MHz | broadband SNR, 1.1 / 10.1 MHz |
+| --- | --- | --- |
+| 4 SLOW / 4 SLOW | **37.0 / 38.7** | **47.0 / 46.0** |
+| 8 SLOW / 8 SLOW | 34.0 / 36.2 | 45.6 / 44.6 |
+| 4 SLOW / 8 FAST | 36.7 / 38.5 | 45.2 / 45.5 |
+| 16 FAST / 16 FAST | 36.2 / 36.7 | 44.8 / 44.1 |
+
+- **4 mA SLOW is best or tied at every rate tried** (50, 100, 150 and 200; 125 is
+  explained below). The margin is small, but it's real.
+- **A faster DAC clock edge didn't help.** The AD9708 datasheet asks for fast clock edges
+  for low jitter, but at these frequencies the effect doesn't show.
+- **Speed:** every setting reproduced the sine with normal amplitude, harmonics and noise
+  at **200 MS/s**, past the AD9708's typical 125 MS/s and the ECP5's 150 MHz LVCMOS33
+  rating. At 200 MHz the data changes 2.5 ns before each clock edge (setup ≥ 2.0 ns).
+  The 1.1 MHz DDS itself failed FPGA timing at 200 MHz (173.6 MHz achieved, 7 seeds
+  tried), so that point is missing. That's a limit of the DDS logic, not of the pins.
+- **The dominant "noise" is the DDS, not the pins:** spurs near −47 dBc from its 8-bit
+  phase truncation (≈ −6 dB × 8 bits). Their frequencies move with the tuning word, so
+  only settings at the same rate and tone compare fairly.
+- **125 MS/s is bimodal.** The same bitstream gives ~44 or ~38 dB from one load to the
+  next. 125 MHz is the only rate here where the PLL divides its 50 MHz input by 2, so the
+  DAC clock can line up with either of two 50 MHz edges, and hence with the ADC's samples
+  in two ways. Every other rate repeats exactly.
+
+### New measurement 2: the ADC at 31.25 MS/s
+
+`adceye.v` runs everything from one 125 MHz PLL clock: the DAC at 62.5 MS/s with a
+1024-entry sine table, and the ADC clocked by a second PLL output at 31.25 MHz (or 25 MHz)
+shifted by 0, 2, 4 or 6 ns. The ADC's pins are sampled on every 125 MHz edge, so each ADC
+sample is seen at 4 (or 5) points 8 ns apart: 16 (or 20) points per period at 2 ns
+spacing. Two loads of each, three captures per load.
+
+- At every shift, all capture points read the same clean data except at most one, which
+  lands on the transition (2,100–2,800 of its 3,276 or 4,096 samples wrong). Only 2 of the 16 points
+  hit it at 31.25 MS/s, and 2 of 20 at 25 MS/s. **The data is valid for about 28 of every
+  32 ns.**
+- **The best SINAD is 43.7 dB at 31.25 MS/s (6.97 effective bits) and 42.9 dB at
+  25 MS/s.** Both include the DAC chain's distortion, so this bounds the ADC from below.
+  The 4 mA SLOW ADC clock causes no visible duty-cycle trouble at 31.25 MHz.
+- **The same bitstream gives 37.9 or 43.4 dB from one load to the next.** The DAC's
+  62.5 MHz toggle can start on either of two 125 MHz edges, so the ADC samples either
+  while the DAC switches or between switchings. This is the same ~5 dB as at 125 MS/s:
+  the converters share a module and a ground. The tutorial's designs derive everything
+  from one 50 MHz clock with fixed flip-flops, so they are deterministic.
+- **What it takes in a real design:** the PLL clock (62.5 MHz, reference divider 4, in
+  spec), a capture point away from the ~4 ns transition (found by a scan like this one,
+  since t<sub>OD</sub> is only "typical"), and a deterministic DAC/ADC phase.
+
+Code: `tools/pinspeed/` (README there). Data: `data/pinspeed_drive.npz`,
+`data/pinspeed_eye.npz`. Both analysis scripts reproduce the numbers above from those files.
+
+### Two modules on one Icepi Zero?
+
+The 40-pin header is a Raspberry Pi header. **28 pins are FPGA I/O** (GPIO0–27). On the
+Icepi Zero each goes only to the header and an ECP5 ball (checked in the board file): no
+pull-ups and no shared functions, unlike a Pi's GPIO2/3. The other 12 are 2 × 5 V,
+2 × 3.3 V and 8 × GND. One module uses 18 (8 ADC data + ADC clock + 8 DAC data + DAC
+clock), and leaves 10.
+
+| | everything separate | shared ADC clock + shared DAC clock (your idea) | shared ADC clock + **shared DAC data bus** |
+| --- | ---: | ---: | ---: |
+| ADC data | 16 | 16 | 16 |
+| ADC clocks | 2 | 1 | 1 |
+| DAC data | 16 | 16 | **8** |
+| DAC clocks | 2 | 1 | 2 |
+| **total (of 28)** | 36 | **34: 6 short** | **27: fits, 1 spare** |
+
+So sharing the clocks alone doesn't work. What does work is sharing the **DAC data bus**.
+The AD9708 latches its data on the rising edge of *its own* clock, so two DACs can sit on
+one 8-bit bus with separate clocks. The FPGA puts out DAC A's word and clocks A, then puts
+out B's word and clocks B. The bus then runs at twice the per-DAC rate: 2 × 50 MS/s means
+100 Mwords/s, which this stack runs today, and today's 200 MS/s result suggests headroom.
+Sharing the **ADC clock** is natural, and useful: both ADCs then sample at the same instant,
+for two-channel measurements such as a device's input and output together. With separate
+ADC clocks the count is 28, with nothing spare. The ADCs can't share a data bus: the module's
+connector brings out only the 18 signals, and the AD9280's three-state switching
+(t<sub>DEN</sub> 25 ns, t<sub>DHZ</sub> 13 ns) is too slow at 25 MS/s anyway.
+
+What the shared bus costs and needs:
+
+- **More digital activity at each DAC.** The bus toggles at twice the rate, and each DAC
+  sees the other's words. Today's measurements say switching *timing* relative to ADC
+  sampling matters at the 5 dB level. So place both DAC clocks, and the ADC sampling
+  instant, deliberately.
+- **Two loads and a stub on each data line.** The edges get slower. 4 mA may need to
+  become 8 mA, which costs ~1–2 dB by today's numbers. Keep the stubs short.
+- **Power:** both modules from the header's two 5 V pins. The adapter README estimated
+  ~250 mA worst case per module (never measured). Two, plus the Icepi Zero, could exceed a
+  500 mA USB 2.0 port: use a USB-C supply that offers ≥ 1.5 A, or measure first.
+- **Mechanics:** two modules don't fit over a 65 × 30 mm Icepi Zero. This would be a
+  larger carrier board with two module sockets.
+- **Ways I wouldn't use:** finding more pins elsewhere. The mini-HDMI connector's 8 TMDS
+  lines and the USB-C data lines are FPGA pins, but reaching them takes adapters and cables.
+  Dropping DAC or ADC bits is the other option, and it costs resolution.
+
+### Traps found along the way
+
+- **`PYTHONPATH` with an empty entry** (this PC's ends in `:`): running a LiteX tool
+  from `IcepiZeroADCDAC_tutorials/` imports the tutorial's `litex/` folder as the
+  `litex` package, giving `cannot import name 'RemoteClient'`. Added to Appendix A.
+- On the board, `od -v | sort` over a 16 kB capture takes over a minute. That's the slow
+  CPU again; my helper's 60 s timeout then desynchronised.
+- My own mistakes, fixed: `pkill -f` with a pattern that matched its own shell (twice),
+  and a first `adceye.v` that assigned the same registers from two `always` blocks.
+
+### Changes
+
+- Tutorial:
+  - Part 1: the drive paragraph now gives the measurements.
+  - Part 2: three crystals.
+  - Part 3: the 31.25 MS/s paragraph is now measured, plus the DAC/ADC timing effect.
+  - 9.10: the third board's crystal.
+  - Appendix A: the `PYTHONPATH` row.
+  - Appendix B: "On a third board, with the module", and the not-tested list updated.
+- New: `tools/pinspeed/` (8 files + README), `data/pinspeed_drive.npz`,
+  `data/pinspeed_eye.npz`, `data/cable_16cm_jlc2_{dac50,dac100,dac100_hi}.npz`,
+  `data/loopback_16cm_jlc2.npz`.
+- `tools/sync_md.py --check`: all code blocks match. Nothing committed.
+
+### Still not tested on JLC 2
+
+- The LEDs: the counter was loaded but nobody watched it.
+- Pressing the buttons.
+- The FPGA's USB-C ports and HDMI.
+- The supply voltages, and the module's current draw. That draw matters for the
+  two-module question.
+
+**Board state:** JLC 2's flash holds `icepi_zero_adda.bit` (verified), and JLC 1's card is in
+it, so it boots to a login with `adda.ko` loaded in 61 s.
+
+## Prompt 7
+
+The LEDs looked good. Test a 3rd JLCPCB board with the microSD card inserted, but no header soldered on (and therefore no ADC or DAC). When you've tested the hardware you can test, I'll give you the last one to test and we'll call our JLCPCB run a success.
+
+## Response 7 2026-09-30 20:48:00 - 2026-09-30 21:22:46 Claude Opus 5.5
+
+JLC 2's LEDs are confirmed: Appendix B now says its counter was watched. **JLC 3** is FT231X
+`DP0525LR`, with no header and the same SD card (SanDisk SC64G, serial 0x08db0f22). It
+passes everything testable without the header:
+
+| test | JLC 3 | JLC 1 / JLC 2 |
+| --- | --- | --- |
+| JTAG | LFE5U-25, IDCODE 0x41111043 | same |
+| buttons, card detect | both released; `SD_DET` = 1 (card in) | same |
+| flash | blank W25Q128, unprotected; quad SPI at 62 MHz configures the FPGA (3 of 3); Linux SoC written in 52.2 s and read back identical | same |
+| SDRAM | `mem_test` over all 32 MiB, twice, OK; 14.6 / 20.2 MiB/s | same |
+| 8.3 serial boot, as now written (one command, under `script`) | request caught, 4 files at 42–44 kB/s, RAM-disk Linux to `buildroot login:` | JLC 1 by script |
+| boot from flash + card | login at 61.3 and 61.1 s; card found at 7.0 s | 60.9, 61.0 / 61.2 |
+| Linux | `uname`, `cpuinfo`, `free` (22992 kB), `/bin/true` 0.39 s, device tree, `devmem`, driver loaded at boot, sysfs files, a capture (all code 0: no module), lock-in and `sweep.sh` near zero | same |
+| SD card | 8 MB raw read 285 kB/s, write with `fsync` 199 kB/s, MD5s match; marker file appended | 287 / 215, 285 / 201 |
+| oscillator | 49,999,895.0 Hz, **−2.10 ppm** (12 min against NTP) | −3.30 / −1.70 |
+| Part 1 counter | loaded at the end and left running for you to look at | watched on both |
+
+Changes: Appendix B gets "On a fourth board". Part 2 and 9.10 list the fourth crystal.
+Nothing committed.
+
+**Board state:** JLC 3's flash holds `icepi_zero_adda.bit` (verified), and the card is in it.
+The counter is running in SRAM right now; power-cycle the board (or `openFPGALoader -r`)
+and it boots Linux from the card.
+
+## Prompt 8
+
+In addition to the one you just tested, there are 3 other JLCPCB Icepi Zeros connected to USB, each of which now has the header and the DAC+ADC module. You can finish testing the one with no header, but then focus on the other 3. The DAC+ADC module from before is still in the loopback configuration with the same 16.5 cm cable. The other two are connected to each other, with one's DAC connected to the other's ADC and vice versa. These are connected through two short 16.5 cm cables. The LEDs are all working and doing the LiteX "chase" pattern, so the additional 3 seem to be working.
+
+Put these through their paces, testing the DAC+ADC modules and their communication with their Icepi Zeros as best you can. Each of the modules has a potentiometer onboard, and these have been left as they came.
+
+Then, spend the night coming up with (and testing) interesting experiments or additions to the tutorial that could be accomplished with 2 boards connected to each other. Focus on both potentially interesting physics demonstrations and also on communication demonstrations or other demonstrations. These can be integrated into the openfpga/IcepiZeroADCDAC_tutorials.md document, but they should be self-contained enough to be cut out and pasted into a more advanced, second tutorial. I'll let you decide if raw verilog, LiteX, or LiteX+Linux is the best way to demonstrate each new interesting thing.
+
+I hope to come back tomorrow morning to some fascinating ideas and results. I'm sure that some of these will be jumping off points for even more interesting demonstrations once additional hardware is added (hopefully things we already have or things that are easy to make or buy). Don't get stalled waiting indefinitely for something and don't stop unless something goes wrong that prevents you from continuing.
+
+## Response 8 2026-09-30 22:05:00 - 2026-10-01 05:52:00 Claude Opus 5.5
+
+Boards on the PC, by FT231X serial number (never by `ttyUSBn`, which moved during the night):
+
+| name | serial | state |
+| --- | --- | --- |
+| JLC 1 | DP0525BU | header + a new module; cross-connected with JLC 2 |
+| JLC 2 | DP051TLX | header + a new module; cross-connected with JLC 1 |
+| JLC 3 | DP0525LR | header + the original module, looped back on itself (16.5 cm) |
+| JLC 4 | DP0524FJ | no header; the SD card |
+
+(The wiring was found, not assumed: each module board played a different frequency and
+each ADC said whose it heard. The original module turned out to be on JLC 3.)
+
+### Short version
+
+- **JLC 4 (no header) is finished:** crystal −2.00 ppm against NTP. (A first attempt measured
+  nothing: with several boards attached, a plain `openFPGALoader -b icepi-zero` loads
+  *some* board. Everything since selects boards by FT231X serial number.)
+- **The module boards and their modules all work.** On all three paths (JLC 3 looped back,
+  JLC 1 → JLC 2, JLC 2 → JLC 1) the staircase is linear to 0.25 codes rms, and every ADC code
+  between 29 and 225 appears, so no DAC or ADC bit is stuck. A 1.3 MHz sine gives a SINAD of
+  40.4–40.5 dB on the new modules and 36.1 dB on the original. The new modules have 0.7% more
+  gain (0.7815–0.7818 ADC codes per DAC code, against 0.7761); their potentiometers are a
+  plausible cause.
+- **A new Part 10, "Two boards"**, about 1,770 lines in the tutorial with its own folder
+  `twoboard/`. It is self-contained enough to lift out as a second tutorial. Everything in it
+  was run tonight, with the figures made from the data:
+
+| | what | headline result |
+| --- | --- | --- |
+| 10.1 | two boards on one PC; the links checked | serial numbers, `/dev/serial/by-id`, the 4 kB read trap |
+| 10.2 | two clocks (Part 4's `lockin.v` on both) | a beat of ±0.7591 Hz at 1 MHz, mirror-imaged; Allan deviation ≈ 1e-9 at 0.1–1 s, then drift; overnight the difference wandered +0.7 to +2.4 ppm, and the PC's NTP clock wandered by up to 3 ppm per 10 minutes |
+| 10.3 | warming a crystal (`warmup.v`: a heater and the ECP5's DTR thermometer) | the crystal falls 3.0 ppm in 15 min of self-heating; two time constants; the PC as referee says it was A's crystal that moved |
+| 10.4 | two-way time transfer (`awgcap.v`, `twoway.py`) | round trip 425.63 ± 0.15 ns; clock offset drifts 0.748 ppm, a third method agreeing with the beat and with NTP |
+| 10.5 | coupled oscillators (`coupled.py`); a hardware PLL (`pll.v`) | lock range = K; slip rates follow Adler to 0.033 Hz rms, locked phase follows arcsin(Δ/K); hardware PLL: B a copy of A's clock to 0.07° (0.2 ns) |
+| 10.6 | a real-time FSK modem in Verilog (`modem.v`), and Linux over it; its error rate against noise | 0 errors up to 2.5 Mbaud, full duplex; two FPGA Linux computers swap files (identical MD5), and with SLIP they `ping` each other (0% loss) and copy a file by TCP; with noise, the decisions follow ½ exp(−W·SNR/4), and a receiver with its own bit clock gains 10 dB |
+| 10.7 | OFDM and Shannon (`ofdm.py`, `ber_curve.py`) | QAM-64 at 55.9 Mbit/s (0–17 errors in 366k bits); QAM-256 at 74.5 Mbit/s with BER 2e-3; the BER-vs-SNR points lie on the textbook QAM curves |
+| 10.8 | ideas needing more hardware | antennas, light, sound, GPS, Johnson noise, a third board, PPP |
+
+### Testing the module boards
+
+`tools/twoboard/module_test.py` loads the tutorial's `loopback.v` into all three boards and
+reads every board at once (one thread per port). JLC 3's record is its own pattern, and each of
+JLC 1 / JLC 2 records the other's, from an arbitrary starting point, re-aligned at the
+staircase's one big drop.
+
+| path | ADC code per DAC code | offset | INL rms / worst | missing ADC codes | 1.3 MHz sine: H2, SINAD |
+| --- | ---: | ---: | --- | --- | --- |
+| JLC 3 → JLC 3 (the original module) | 0.7761 | 27.57 | 0.25 / 0.53 | none in 29–224 | −47.9 dBc, 36.1 dB |
+| JLC 1 → JLC 2 | 0.7815 | 27.03 | 0.25 / 0.51 | none in 29–225 | −48.4 dBc, 40.4 dB |
+| JLC 2 → JLC 1 | 0.7818 | 27.21 | 0.24 / 0.50 | none in 29–225 | −49.1 dBc, 40.5 dB |
+
+All 8 DAC bits and 8 ADC bits work on all three modules. The potentiometers were not touched.
+What they set is still unknown: turning one while `module_test.py` or a lock-in runs would
+show it in a minute.
+
+### IP between the two FPGA Linux computers
+
+After the file transfers worked, I added `CONFIG_SLIP=y` to `linux/kernel_modules.config` and
+`slattach`, `nc` to `linux/busybox.config`. The rebuild took 28.5 s, and the kernel grew 16 kB
+to 9,129,904 bytes. Part 8 now notes that its quoted sizes predate these lines. Booted on both
+boards of the pair (`tools/twoboard/linux_slip_test.py`):
+
+- `ping` A → B 5/5 (43–51 ms), B → A 3/3 (49–61 ms), 0% loss; `ping -s 1000` 20/20 at
+  259 ms. That's 178 ms of serialization at 115 200 baud, plus processing.
+- TCP: `nc` carried a 32 kB random file A → B with an identical MD5 (`192d7b31…`). BusyBox's
+  minimal `nc` has no `-w`, so the sender runs in the background and is stopped later.
+- `sl0` counters: 147 packets out, 101 in, 0 errors.
+
+### After midnight: the modem against noise (10.6)
+
+The 10.6 "Try this" about noise became a worked experiment, on JLC 3 (looped back), so the
+pair was free for the overnight clock log.
+
+- **`twoboard/modem_noise.v`** is `modem.v` with three knobs: `NOISE` (white noise added
+  before the DAC, the sum of the four bytes of a 32-bit xorshift generator, 0.577 × NOISE
+  codes rms), `AMP` (tone amplitude) and `LOGWIN` (receiver window 2^LOGWIN samples). With the
+  defaults it is `modem.v`. `twoboard/modem_ber.py` counts bit errors through one looped-back
+  board and aligns what came back first (difflib), because a broken start bit loses or
+  invents bytes. `make modem_noise NOISE=… AMP=… LOGWIN=…` builds a variant.
+- **19 settings, 800,000 bits each** (`tools/twoboard/fsk_ber.py`). The SNR per ADC sample
+  was measured, not assumed (a steady tone plus the noise, recorded with `capture.v`); it is
+  within 0.6 dB of 1.5·(AMP/NOISE)². The same records, put through the receiver's arithmetic
+  in numpy, give the error rate of the decisions alone.
+- **The decisions follow non-coherent FSK theory, ½ exp(−W·SNR/4)**, for W = 16 and 128, and
+  the 128-sample window gains the predicted 9 dB. Through the PC's UART, errors are 2–5×
+  (W = 16) and 8–30× (W = 128) higher: a wrong decision at a start or stop bit misframes a
+  byte, and a long window blurs the edges the UART times from. A simulation of the whole
+  chain (`tools/twoboard/fsk_sim.py`) reproduces both within a factor of 2 over most of the
+  range, and with perfect bit timing falls back onto theory.
+- **The textbook receiver, built: `tools/twoboard/modem_sync.v`.** 216-sample sums and its
+  own bit clock, kept centred by an early–late gate. Through the UART: BER 10⁻³ at −7.5 dB,
+  1.7 dB better than the 128-sample window and 10 dB better than `modem.v` (theory 2.3 and
+  11.3 dB). In the tutorial as a paragraph and a third curve in `img/tb_fskber.png`; the file
+  itself stays in `tools/`.
+- Student path checked by hand afterwards: `make modem_noise NOISE=86`, `make load-…`,
+  `modem_ber.py` gave BER 2.82 × 10⁻⁴ (the sweep: 3.7 × 10⁻⁴); NOISE=61 AMP=25 LOGWIN=7 gave
+  3.3 × 10⁻³ (sweep: 2.6 × 10⁻³).
+
+### After midnight: which crystal moved in 10.3?
+
+`warmup_run.py` already saved the PC arrival time of every lock-in result, and B sends one
+every 2²⁰ of its own samples. So B's crystal against the PC's NTP clock was in the data all
+along: B stayed within 0.3 ppm, while A fell 2.6 ppm and came back only 0.8. It was A. Now
+in 10.3. The PC's clock is only a rough referee. `systemd-timesyncd` polls every 34 minutes
+over a 139 ms network path (jitter 1.6 ms). A log of the kernel's clock discipline
+(`adjtimex`, every 10 s from 02:24) shows each poll finding the clock up to 1.35 ms off,
+changing its frequency correction by up to 0.33 ppm (−3.07 → −3.51 ppm by 04:18), and slewing
+the offset away at up to 0.85 ppm. In the 15-minute beat run, the two boards' PC-timed
+frequencies wandered together by ±1 ppm in 100 s blocks, while their difference stayed with
+the beat.
+
+### Overnight: two crystals for five hours (10.2)
+
+`lockin_log.py` on JLC 1 and JLC 2 from 00:41 to 05:41 (`lockin.bit`, 1 MHz), started detached
+with `setsid nohup` so it would outlive the session's 2-hour limit on background jobs:
+429,153 results per board, none lost. `data/tb_beat_1M_overnight.npz` keeps every 4th result
+(3 MB instead of 12 MB; the scripts read its `every` key). Results, now in 10.2 with
+`img/tb_overnight.png` and a third curve in `img/tb_adev.png`:
+
+- f_B − f_A wandered between +0.7 and +2.4 ppm, mostly slowly, with sudden steps of 0.3–0.5 ppm
+  (01:05, 01:25, 03:52) that both lock-ins see identically. Their cause is unknown.
+- Allan deviation: about 1 × 10⁻⁹ from 0.2 to 2 s (the shorter runs agree), then up to
+  5 × 10⁻⁸ at 100 s, 1.5 × 10⁻⁷ at 1000 s and 3.5 × 10⁻⁷ at 1.7 h. It never turns down.
+- Against the PC's clock (arrival times, 10-minute blocks), both boards moved together by up
+  to 3 ppm, at the `timesyncd` polls. B − A averaged +1.527 ppm over the night, against the
+  beat's +1.502 ppm. The kernel's frequency correction went from −3.07 to −4.00 ppm in six
+  polls (`data/tb_pc_adjtimex.npz`, logged from 02:24), so the PC's own crystal drifted too.
+- An averaging slip of mine: first I averaged groups of 8 results to shrink the file. With a
+  beat of up to 1.5 Hz, 0.34 s groups are at the Nyquist limit, and the averaged phase aliased
+  (the beat came out −0.15 instead of +1.51 ppm). Keeping every 4th raw result is safe up to
+  3 Hz.
+
+### Morning: every Part 10 script once more (`tools/twoboard/smoke_pair.sh`)
+
+Run on the pair at 05:44, briefly, exactly as the tutorial prints the commands:
+
+| section | script | result |
+| --- | --- | --- |
+| 10.2 | `lockin_log.py` + `beat.py`, 30 s | ±0.7550 ppm, mirror-imaged |
+| 10.5 | `coupled.py`, one-way K_B = 1 Hz | locked: φ_A −27.3 ± 0.1°, B moved −0.774 Hz |
+| 10.5 | `coupled.py`, mutual K = 0.5 Hz | not locked, as Adler says: the detuning (0.755 Hz) is outside K |
+| 10.3 | `warmup_run.py`, 4 minutes | ran; heater on and off, DTR code reported |
+| 10.5 | `pll_pair.py`, 10 s open, 20 s closed | open beat 2.078 Hz (A just heated), locked to 0.107° rms |
+| 10.4 | `twoway.py`, 20 s | round trip 425.4–426.0 ns |
+| 10.7 | `ofdm.py` QAM-64 A → B, QAM-16 B → A | 6.8 × 10⁻⁵ (10 errors, EVM 3.8%); 0 errors, but EVM 5.1% |
+| 10.6 | `modem_test.py` at 1 Mbaud and 115,200 baud | 0 wrong in 20,000 / 5,000 bytes, both ways at once |
+
+The 5.1% EVM didn't recur: four repeats of QAM-16 each way gave 3.0–3.5%, and QAM-64
+B → A gave 0 errors at 3.2%. It was probably taken while A's crystal was still recovering
+from the short heating run just before. Earlier, `pll_test.py --test-offset 100` on JLC 3
+locked at +100 Hz with a 0.5–0.6° phase error, and `ofdm.py` looped back on JLC 3 gave
+QAM-64 with 0 errors (EVM 3.0%) and a sounded capacity of 169 Mbit/s. All the figure scripts
+regenerate their figures from `data/`.
+
+### Things that went wrong, and what they taught
+
+- **`openFPGALoader -b icepi-zero` with several boards attached picks one** (not necessarily
+  the one you mean). My first JLC 4 oscillator run listened to the wrong board and got nothing.
+  Fix: `--usb-serial-num`, and `/dev/serial/by-id/` names. Now in 10.1, and in
+  `tools/boardtest/Makefile` (`SERIAL=`).
+- **Reading several serial ports one after the other loses data.** The kernel keeps about
+  4 kB per port, and a 16 kB record overflowed it while I was reading another board. Fix:
+  a thread per port (`awgcap.record_many`, `module_test.py`, `modem_test.py`).
+- **Channel sounding across boards first said 25 dB SNR**, then 18, then 40. The first was a
+  bug of mine: I divided by the number of records twice. The second came from comparing
+  *different* records, whose DAC images fold back with a phase that rotates every ~27 ms
+  as the two sample clocks slide. Comparing the two loops *within* a record gives the real
+  noise, about 40 dB per bin.
+- **`pll.v` first jumped by 48.8 kHz whenever Q went negative.** In
+  `tw0 + (Q >>> 10) + integ`, unsigned `tw0` makes Verilog treat the whole expression as
+  unsigned, and `>>>` then becomes a logical shift. Now a `signed` wire. It's in the tutorial
+  as a lesson.
+- **Linux refused the second LiteX UART** (`error -22`): `CONFIG_SERIAL_LITEUART_MAX_PORTS`
+  defaults to 1. `linux/kernel_modules.config` now sets 2. The kernel and rootfs rebuilt in
+  35 s, the `Image` is the same size, and `images_adda/` (Part 8) was not touched.
+- **At 1 Mbaud with 64-byte FIFOs, Linux lost 97% of a file**: the receive FIFO overflows in
+  0.64 ms. The modem SoC now uses 115 200 baud and 512-byte FIFOs. The very first file after a
+  board booted still lost 6% while the start-up scripts ran. After that, 4 of 4 were perfect.
+- **A serial-boot upload stalled** when I loaded bitstreams into *other* boards during it.
+  Since then, boards serial-boot one at a time with no other USB activity, and no stall has
+  recurred.
+- **The FSK error-rate sweep hung** at −10.5 dB with the 128-sample window. With that much
+  noise, the idle MARK tone makes false start bits, garbage bytes never stop, and "read until
+  the line is quiet for 0.5 s" never ended. Now there is a deadline.
+- **The first noise source was four 16-bit LFSRs**, which are shifted copies of one sequence
+  that repeats every 1.3 ms. Its sweep matched the xorshift one except at the two
+  highest-SNR settings of the 128-sample window, where it gave fewer errors. Replaced, to be
+  safe.
+- **The FT231X can't make 115,200 baud.** It sends 3 MHz / 26 = 115,385 baud: 216.67
+  samples a bit, not 217. `modem_sync.v`'s first version got 11% of the bits wrong without
+  any noise, until its bit length became fractional. No UART notices 0.16%.
+- **An integrate-and-dump receiver that restarts at each start edge** is hopeless at the SNRs
+  where it would help: in simulation, below −8 dB, its 16-sample edge detector is wrong a
+  quarter of the time. A bit clock that averages over many edges works.
+- My own scripting errors, twice each: `pgrep -f`/`pkill -f` patterns that matched the
+  shell running them (fix: `'name[.]py'`-style patterns, and no kill in the same command
+  line), and wait loops that could never end for the same reason.
+
+### Not done, or not tested
+
+- The new modules' potentiometers (see above), and the ADC's full range (the DAC only reaches
+  codes 29–225).
+- 10.8's ideas: they need parts.
+- Noise from a physical source (a noise diode, a hot resistor). The noise of 10.6 and 10.7 is
+  made digitally and added before the DAC, so it does cross the analog path, but it isn't
+  independent of the transmitter.
+- Remote login across the cable. IP works (see above), but `telnetd` isn't in BusyBox here,
+  and adding `CONFIG_FEATURE_TELNETD_STANDALONE` makes Buildroot start `telnetd` at every
+  boot, which would change Part 8's images. Left as a 10.8 idea.
+
+### Files
+
+- New folder `IcepiZeroADCDAC_tutorials/twoboard/`: `awgcap.v`, `awgcap.py`, `twoway.py`,
+  `coupled.py`, `lockin_log.py`, `beat.py`, `warmup.v`, `warmup_run.py`, `pll.v`,
+  `pll_test.py`, `pll_pair.py`, `modem.v`, `modem_test.py`, `make_modem_linux.py`,
+  `ofdm.py`, `ber_curve.py`, `modem_noise.v`, `modem_ber.py`, `Makefile` (with a
+  `modem_noise` rule), `.gitignore`.
+- New `tools/twoboard/` (instructor): `boards.py`, `module_test.py`, `sine_quality.py`,
+  `linux_modem_test.py`, `fig_beat.py`, `fig_adev.py`, `fig_warmup.py`, `fig_twoway.py`,
+  `fig_adler.py`, `fig_pllpair.py`, `fig_ofdm.py`, `fig_ber.py`; after midnight
+  `fsk_ber.py`, `fsk_build.sh`, `mn_measure.v`, `fsk_sim.py`, `modem_sync.v`,
+  `fsk_sync_ber.py`, `fsk_sync_run.py`, `fig_fskber.py`, `fig_overnight.py`, `smoke_pair.sh`.
+- New data `data/tb_*.npz` and figures `img/tb_*.png`.
+- Changed: `linux/kernel_modules.config` (two LiteX UARTs, `CONFIG_SLIP`), `linux/busybox.config`
+  (`slattach`, `nc`), `tools/boardtest/Makefile`
+  (`SERIAL=`), `tools/boardtest/measure_osc.py` (port argument), `tools/boardtest/bootload.py`
+  (`--port`); the tutorial: Part 10, Contents, Appendix B, and one caveat in 9.10 about the
+  PC's clock.
+- `tools/sync_md.py --check`: all code blocks match. Nothing committed.
+
+**Board state (06:00):** all four boards still have the Part 8 Linux SoC in flash, and JLC 4
+has the SD card. JLC 1, JLC 2 and JLC 3 run `awgcap.bit` (SRAM) from the last tests; JLC 4 was
+not touched overnight. A power cycle returns all of them to the flash SoC. Nothing is
+committed.
+
+## Prompt 9
+
+All 5 Icepi Zeros are connected to USB. 3 have DAC+ADC boards. All 5 have new SD cards that should format and put your final version of linux on. Make sure they boot and talk to the computer reliably.
+
+## Response 9 2026-10-01 18:57:42 - 2026-10-01 20:01:43 Claude Opus 5.5
+
+**All five boards now boot Part 8's Linux from their new cards, and passed 35 boots with no failure.**
+
+| board | serial | module | SD card | boots tested | reset → `login:` | 1 MHz at the ADC |
+| --- | --- | --- | --- | ---: | --- | --- |
+| original | DK0GFLAW | none | 14.6 GiB | 7 | 57.5–60.1 s | 0.005 V (no module) |
+| JLC 1 | DP0525BU | new, cross-connected to JLC 2 | 14.6 GiB | 7 | 57.5–60.1 s | 3.827 V (JLC 2's DAC) |
+| JLC 2 | DP051TLX | new, cross-connected to JLC 1 | 14.6 GiB | 7 | 57.5–60.1 s | 3.829 V (JLC 1's DAC) |
+| JLC 3 | DP0525LR | original, looped back | 14.6 GiB | 7 | 57.5–60.1 s | 3.820 V (its own DAC) |
+| JLC 4 | DP0524FJ | none | 14.6 GiB | 7 | 57.5–60.1 s | 0.006 V (no module) |
+
+(The boot-time range is over all five boards' boots. Every card reported itself as 14.6 GiB in the
+installer's log (`mmcblk0: mmc0:0001 USD 14.6 GiB`).)
+
+### What is on them
+
+The "final version": the Buildroot build from 2026-10-01 00:24 (kernel 6.12.0, 9,129,904-byte
+`Image`, with Part 10's `CONFIG_SLIP`, two LiteX UARTs, and BusyBox's `slattach` and `nc`),
+installed exactly as 8.7 describes:
+
+- **SPI flash:** `build/icepi_zero_adda/gateware/icepi_zero_adda.bit` (Part 8's SoC, built
+  09-29), rewritten on all five with `openFPGALoader -f --verify` (70–77 s each), so all five are
+  known to hold the same gateware.
+- **SD card:** partition 1, 64 MiB FAT32 with `Image`, `opensbi.bin`, `rv32.dtb`
+  (`root=/dev/mmcblk0p2`) and `boot.json`; partition 2, 4 GiB ext2 with the root file system.
+  `make_sd_installer.sh` rebuilt `images_sd/` and `images_install/` from that Buildroot build.
+- **8.7's tuning, on every card:** `S01syslogd S02klogd S02sysctl S40network S50crond` moved to
+  `/etc/init.d/off`, and `S90adda` loads `/root/adda.ko` at boot. `adda.ko` was rebuilt against
+  the current kernel first: it came out bit-identical to the one already in the root file system.
+
+### How (`tools/boardtest/sd_provision.py`, new)
+
+Five boards, one process each, all at once. Each one:
+
+1. types `reboot` at the board's `litex>` prompt (where the BIOS ends up after power-up with a
+   card that has no `boot.json`), and answers the serial-boot request with `images_install/`.
+   It never calls `openFPGALoader`, because last night a bitstream load on one board stalled
+   another board's upload. Five uploads at once each ran at full speed: 15 MB in about 5½ min.
+2. logs in, runs `install-sd.sh` (320–347 s), and does the tuning on the card;
+3. boots from the card several times. After each boot it logs in and checks: the kernel command
+   line says `root=/dev/mmcblk0p2`, `/` is mounted from it, the driver printed `ADC/DAC
+   peripherals ready` during boot, and `/sys/bus/platform/devices/f0002000.adda/` exists. It
+   also checks the serial link both ways: 32 kB of random bytes from the board as base64,
+   checked against the board's md5, and 4 kB typed into the board as a base64 here-document,
+   checked by its md5.
+
+Boots: round 1, three by `reboot` on each board; round 2, one by `reboot` and three by
+`openFPGALoader -r` on each board (the FPGA reloads from flash, as at power-up; those resets
+were done one board at a time). **35 boots, all from the card, all checks passed every time.**
+From reset to `login:` took 57.5–60.1 s. 8.7's table says 61 s, and its 86.5 s untuned.
+`tools/boardtest/adda_check.py` (new) then set every DAC to 1 MHz and read every lock-in and
+one capture.
+
+### Things that went wrong (all mine, in the test scripts; none in the boards)
+
+- **The first install command was cut short.** My console helper typed the command right after
+  logging in, before the board's shell had run `stty -echo`, so it saw the next prompt and
+  returned early. The queued command ran anyway, and the script gave up. Fix: after login, wait
+  for a marker that only the board can print (`echo "SY""NC"` → `SYNC`). The install was then
+  rerun cleanly on all five, without a second upload (`--skip-upload`).
+- **"No BIOS banner", twice.** This BIOS prints `BIOS CRC passed`, not `BIOS built on`, so my
+  second marker, `LiteX SoC`, matched the kernel's `LiteX SoC Controller` line instead. The first
+  15 boots were marked "PROBLEM" for that reason only: their logs show `Booting from SDCard`,
+  and every real check passed. Then my reader searched only the last 400 bytes of each read, and
+  the banner arrives in one burst with the memory test after it. Both fixed.
+
+### Board state (20:01)
+
+All five are logged in as root on their card-booted Linux, with every DAC playing 1 MHz (from
+`adda_check.py`). Power them off whenever you like: type `sync` first if you have changed
+files (8.7). Each will boot from its card at the next power-up. Nothing is committed.
+
+## Prompt 10
+
+Split Part 5 in three:
+* The first should be getting a RISC-V processor on the chip, and having it boot into LiteX where you enter some terminal commands like directly writing to memory to toggle the LEDs
+* Then running a simple C program (maybe search for prime numbers like in openfpga-icebreaker.md).
+* Then getting the peripheral to work within the LiteX framework.
+
+Similarly, Part 8 should be split in two:
+* Getting linux up and running
