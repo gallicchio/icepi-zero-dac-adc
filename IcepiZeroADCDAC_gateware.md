@@ -1267,10 +1267,24 @@ files (8.7). Each will boot from its card at the next power-up. Nothing is commi
 
 ## Prompt 10
 
-Split Part 5 in three:
-* The first should be getting a RISC-V processor on the chip, and having it boot into LiteX where you enter some terminal commands like directly writing to memory to toggle the LEDs
-* Then running a simple C program (maybe search for prime numbers like in openfpga-icebreaker.md).
-* Then getting the peripheral to work within the LiteX framework.
+Take the IcepiZeroADCDAC tutorial in $HOME/DroneSDR/openfpga and move it to $HOME/mudd/133electronics/icepi-zero-dac-adc, which is now a new stand-alone github repo. It would be nice if some sense of edit history could be imported into the new repo called. When someone opens it on github, they should see only a README.md and a small number of subdirectories, one of which contains something like one .md file per bite-sized topic such that when they see the listing at the top, it is in order (for example 00_installing_the_tools.md, 10_led_counter.md, 11_dac_output.md, etc) with the first number being the "big chapter" number and the second being the "sub chapter" number as discussed next. The tutorial should be able to be followed from only the github markdown display, though some students will download the whole repo.
 
-Similarly, Part 8 should be split in two:
-* Getting linux up and running
+There is not a great sense of hierarchy. I suspect that most students will only make it to the first lock-in material. I'd this to have a sense of larger chapters and sub chapters. The larger chapters are:
+0. Intro to the tutorial, intro to the hardware, and installing the tools
+1. Verilog-only up through the verilog-only lockin. Maybe installing the tools can move here as "1.0"  if it's more relevant here.
+2. RISC-V and C code (probably with LiteX). Get the minimal default LiteX for the Icepi Zero working and booting in the LiteX terminal. Then suggest that students peek and poke to toggle the LEDs. Then demonstrate C for something that is best done on a processor but does not need the ADC and DAC, like the prime number example elsewhere in $HOME/DroneSDR/openfpga. Then show bare-metal C to do something with the DAC and ADC.
+3. Linux stuff. Start with getting linux to boot at all and have people control the LEDs through the linux filesystem. Only then do the ADC and DAC drivers.
+4. Advanced experiments with one board. If you can think of other interesting and relevant things here, add them.
+5. Experiments that require two boards. The time-transfer and comms stuff should probably be runnable with a loopback on one board, especially for debugging and for people with access only to one stack of boards, but I understand that they are only interesting with two actual boards.
+
+As you reorganize, read though for consistency and clarity as a junior-level student tutorial. Feel free to be opinionated and amusing in your writing style, but not cringy or overly verbose.
+
+Move this document, IcepiZeroADCDAC_gateware.md, and rename it CLAUDE_CODE_CHAT.md and put it into a sub-directory if there are other miscelaneous things that don't need to be a the top level. In general, the directory structure might need to be re-arranged to make it more friendly as a standalone github tutorial repo. Keep the very top level minimal, so that when someone navigates to https://github.com/gallicchio/icepi-zero-dac-adc they will see the photo and the start of the tutorial without scrolling.
+
+I don't know how I feel that you've made superscripts what seem to be special unicode characters. Is this best practice for .md files on github?
+
+I've made several "TODO" sentences in the current IcepiZeroADCDAC_tutorials.md document (which should become the new README.md) that you should do. Some apply beyond that particular place in the document and should be treated as such.
+
+I've labeled some paragraphs that you wrote as something like "Detail". If you can make these boxes that need to be explicitly expanded, it would save students from being overwhelmed on a first pass. I did not look at the lock-in example or beyond, so if there are other paragraphs that should be labeled as "Detail" and relegated to something that needs to be explicitly expanded, do that.
+
+You have one Icepi Zero with the ADC, DAC, and the long loopback cable hooked up to USB. Feel free to use it to check existing content or to develop new content.

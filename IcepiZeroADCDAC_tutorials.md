@@ -1,16 +1,23 @@
-# FPGA tutorials: ADC + DAC on an Icepi Zero
+# FPGA tutorials: ADC + DAC on an Icepi Zero FPGA
 
-This is a sequence of hands-on tutorials for a junior-level physics electronics lab.
+![Three boards, stacked](IcepiZeroADCDAC_tutorials/img/photo_stack.png)
+TODO: make that image display smaller
+
+This is a hands-on tutorials for a junior-level physics electronics lab.
 You should know basic analog and digital electronics and Fourier analysis. 
 You do **not** need to have used an FPGA or Verilog before.
-* You'll configure the digital logic inside of an FPGA to blink lights, 
-output analog waveforms, and capture analog input.
-* You'll configure it to be a processor that can run C programs, 
-including C programs that can write to the DAC and read from the ADC.
-* You can configure, compile, and boot Linux on the processor and access
+
+Goals:
+* Configure the digital logic inside of an FPGA to **blink lights**, 
+**output analog* waveforms, and **capture analog** input.
+* Configure FPGA to be a **RISC-V processor** that can run C programs that talk to hardware.
+* You can configure, compile, and boot **Linux** on the processor and access
 the DAC and ADC as linux "files".
-* Then there are an overabundance of experiments you can play with 
-using one or two boards, including time transfer and state-of-the art digital communications.
+* Then there are an **overabundance of experiments** you can play with 
+using one or two boards, including
+  - A simple vector network analyzer (VNA)
+  - time transfer between boards (just like a national lab!)
+  - state-of-the art digital communications (OFDM)
 
 
 ## Contents
@@ -42,9 +49,6 @@ says how it was measured. The source files are printed here in full and they are
 
 ## The hardware
 
-Three boards, stacked:
-
-![Three boards, stacked](IcepiZeroADCDAC_tutorials/img/photo_stack.png)
 
 | board | what it is |
 | --- | --- |
@@ -52,9 +56,13 @@ Three boards, stacked:
 | **IcepiZero_AD9280_AD9708_2x20 adapter** | A passive board: the Icepi Zero's 40-pin header on the bottom, a socket for the converter module on top, and silkscreen naming every pin. |
 | **[Icepi Zero](https://github.com/cheyao/icepi-zero)** | A Lattice **ECP5 LFE5U-25F** FPGA on a Raspberry-Pi-Zero-sized board: a 50 MHz crystal oscillator, 5 white LEDs, 2 buttons, 32 MB of SDRAM, and one USB-C port whose FT231X chip does two jobs — it programs the FPGA and it is a serial port (`/dev/ttyUSB0` on a linux laptoop). |
 
+TODO: adapt the 2x20 adapter KiCAD files and gerbers from `$HOME$/OpticsPCBs/IcepiZeroADCDAC/adapters` into a  here so that someone on the internet reading this tutorial can simply order a board.Put all of this in a new directory called `adapter_board`. Link to that directory above in the table.
+
 **Plug the module in the right way!** The passive converter board should have the same shape as the Icepi Zero and their holes should line up. The wrong way round puts 5 V on FPGA pins (bad).
 
-What the DAC and ADC actually do, measured on this set of boards (see
+**Keep the ADC's input within ±5 V!**
+
+What the DAC and ADC can actually do, measured on this set of boards (see
 [Appendix B](#appendix-b-how-these-tutorials-were-tested) for how):
 
 | | DAC (output SMA) | ADC (input SMA) |
@@ -66,7 +74,7 @@ What the DAC and ADC actually do, measured on this set of boards (see
 | conversion | V = 0.0307 × code − 3.95 | code = 126.7 + 25.35 × V |
 | measured quality | harmonics ≥ 46 dB below a 1 MHz tone | 7.1 effective bits at 1–3 MHz |
 
-Keep the ADC's input within ±5 V!
+
 
 The DAC's output was measured into a 1 MΩ scope input. 
 With the DAC cabled straight to the ADC, 
@@ -77,6 +85,8 @@ and a change at the DAC comes back 6 samples (240 ns) later
 ---
 
 ## Part 0: Installing the tools
+
+TODO: I will have students with windows, mac, and linux computers. Make sure that the instructions are appropriate for all 3 kinds of students. If "install the linux for windows subsystem" is the easiest path for thw windows users and the easiest way to keep the instructions uniform, use that path.
 
 The FPGA tools used here are all open source:
 
@@ -180,9 +190,12 @@ You describe that circuit in a *hardware description language*. We use
 **Verilog**. It looks like a programming language, but it is closer to a
 schematic written as text: each line describes some hardware that exists all
 the time, not a step that happens once.
-# TODO: would it be easier or more difficult to turn everything from Verilog into SystemVerilog? Our student's engineernig classmates learn SystemVerilog. If SystemVerilog would be more clear, and the commands and tooling would be nearly identical, switch to that.
+
+TODO: would it be easier or more difficult to turn everything from Verilog into SystemVerilog? Our student's engineernig classmates learn SystemVerilog. If SystemVerilog would be more clear, and the commands and tooling would be nearly identical, switch to that.
 
 ### The LED Counter Design
+
+TODO: This is the first time that students are encountreing Verilog. Most will just blindly copy and paste, which is not really a great way to learn, but so be it. One thing that would help learning is to take the most important few lines and make a very loud comment. For example, "dac_d <= dac_d + 1;" in the sawtooth example, or where the samples of the sine get computed and where the phase gets incremented in the DDS example. All long stretches of code should have a few loud comments pointing out where all of the interesting action takes place. Other places were students might have questions should have short, quiet comments that address those potential questions.
 
 <!-- file: counter.v -->
 ```verilog
@@ -333,7 +346,7 @@ holding a valid logic level (4, 8, 12 or 16 mA at 3.3 V), and so how hard it can
 charge the wire and the input at the far end.
  -  *Slew rate* chooses a fast or a deliberately gentle edge.
 
-**Too much detail: Why the the ADC and DAC are `DRIVE=4 SLEWRATE=SLOW`:**
+**Detail: Why the the ADC and DAC are `DRIVE=4 SLEWRATE=SLOW`:**
 A pin with neither gets 8 mA and SLOW, Lattice's
 defaults, and that is what the LEDs and the serial port use. An LED changes a
 few times a second and the serial line at most a million times, over a few
@@ -713,6 +726,8 @@ Moreover, each output appears
 about 25 ns (t<sub>OD</sub>, the datasheet's *output delay*) after the rising
 edge that releases it. So we read the data pins just before the *next* rising
 edge, 40 ns later, when they have been steady for about 15 ns.
+
+TODO: it would help to have a very simple ADC capture example before this one: Whatever the shortest path to getting samples to a minimal python. I think the students will be overwhelmed by the complicated state machine below. If the simplest path involves the UART, show the ADC capture verilog first and the UART second.
 
 **Detail: Why 25 MS/s in but 50 MS/s out?** Each converter's datasheet sets its own
 ceiling. The AD9280 ADC is rated for 32 MS/s: a clock period of at least 31.25 ns,
@@ -1407,7 +1422,7 @@ response. (Below 1 MHz the two agree within 1%; toward 12.5 MHz they part ways.)
 
 ## Part 4: A lock-in amplifier
 
-### The idea
+### The lock-in idea
 
 You want to know how a circuit (a filter, a cable, a sample) responds at
 frequency *f*. Drive it with a sine, sin(ωt), and it returns
@@ -1430,7 +1445,7 @@ that has to lock onto an external reference: the reference and the stimulus
 come from the **same phase accumulator**, so they have exactly the same
 frequency by construction.
 
-### The design
+### The lock-in design
 
 <!-- file: lockin.v -->
 ```verilog
@@ -1626,7 +1641,7 @@ New here:
 - **Parameters.** `#(parameter N_LOG2 = 20)` can be overridden, which the
   testbench below uses to make simulation 16× faster.
 
-### Simulate it first
+### Simulate the lock-in first
 
 Hardware is slow to debug: you see only pins. A *testbench* is Verilog that
 wraps your design in a fake world and runs on your laptop. This one connects the
@@ -1790,7 +1805,7 @@ $ make sim-capture
 The first sample is 109, not 0, because the fake ADC has been counting since
 time zero, and the capture only starts once the command has arrived.
 
-### On the hardware
+### Lock-in on the hardware
 
 <!-- file: lockin.py -->
 ```python
@@ -7285,6 +7300,45 @@ Each of these starts from a design above:
 | **Remote login** | BusyBox's `telnet` and `telnetd` (`CONFIG_TELNET`, `CONFIG_TELNETD` and `CONFIG_FEATURE_TELNETD_STANDALONE` in `linux/busybox.config`; Buildroot then starts `telnetd` at every boot) | 10.6's SLIP link: log in to one FPGA computer from the other, across the cable |
 
 ---
+
+## Appendix A: Why this hardware?
+
+TODO: renumber the other appendicies and change references to them above.
+
+Goals:
+* Open-toolchain FPGA
+* Open-hardware PCB
+* Fast ADC and DAC that are easy to drive for physics and communications experiments
+* Powerful enough to boot Linux
+
+
+Chosen Hardware:
+* [Icepi Zero](https://github.com/cheyao/icepi-zero) FPGA Lattice ECP5 + RAM + built-in USB-C programming
+* [AD9280](https://www.analog.com/en/products/ad9280.html) ADC (8 bits, up to 32 MS/s) 
+* [AD9708](https://www.analog.com/en/products/ad9708.html) DAC (8 bits, up to 125 MS/s)
+* [AD9280 AD9708 Data Acquisition Board](https://www.amazon.com/dp/B0C8D6JQSC)  that adds an op-amp front end.
+* Custom PCB for the interface (I'm sorry that this is potentially annoying for people on the internet.)
+
+
+Why the Icepi Zero? Lattice makes the best FPGAs for working with open source tool chains that run on all OSs. The ECP5 is big enough to run an open-source RISC-V processor as a customizable System on a Chip (SoC) that can boot Linux via [linux-on-litex-vexriscv](https://github.com/litex-hub/linux-on-litex-vexriscv). The Icepi Zero is currently in stock for $79 at [elecrow](https://www.elecrow.com/icepi-zero.html) [mouser](https://www.mouser.com/).
+
+Rejected FPGA-boad alternatives include:
+* [Radiona ULX3S](https://github.com/ulx3s) – flagship and similar, but too expensive $140-$275
+* [OrangeCrab](https://github.com/orangecrab-fpga/orangecrab-hardware) – more powerful with faster DDR3 RAM, but more expensive and I cannot buy it
+* [Colorlight](https://github.com/wuxx/Colorlight-FPGA-Projects) – not enough RAM and flaky serial loader. I tried to start here.
+* [iCESugar-Pro](https://github.com/wuxx/icesugar-pro) – maybe the same flay Muse Lab boot loader $72
+* [Sipeed Tang Primer 20K](https://github.com/sipeed/TangPrimer-20K-example) – This board's own litex_boards source explicitly blocks the open apicula toolchain whenever DRAM is used -- Linux on it requires Gowin's proprietary tool (TODO: verify this).  $53
+
+Why the AD9280 (ADC) + AD9708 (DAC)? These modules are ubiquitous, cheap ($30-$50), fast (up to 32 MS/s ADC, 125 MS/s DAC), and easy to drive from an FPGA (parallel bus with a clock). They are only 8-bit.
+
+The next step up would be the following (I'm working on a PCB that includes the FPGA along with something like these):
+* 2 × AD9226 ADC 12-bit @ 65 MS/s
+* 2 × AD9767 DAC 14-bit @ 125 MS/s (same DAC as the Red Pitaya below)
+
+Fancier alternatives to this whole system that are open source, but rely on proprietary Xilinx tools:
+* [ADALM2000](https://wiki.analog.com/university/tools/m2k) (M2K) $100 used; $260 new
+* [Red Pitaya](https://redpitaya.com/) with 2 × 14-bit @ 125 MS/s flagship open FPGA+ADC+DAC $200 used; $500 new
+* [Digilent Eclypse Z7](https://digilent.com/shop/eclypse-z7) ($524) + [Zmod Scope](https://digilent.com/reference/zmod/scope/start) ($262) + [Zmod AWG](https://digilent.com/shop/zmod-awg-1411-2-channel-14-bit-arbitrary-waveform-generator-awg-module/) (104) fancier module approach, but $900.
 
 
 ## Appendix A: Troubleshooting
