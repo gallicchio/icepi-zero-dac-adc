@@ -75,11 +75,11 @@ flowchart LR
   spine --> c7
   c2 -. "7.04's LiteX peripheral" .-> c7
   c6 -. "6.11's modem is the warm-up" .-> c7
-  fft -. 6.07's OFDM .-> c6
+  fft -. "6.07's OFDM" .-> c6
   c5 -. "awgcap.sv: just load it (6.00)" .-> c6
   c5 -. "5.07's loops, for 6.12's air" .-> c6
   c5 -. "5.05's network between two Linuxes" .-> c3
-  c2 -. 2.00's tool install, then 3.01 boots the prebuilt Linux .-> c3
+  c2 -. "2.00's tool install, then 3.01 boots the prebuilt Linux" .-> c3
 ```
 
 The shortest paths:
