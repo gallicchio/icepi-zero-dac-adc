@@ -1,0 +1,118 @@
+Icepi Zero ADC/DAC tutorials: licences
+=======================================
+
+Copyright (c) 2026 Jason Gallicchio
+
+This repository holds text, code, a circuit board and prebuilt binaries, and
+each kind is under the licence that suits it. The full texts are in LICENSES/.
+
+  What                                      Where                              Licence
+  ----------------------------------------  ---------------------------------  ----------------
+  The tutorial: text, figures, animations,  README.md, tutorial/ (pages and    CC BY 4.0
+  photos and measured data                  img/), dev/data/, dev/README.md,
+                                            dev/CLAUDE_CODE_CHAT.md, the
+                                            other README.md files (adapter_board/
+                                            README.md too; only its design files
+                                            are CERN-OHL-P)
+
+  The code: SystemVerilog, C, Python,       src/ (except the two lines below), MIT
+  shell scripts, Makefiles, Buildroot and   dev/tools/
+  kernel configuration
+
+  The Linux driver                          src/linux/driver/adda.c            GPL-2.0-only
+
+  The adapter board: KiCad design,          adapter_board/                     CERN-OHL-P-2.0
+  gerbers, schematic, pin map, render
+
+  Prebuilt bitstream and Linux images       src/linux/prebuilt/                each part's own:
+                                                                               see below
+
+The code printed on the tutorial's pages is copied from src/ by
+dev/tools/sync_md.py, so it is the same MIT-licensed code: you may use it under
+MIT, even though the page around it is CC BY.
+
+
+CC BY 4.0: the tutorial (LICENSES/CC-BY-4.0.txt)
+------------------------------------------------
+You may copy, adapt and share the tutorial, for any purpose, including in your
+own course materials, as long as you give credit, link to the licence, and say
+if you changed it. A suitable credit:
+
+  "Icepi Zero ADC/DAC tutorials" by Jason Gallicchio,
+  https://github.com/gallicchio/icepi-zero-dac-adc, CC BY 4.0
+
+The material by others listed under "Third-party material" below keeps its own
+terms.
+
+
+MIT: the code (LICENSES/MIT.txt)
+--------------------------------
+Use it, change it and ship it, in anything, as long as the copyright notice
+and the licence text go with substantial copies.
+
+
+GPL-2.0-only: the Linux driver (LICENSES/GPL-2.0-only.txt)
+---------------------------------------------------------
+src/linux/driver/adda.c is a Linux kernel module, so it is under the kernel's
+own licence (its first line says so: SPDX-License-Identifier: GPL-2.0, and
+MODULE_LICENSE("GPL")). The kernel only lets GPL-compatible modules use most
+of its interfaces.
+
+
+CERN-OHL-P-2.0: the adapter board (LICENSES/CERN-OHL-P-2.0.txt)
+----------------------------------------------------------------
+The CERN Open Hardware Licence, permissive variant: make, sell and modify the
+board freely, keeping the notices. Nothing obliges you to share your changes.
+
+
+Prebuilt binaries: src/linux/prebuilt/
+--------------------------------------
+These are built from open-source projects under their own licences, as made
+by the steps in tutorial/3_03_building_linux.md:
+
+  icepi_zero_adda.bit    The FPGA's bitstream: the VexRiscv CPU (MIT), LiteX's
+                         cores and BIOS (BSD-2-Clause), picolibc in the BIOS
+                         (BSD-3-Clause and others), and this repository's
+                         peripherals (MIT).
+  images/, install/,     Linux 6.12 (GPL-2.0), BusyBox 1.37.0 (GPL-2.0),
+  sdcard.img.xz          musl 1.2.6 (MIT), MicroPython 1.22.2 (MIT and others),
+                         OpenSBI 1.3.1 (BSD-2-Clause), GCC's runtime library
+                         (GPL-3.0 with the GCC Runtime Library Exception), and
+                         adda.ko (GPL-2.0, above).
+
+src/linux/prebuilt/legal-info-manifest.csv is Buildroot's list of every target
+package, its version, licence and source archive (from `make legal-info`).
+
+The GPL requires that whoever passes on GPL binaries also makes their
+complete corresponding source available. For these images, that is the source
+that Buildroot's `make legal-info` collects (the Linux kernel and BusyBox
+sources, with the patches applied to them, and the configuration), from:
+
+  - Buildroot 2026.02.3, with src/linux/configs/icepi_adda_defconfig and the
+    rest of src/linux/ as its external tree,
+  - linux-on-litex-vexriscv 05fc5e4 (BSD-2-Clause), whose kernel
+    configuration and patches it uses,
+  - LiteX fad9b3759 (BSD-2-Clause), for the bitstream and the device tree.
+
+src/linux/legal/collect_source.sh fetches all of it, laid out as Buildroot's
+`make legal-info` lays it out, and src/linux/legal/README.md says what is in
+it and where a complete archive is published.
+
+
+Third-party material
+--------------------
+  - The 3D render of the Icepi Zero (dev/data/icepi_zero_render.png, and the
+    LED animations tutorial/img/anim_counter.gif and anim_adc_leds.gif drawn
+    on it) is rendered from cheyao's Icepi Zero KiCad design,
+    https://github.com/cheyao/icepi-zero, under the Solderpad Hardware License
+    v2.1.
+  - Tux, in tutorial/img/linux_files.png: Larry Ewing (lewing@isc.tamu.edu)
+    and The GIMP, who allow its use provided they are acknowledged; SVG by Simon Budig
+    and Garrett LeSage, via Wikimedia Commons.
+  - src/linux/configs/icepi_adda_defconfig begins with
+    linux-on-litex-vexriscv's own defconfig (BSD-2-Clause, Copyright (c)
+    2019-2024 Linux-on-LiteX-VexRiscv Developers), with this tutorial's
+    additions marked.
+
+The tools the tutorial installs (OSS CAD Suite, LiteX, Buildroot and the rest)
+are downloaded by you, not included here, and come with their own licences.

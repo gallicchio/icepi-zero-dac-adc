@@ -1,0 +1,69 @@
+g
+b 50
+b 08
+b 00
+g
+b 49
+b 0c
+b cd
+g
+b 44
+b 00
+b 00
+g
+b 53
+b 00
+b 00
+g
+b 4a
+b 00
+b 28
+g
+b 4e
+b 09
+g
+b 54
+b 01
+g
+b 42
+b 00
+g
+b 4b
+b 04
+g
+b 52
+b 02
+b 96
+g
+b 51
+b 0a
+g
+b 4d
+b 01
+g
+b 4f
+b 00
+g
+b 45
+b 01
+g
+b 4c
+b 05
+g
+b 58
+b 00
+g
+b 3f
+s
+g
+b 56
+b 14
+g
+b 43
+c
+g
+b 56
+b 23
+g
+b 43
+c

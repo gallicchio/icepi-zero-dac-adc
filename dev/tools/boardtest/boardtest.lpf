@@ -1,0 +1,20 @@
+# boardtest.lpf -- pins for the board-test designs (iotest.v, tick.v).
+LOCATE COMP "clk" SITE "M1";
+IOBUF  PORT "clk" IO_TYPE=LVCMOS33;
+FREQUENCY PORT "clk" 50 MHZ;
+LOCATE COMP "uart_tx" SITE "K15";
+IOBUF  PORT "uart_tx" IO_TYPE=LVCMOS33;
+LOCATE COMP "uart_rx" SITE "K16";
+IOBUF  PORT "uart_rx" IO_TYPE=LVCMOS33 PULLMODE=UP;
+# SW2, nearest the USB connectors, and SW1 (also the LiteX reset); 0 = pressed
+LOCATE COMP "btn"  SITE "C5";
+IOBUF  PORT "btn"  IO_TYPE=LVCMOS33 PULLMODE=UP;
+LOCATE COMP "btn4" SITE "C4";
+IOBUF  PORT "btn4" IO_TYPE=LVCMOS33 PULLMODE=UP;
+# micro-SD card-detect switch (J6 pin 10, net /uSD/SD_DET); not used by LiteX
+LOCATE COMP "sd_det" SITE "M16";
+IOBUF  PORT "sd_det" IO_TYPE=LVCMOS33 PULLMODE=UP;
+LOCATE COMP "led[0]" SITE "D13";
+LOCATE COMP "led[1]" SITE "C13";
+IOBUF  PORT "led[0]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "led[1]" IO_TYPE=LVCMOS33;

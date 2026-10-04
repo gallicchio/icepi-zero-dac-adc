@@ -1,0 +1,57 @@
+# Build outputs.  The sources are what's committed; everything below is made
+# by yosys, nextpnr, ecppack, iverilog, LiteX, gcc or kbuild.
+
+# Chapters 1, 4 and 5: yosys / nextpnr / ecppack / iverilog
+src/verilog/*.json
+src/verilog/*.config
+src/verilog/*.bit
+src/verilog/*.pnr.log
+src/verilog/*.vvp
+src/verilog/*.vcd
+src/twoboard/*.json
+src/twoboard/*.config
+src/twoboard/*.bit
+src/twoboard/*.pnr.log
+dev/tools/boardtest/*.json
+dev/tools/boardtest/*.config
+dev/tools/boardtest/*.bit
+
+# Chapter 2: LiteX builds, and the firmware
+src/riscv/build/
+src/riscv/*/*.o
+src/riscv/*/*.d
+src/riscv/*/*.elf
+src/riscv/*/*.bin
+
+# Chapter 3: kbuild's outputs, and the module copied into the overlay
+src/linux/driver/*.o
+src/linux/driver/*.mod
+src/linux/driver/*.mod.c
+src/linux/driver/.*.cmd
+src/linux/driver/modules.order
+src/linux/driver/Module.symvers
+*.ko
+
+# Python
+__pycache__/
+*.pyc
+
+# The tools (OSS CAD Suite, the Python environment, LiteX, Buildroot, ...):
+# 1.0 and 2.0 install them here, and none of it belongs in the repository.
+/tools/
+
+# Chapter 7: yosys / nextpnr / ecppack / iverilog outputs, and the gate-level replay's logs
+src/dsp/*.json
+src/dsp/*.config
+src/dsp/*.bit
+src/dsp/*.pnr.log
+src/dsp/*.log
+src/dsp/*.vvp
+src/dsp/*_trace.txt
+src/riscv/*.vvp
+src/riscv/*_trace.txt
+src/twoboard/*.vvp
+
+# Python
+__pycache__/
+*.pyc
