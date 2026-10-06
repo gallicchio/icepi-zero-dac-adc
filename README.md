@@ -2,12 +2,6 @@
 
 <img src="tutorial/img/photo_stack.png" alt="An Icepi Zero FPGA board, an adapter board, and an ADC/DAC module with SMA connectors, stacked, with a short coax cable from the DAC to the ADC" width="230" align="right">
 
-*By [Jason Gallicchio](mailto:jason@hmc.edu) (jason@hmc.edu), Physics Professor at
-Harvey Mudd College, written along with Claude (Opus 5.5 and Fable 5.1), which also
-ran every measurement: Appendix C says how.*
-
-*Dedicated to the memory of Brian Bryce's years at Harvey Mudd, where he showed a department that open tools and open hardware are how you do interesting physics and engineering without asking anyone's permission or spending anyone's money. He isn't gone, just elsewhere, and this is the kind of thing he'd have built.*
-
 A hands-on tutorial for a junior-level physics electronics lab. You should
 know basic analog and digital electronics and a little Fourier analysis. You
 do **not** need to have seen an [FPGA](https://en.wikipedia.org/wiki/Field-programmable_gate_array) or a hardware description language
@@ -228,3 +222,13 @@ code under [MIT](LICENSES/MIT.txt), the Linux driver under
 [GPL-2.0](LICENSES/GPL-2.0-only.txt) and the adapter board under
 [CERN-OHL-P-2.0](LICENSES/CERN-OHL-P-2.0.txt). The prebuilt Linux images keep their
 components' licences. [LICENSE](LICENSE) has the details.
+
+
+*By [Jason Gallicchio](mailto:jason@hmc.edu) (jason@hmc.edu), Physics Professor at
+Harvey Mudd College, written along with Claude (Opus 5.5 and Fable 5.1), which also
+ran every measurement: Appendix C says how.* I (Jason) wrote more of the very early
+stuff and then got carried away when I let Claude take over, 
+eventually pushing it to write my dream tutorial.
+After a long weekend of editing and prompting, there's suddenly a two or three-semester course here.
+
+*Dedicated to the memory of Brian Bryce's years at Harvey Mudd, where he showed a department that open tools and open hardware are how you do interesting physics and engineering without asking for anyone's permission or spending anyone's money. He isn't gone, just elsewhere, and this is the kind of thing he'd have liked.*
