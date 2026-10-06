@@ -227,8 +227,12 @@ components' licences. [LICENSE](LICENSE) has the details.
 *By [Jason Gallicchio](mailto:jason@hmc.edu) (jason@hmc.edu), Physics Professor at
 Harvey Mudd College, written along with Claude (Opus 5.5 and Fable 5.1), which also
 ran every measurement: Appendix C says how.* I (Jason) wrote more of the very early
-stuff and then got carried away when I let Claude take over, 
+stuff and then got carried away when I let Claude take over,
 eventually pushing it to write my dream tutorial.
+I'll eventually work to remove the slop, but one advantage of this is that the LLMs
+can clone this repo and really walk you through the material in a way that might
+be more difficult otherwise.
+One might sell this as "Created with the help of AI to help AI help you."  (AI obviously didn't write that one.)
 After a long weekend of editing and prompting, there's suddenly a two or three-semester course here.
 See [dev/CLAUDE_CODE_CHAT.md](dev/CLAUDE_CODE_CHAT.md) for most of the chat.
 

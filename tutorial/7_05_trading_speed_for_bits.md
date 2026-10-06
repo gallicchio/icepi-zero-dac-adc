@@ -5,12 +5,16 @@
 
 ![Measured on the M2k's scope: eight microseconds of a second-order one-bit delta-sigma stream, DAC codes 0 and 255 only, with the sine it encodes; the spectra the instrument records for a plain comparator, dithered rounding, and first- and second-order noise shaping, the shaped noise climbing 20 and 40 decibels a decade; the four streams after a low-pass to 195 kilohertz, where the shaped ones are clean sines; and the effective bits recovered from one bit against the oversampling ratio, measured against the textbook](img/dsp_sigma_delta.png)
 
-You might be disappointed that these are "only" 8-bit converters. Audio
-is 16 or 24 bits. But ours are fast, 50 and 25 million samples a second,
-where audio needs 48 thousand, and there is a technique for trading speed
+You might be disappointed that the converters on your board are "only" 8-bit converters.
+Audio is 16 or 24 bits. But yours are fast with sampling at 50 or 25 MHz.
+Audio is 48 kHz. 
+
+There is a technique for trading speed
 for bits. It goes under the names *oversampling*, *noise shaping*, and
 *delta-sigma* (ΔΣ) or *sigma-delta* (ΣΔ), depending on whether the people
-naming it differenced before they summed or after. At the extreme are
+naming it differenced before they summed or after. 
+
+At the extreme are
 *one-bit* converters that, with an analog low-pass filter, give amazing
 audio quality; your phone's audio DAC is one. The
 key to these techniques is some analog filtering, digital or analog

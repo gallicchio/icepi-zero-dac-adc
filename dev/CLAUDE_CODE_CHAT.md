@@ -2369,3 +2369,32 @@ All done except as noted in section 10 below.
 - 7.05: the gateware CIC reads its own 1-bit stream back through the cable (47.5 codes of a 64-code sine, 2.9 codes of shaped noise below 6 kHz); the ADC-as-instrument table is on the page.
 - 7.03: `filter.py --measure` through the cable is only half right (impulse mode one tap late, step and noise modes return zeros); the page says so and the M2k sweeps are its measurements. First "Try this".
 - Still open: `make load-awgcap` is what the board holds now; the Linux SoC has not been rebuilt with the filter; 7.07 is priced, not built.
+
+## Prompt 17
+
+3.03 Linux stuff: Are there things like timeouts in the linux boot that we can shorten or eliminate? Don't change a lot of stuff just to squeeze a second here and there, but if we are already forced to move some piece away from upstream, would it be worth shortening timeouts? Are these timeouts deep in code and require patches, or are these parameters that can be set at configure time? See what, if any, reasonable steps you can take while keeping the tutorial short.
+
+Did you confirm the 5.04: the --seconds 1.2 claim?
+
+"6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable" should start with an image whose top panel is a obiously chirp that obviously changes frequency as time goes on. At the very least, much more time should be shown in the first frame -- maybe even all 1023 samples, spread across the entire width of the page. This original multi-pannel figure should probably be broken up into many figures and shown right next to the text where each piece is talked about -- one of the panels need to be aligned with any of the others to make sense of this. You say, "The sidelobes are what is left beside the peak: the chirp's −13 dB is its famous flaw, the m-sequence's −41 dB and Zadoff–Chu's −36 dB are what their exact algebra (−60 dB and −∞) survives as through real converters" but why does ZC do worse than m-sequence after the real converter? Are you comparnig apples to apples? Later when you're talking about m-codes and ZC codes, it's not clear how much digital or analog reconstrcuction filtering you've done. A pin of an FPGA toggling an m-sequence is going to have a lot of side lobe activity, but one "properly digitally up converted" and analog filtered does not need to. It's not always clear which case you're talking about. Aren't repeated chirps at some particular chirp rate the same as a repeated u=1 ZC sequence? Why do these look so different here? Again, be sure you are comparing apples to apples, and be very explicit about things like whether the ZC samples go through a processing-heavy digital upconversion and filtering process or not.
+
+In 6.12's "The same frame at six symbols a second", will the "lock-in run continuously" scheme work for two boards with several ppm crystals? In "With two boards there is one more thing to find", which has not been tested, will this continue to work even as the crystals thermally drift? (Is the search done every time, for example?) In the plot in "The air, rung by rung," actually write bit rates and power levels at each stage to help the reader understand what's happening, and what, for example, requires an amplifier beyond the DAC's output range and an LNA at the ADC. In air.py's "legal?" column, it should report NO, but then say that in the right band with the right General HAM license it would be legal -- just like you say in rung 5 of the table below: "a licence, 7.074 MHz, a few watts and real FT8"
+
+7.01 FIR filters contains a lot of information about IIR too. That may be fine, but if if a reader thinks that the tutorial is introducing only FIR here, it's confusing. If anything, all of the comparison should be after IIRs are introduced, probably the end of the IIR section.
+
+In Chapter 7, have some discussoin of how complicated the verilog was (maybe lines of actual code) for the fixed filters in 7.01 and 7.02 vs the byte-loadable one in 7.03 vs the register-lodable one in 7.04. I would think that the byte-lodable one would be more complicated to write in verilog than the register-loadable one.
+
+7.04 "From MicroPython on the board's Linux" has a note about how something is not in the kernel. Rebuild the kernel and get rid of the note.
+
+In one of 7.05's figures, "Bits bought with speed" could imply that speed gives you bits. It's *giving up* speed that gives you effective bits. The title should be "Effective bits gained by going slower". That has more of the flavor of an "Y vs X" plot title.
+
+Read the edit intro chaprer and the intro sections of each chapter most carefully for brevity. Hook the tutorial student early with a motivating example. No long paragraphs that aren't "Detail" sections (at least until they're already well into the weeds).
+
+In my mind, the DSP stuff would have logicaly been before the digital comms stuff. But that's not how you've organized it. Was there a good pedagocial reason for your order, or was it just that the radio stuff did not depend on the DSP stuff, was already written, and already had a chapter number? Let's reconsider the entire logical flow. I'm not sure a chapter on all of DSP and all of Digital Communications is really the same kind of thing as a chapter on  "4. More experiments with one board". Scan though the whole thing and see if there's a logical divisiion that would make more sense and allow the mermaid dependency diagram to be wider rather than deeper. This is only a day old, so nobody would mind if things got totally rearranged. What would be some better options? I'm torn between introducing things like correlation and filtering in real time, in the service of some interesting application, vs introducing them as stand-alone building blocks earlier without as much motivation to the student. Make opinionated cases for different ways of organizing this material.
+
+The bottom of 0.00 has the author and the navigation, but I don't see that on most of chapter 6 and 7. What happened? I thought these were enforced by python. Also, the navigation links no longer need to point to the top title anchor. Maybe with this many files, github is displaying them on the side instead of the top, so linking to the file itself does not cause a user to see only a wall of files at the top.
+
+Things to add to the MRI discussion in 7.07:
+* Is is interesting to do Earth field NMR with this?
+* How easy is it to do neodimium-field MRI with PCB antennas and PCB coils?
+
