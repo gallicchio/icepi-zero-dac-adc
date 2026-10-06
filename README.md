@@ -230,5 +230,6 @@ ran every measurement: Appendix C says how.* I (Jason) wrote more of the very ea
 stuff and then got carried away when I let Claude take over, 
 eventually pushing it to write my dream tutorial.
 After a long weekend of editing and prompting, there's suddenly a two or three-semester course here.
+See [dev/CLAUDE_CODE_CHAT.md](dev/CLAUDE_CODE_CHAT.md) for most of the chat.
 
 *Dedicated to the memory of Brian Bryce's years at Harvey Mudd, where he showed a department that open tools and open hardware are how you do interesting physics and engineering without asking for anyone's permission or spending anyone's money. He isn't gone, just elsewhere, and this is the kind of thing he'd have liked.*
