@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.00 Digital communications (Hardware Defined Radio)](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.02 PSK and QPSK: finding the clock and the carrier →](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)
+[← 6.00 Digital communications (Hardware Defined Radio)](6_00_digital_communications.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.02 PSK and QPSK: finding the clock and the carrier →](6_02_psk_and_qpsk.md)
 
 # 6.01 Eye diagrams and pulse shaping
 
@@ -309,6 +309,9 @@ a symbol at the higher rates, and the levels pile up:
 - Change the roll-off α. Smaller α makes a narrower spectrum but longer
   ringing: what happens to the raw RRC eye, and to the matched one if the
   timing is a little off?
+
+<!-- nav -->
+[← 6.00 Digital communications (Hardware Defined Radio)](6_00_digital_communications.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.02 PSK and QPSK: finding the clock and the carrier →](6_02_psk_and_qpsk.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

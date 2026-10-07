@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.03 The Q of a quartz crystal](4_03_quartz_crystal.md#403-the-q-of-a-quartz-crystal) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.05 A quarter-wave stub →](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub)
+[← 4.03 The Q of a quartz crystal](4_03_quartz_crystal.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.05 A quarter-wave stub →](4_05_quarter_wave_stub.md)
 
 # 4.04 Harmonics: a diode clipper
 
@@ -49,7 +49,7 @@ exponential knee rounds the corners of the clipped sine, so expect 5*f* and
 everything above it lower than listed.
 
 <!-- nav -->
-[← 4.03 The Q of a quartz crystal](4_03_quartz_crystal.md#403-the-q-of-a-quartz-crystal) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.05 A quarter-wave stub →](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub)
+[← 4.03 The Q of a quartz crystal](4_03_quartz_crystal.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.05 A quarter-wave stub →](4_05_quarter_wave_stub.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

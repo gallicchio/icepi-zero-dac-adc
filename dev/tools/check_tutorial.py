@@ -4,7 +4,8 @@
 
 Errors (must fix):
   - sync_md.py --check fails: a page's printed code differs from the file in src/,
-    a navigation line is out of date, or a page is missing from README.md's contents
+    a navigation line is out of date or missing (every page has one at the top and
+    one at the bottom, then the author), or a page is missing from README.md's contents
   - a link to a file that doesn't exist, or to a heading (#anchor) that doesn't exist
   - an image that doesn't exist
   - a section named in the text (like 1.08 or 5.03) that isn't a link

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.02 RC and LC circuits](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.04 Harmonics: a diode clipper →](4_04_harmonics.md#404-harmonics-a-diode-clipper)
+[← 4.02 RC and LC circuits](4_02_rc_and_lc_circuits.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.04 Harmonics: a diode clipper →](4_04_harmonics.md)
 
 # 4.03 The Q of a quartz crystal
 
@@ -63,7 +63,7 @@ ppm off ([1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) measured 2
 Every frequency measurement is a comparison between two oscillators.
 
 <!-- nav -->
-[← 4.02 RC and LC circuits](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.04 Harmonics: a diode clipper →](4_04_harmonics.md#404-harmonics-a-diode-clipper)
+[← 4.02 RC and LC circuits](4_02_rc_and_lc_circuits.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.04 Harmonics: a diode clipper →](4_04_harmonics.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

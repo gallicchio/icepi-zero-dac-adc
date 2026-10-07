@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 2.00 A processor on the FPGA](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.02 C on the CPU →](2_02_c_on_the_cpu.md#202-c-on-the-cpu)
+[← 2.00 A processor on the FPGA](2_00_a_processor_on_the_fpga.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.02 C on the CPU →](2_02_c_on_the_cpu.md)
 
 # 2.01 A CPU and its BIOS
 
@@ -196,7 +196,7 @@ one address, and a wire inside the FPGA changes. The BIOS's `leds` command
   counting, and how fast? ([2.02](2_02_c_on_the_cpu.md#202-c-on-the-cpu) uses it as a stopwatch.)
 
 <!-- nav -->
-[← 2.00 A processor on the FPGA](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.02 C on the CPU →](2_02_c_on_the_cpu.md#202-c-on-the-cpu)
+[← 2.00 A processor on the FPGA](2_00_a_processor_on_the_fpga.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.02 C on the CPU →](2_02_c_on_the_cpu.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

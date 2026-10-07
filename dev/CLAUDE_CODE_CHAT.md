@@ -2411,3 +2411,340 @@ Look for educational material for things like the Red Pitaya STEMlab. Are there 
 
 In Appendix A and the new Appendix D, sell the choice of hardware as being good for AI and learning with LLMs as a helper. Especially the other 2DAC+2ADC board, which will be completely open hardware, will be transparently analyzable by LLMs which can reason about analog properties from the design and component selection rather than just from measurements. With the FPGA and toolchain also open, this will allow LLMs to iterate quickly on hardware in an even more sophisticated way than you did here as described in Appendix C.
 
+## Response 17 2026-10-05 22:37:00 - 2026-10-06 00:58:31 Claude Opus 5.5
+
+Measured tonight unless marked computed or researched. The converter board was JLC 2 (DP051TLX, with the 101.5 cm cable); Linux ran on the original board (DK0GFLAW, no converters). `make check`: 0 errors, 0 warnings, 71 pages (Appendix D is new). Nothing is committed; the prebuilt Linux binaries changed, so they are in the diff.
+
+### Short version
+
+| you asked | done | where |
+| --- | --- | --- |
+| 3.03: timeouts in the Linux boot | four waits found and sorted into configure-time and patch-only; one fixed (an empty SD slot cost about half an hour, now about 45 s, predicted); a new section | 3.03, 3.01, B, `make_linux.py` |
+| 5.04's `--seconds 1.2` | it had **not** been confirmed (Response 15 flagged it); now it is, and the lopsided pull-in it hid is explained (the integrator's `>>>` floors) and fixed in a measured variant | 5.04 |
+| 6.10: the chirp first, figures by the text, apples to apples | six figures, one per section; `chirp.py --shape held\|filtered`; the "ZC worse than m" mystery is a ghost target; a repeated chirp *is* a repeated u = 1 ZC | 6.10, `chirp.py`, `fig_compression.py` |
+| 6.12: two boards' crystals, drift, the ladder plot, "legal?" | the search was ±2.6 ppm and failed at 10 ppm; now ±22 ppm, tested by faking bad crystals; the ladder says rates, powers and hardware; `air.py` says NO* and why | 6.12, `ft8.py`, `air.py` |
+| 7.01 has IIR in it | FIR-only now; the IIR material and an FIR-vs-IIR comparison are at 7.02's end | 7.01, 7.02, three figure scripts |
+| how complicated each filter's Verilog was | counted; you were right: the register-loadable one is less to write | 7.04 |
+| 7.04's MicroPython note | the Linux SoC rebuilt with the filter; measured from MicroPython through the cable; note gone | 7.04, `src/linux/prebuilt/` |
+| 7.05's title | "Effective bits gained by going slower" | `fig_enob.py` |
+| brevity and an early hook | 0.00 now opens with three Chapter 1 results; 6.00 and 7.00 rewritten; no intro paragraph over ~100 words | 0.00, 1.00, 2.00, 4.00, 6.00, 7.00 |
+| a better order for the chapters | four options argued, one recommended; not done | below |
+| navigation missing in chapters 6 and 7 | added, now enforced; links go to the file | `sync_md.py` |
+| 7.07: Earth's field, neodymium and PCB coils | two sections; three factual errors fixed | 7.07 |
+| "Coming soon" to a new Appendix D, an AMOD, an antenna, cables, Red Pitaya, AI | all in Appendix D; the AI case in A too | A, D |
+
+### 1. 3.03: what waits in the Linux boot
+
+A timestamped boot from the card, before any change: 85.3 s to `login:`. 1.2 s BIOS and memory test, 0.25 s offering serial boot, **13.6 s copying the 9.2 MB kernel** from the card (0.67 MB/s), 9.7 s of kernel, then **about 60 s of BusyBox start-up** (each program costs 0.4 s on this CPU). Only four things actually *wait*:
+
+| what waits | set where | costs | done |
+| --- | --- | --- | --- |
+| the BIOS's serial-boot offer | a `#define` in LiteX's `bios/boot.c` | 0.25 s | nothing: a LiteX patch for a quarter second |
+| waking an SD card | the **reset value of a register**: `add_sdcard()` gives each command 1 s; the BIOS tries 1000 times, for `boot.json` and again for `boot.bin` | with the slot empty, ~33 min (Appendix B said 17) | `make_linux.py` overrides `add_sdcard()` to make it 20 ms, the limit Linux's own driver uses. No LiteX change: nobody writes that register, so its reset value is what counts. Predicted: ~46 s, then `litex>` |
+| the kernel's `rootwait` | the command line, in the device tree | nothing | nothing |
+| start-up scripts | configure time: Buildroot's `BR2_PACKAGE_URANDOM_SCRIPTS`, `BR2_PACKAGE_IFUPDOWN_SCRIPTS`, BusyBox's `CONFIG_SYSLOGD`, `CONFIG_KLOGD`, `CONFIG_BB_SYSCTL`, `CONFIG_CROND` | ~25 s | nothing in the build, on purpose: 3.04 switches them off by hand, which teaches more. Say if you'd rather the build did it |
+
+So the answer to your question: the one timeout worth changing is a register's reset value, settable from our own SoC class without patching anything, and we are already off upstream there. The others either cost nothing, cost a quarter second, or are a lesson in 3.04. 3.03 has the table, in a short new section.
+
+Verified: the register reads back 0x000F4240 (20 ms) from Linux, and cards still work with it. Both boards SD-boot the new SoC, the installer wrote and booted a card, and Linux reads and writes the card. **Not verified:** the empty-slot time itself. Both boards have cards, and I can't pull them. Please time it: pull the card, load `src/linux/prebuilt/icepi_zero_adda.bit`, start `litex_term`; it should reach `litex>` in under a minute.
+
+A finding on the way: after a *serial* boot, the kernel's first try at the card times out (`cmd 8`/`cmd 55 ... -110`) every time. That was 5 boots of 5 on DK0GFLAW (two with the old SoC, three with the new), so it is not the new timeout; it was "sometimes" in Response 14. `install-sd.sh` now unbinds and rebinds the driver by itself (the remedy Appendix B told people to type), and the whole 3.04 installer run worked first time: install 5 min 10 s, the card booted to `login:` in 84.8 s.
+
+### 2. 5.04's `--seconds 1.2`
+
+No, it had not been confirmed. It is now (`pll.sv` looped back, tones ±3 kHz away): neither locks in 1.2 s. But given 20 s, the loop is lopsided:
+
+| test tone | below: locks after | above: locks after |
+| --- | --- | --- |
+| 1 kHz | 0.8 s | 1.3 s |
+| 1.5 kHz | 1.9 s | 3.4 s |
+| 2 kHz | 3.1 s | 8.1 s |
+| 2.5 kHz | 4.6 s | never |
+| 3 kHz | 6.5 s (twice) | never: the oscillator walks the *wrong way*, to 1.1 kHz below (twice) |
+
+**The cause, found later in the night:** `>>>` rounds toward minus infinity. While the loop slips, `Q >>> 17` swings through about ±49, and the floor takes half a step off each of the integrator's 24,414 updates a second, so the oscillator drifts *down* by tens of hertz a second: toward a tone below, away from one above. The same bias shows when locked. Every locked phase error tonight was positive, +0.4° to +1.0°, because the integrator only stops for 0 ≤ Q < 2<sup>17</sup>, which is 0° to 1.17°.
+
+I built a variant outside the repository that rounds both shifts instead (`(Q + 2^16) >>> 17` and `(Q + 2^9) >>> 10`). It is symmetric to the hundredth of a second: ±1, ±2, ±2.5 and ±3 kHz lock after 1.01, 4.36, 7.13 and 10.91 s on both sides, and the locked phase error averages 0°. 5.04 has this in a Detail box, and the Try-this is to make the fix. The shipped `pll.sv` keeps the floor, because the page's two-board figures were measured with it. If you'd rather ship the fix, it is two constants, but those figures would need re-measuring.
+
+### 3. 6.10, apples to apples
+
+**The figures.** The big multi-panel figure is now six, each beside its text:
+
+- `comms_chirp.png` opens the page: the recorded chirp for the whole loop, mixed down with the band's *lower* edge so it reads 0 → 3.12 MHz left to right, with its spectrogram below. The faint falling line in the spectrogram is the DAC's third harmonic aliasing, and it's labelled.
+- `comms_waves.png` sits with the list of five: ten chips of each, held and filtered, and the spectra.
+- `comms_compression.png` sits in Pulse compression.
+- `comms_shape.png` is new, in its own section.
+- `comms_peaks.png` and `comms_doppler.png` sit in their sections.
+- `comms_zc.png` stays.
+
+**Were we comparing apples to apples? No.** The chirp is computed sample by sample at 50 MS/s, so it is smooth and its spectrum is a flat band B wide. ZC and the codes were held chips, rectangles as a pin would make them, with sinc spectra out to the ADC's edge. `chirp.py --shape filtered` now interpolates every waveform's chips through an ideal low-pass exactly B wide, what a good DUC does. Measured through the cable:
+
+| | held: highest sidelobe | filtered: highest | filtered: at whole chips | filtered: width | filtered PAPR |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| pulse | −33.0 | −13.2 | −37.6 | 0.89/B | 30.1 dB |
+| chirp | −13.2 | −13.2 | −36.3 | 0.89/B | 0.0 |
+| ZC | −35.9 | −13.2 | −39.6 | 0.89/B | 2.6 |
+| m-sequence | −40.7 | −13.2 | −38.8 | 0.89/B | 7.7 |
+| Gold | −23.1 | −13.1 | −23.8 | 0.89/B | 8.0 |
+
+Same spectrum, same peak: the peak is the Fourier transform of the power spectrum. ZC's "perfect" autocorrelation is the statement that the correlation is zero at *whole-chip* lags, which are the sinc's zeros. The chirp has those zeros too; the Gold code, whose spectrum isn't flat, doesn't.
+
+**Why held ZC came out worse than held m (−36 vs −41 dB): a ghost.** It isn't a floor. The held chips' eighth spectral image sits 8 × 3.116 = 24.93 MHz from the carrier, and the 25 MS/s ADC (no anti-alias filter) folds it to 73 kHz from the carrier. To a code, a copy 73 kHz off is decorrelated noise. To a chirp, which ZC u = 1 is, a frequency offset is a delay: 73 kHz × T/B = 7.7 µs. The recording has a ghost target at lag −194 samples (the arithmetic says −192) and a weaker twin at +7.7 µs. Pure simulation with no channel reproduces −35.4 and −40.4 dB from the folding alone, and filtering removes the ghost. The page's old explanation ("sinc tails aliasing back", a floor) was half right.
+
+**"Aren't repeated chirps the same as repeated u = 1 ZC?"** Yes, once they have the same shaping: the filtered ZC matches a chirp of the same bandwidth at |ρ| = 0.993. It sweeps the other way (down) and starts mid-band. They looked different for the reason above, and in Doppler for a second one, which took some finding:
+
+- **Held ZC** moves a whole chip at a time under a frequency offset, sagging to 0.64 between steps, as a tone does between FFT bins. Each spectral image is a chirp copy, and a fractional offset slides them apart.
+- **Filtered ZC** slides as smoothly as the chirp, but only if the one-loop record is cut where its sweep wraps. A chirp that wraps mid-record scallops identically: I rolled the smooth chirp half a loop and got 0.725 against ZC's 0.724. The figure and the text show this.
+
+**Reconstruction filtering, stated:** the page now says up front that there is no analog filter on either converter, that the receiver's only filter is a ±6.25 MHz brick wall around the carrier, and that "held" is what a pin does while "filtered" is what a DUC does. It also says that a code's *spectral* sidelobes (out of band) are a different thing from its *correlation* sidelobes. The closing table puts held and filtered side by side. I re-checked the Hamming numbers: −42.5 dB, 1.30/B, 1.34 dB.
+
+### 4. 6.12
+
+**Will the continuously running lock-in work with two boards several ppm apart?** Yes. The board's lock-in is only a down-converter running at the *receiving* board's idea of 6.78 MHz. Its 3052 samples a second cover ±1.5 kHz, and 20 ppm is 136 Hz. Finding the offset is the laptop's job, and its search was the weak point: ±3 tone spacings is only ±2.6 ppm (each ppm is 1.14 spacings), and the two boards in 5.01 are 0.76 ppm apart, but each is within 3 ppm of nominal, so a random pair could be 6 apart.
+
+**Is the search done every time?** Yes: every record is searched from scratch. I tested it with one board by making the transmitter pretend to be a bad crystal, scaling its tones and its symbol clock together:
+
+| transmitter | search ±3 spacings (before) | search ±25 spacings (now the default) |
+| --- | --- | --- |
+| 0, 3 ppm | decodes, 0 errors | decodes, 0 errors |
+| 10, 20 ppm | fails: 50 of 58 symbols wrong | decodes, 0 errors, offset to within 1 Hz |
+| drifting 1 ppm in the frame | decodes, 2 symbols wrong (corrected) | the same |
+| 5 ppm, drifting 2 ppm in the frame | fails | fails |
+
+The fastest drift in 5.02 (a board heating itself) is 0.2 ppm per frame, so drift within a frame is not a worry, and drift between frames doesn't matter at all. The ±25 search takes 14 s per 30 s record. The page's three console runs were re-run with it, and they decode as before.
+
+**The ladder figure** now gives each rung's drive (the DAC at 0.8 V; 15 mA in the loop), the voltage at the ADC, the range for the 9600 bit/s modem and the 5 bit/s frame, and the hardware it adds: the LNA at rung 3, the dipole with the LNA at rung 4, and at rung 5 a 5 W power amplifier (23 dB beyond the DAC's 24 mW at most), filters, an LNA and a licence. The range bars run from each rung's modem reach to its frame reach.
+
+**`air.py`'s dipole was wrong, from before tonight:** it fed the dipole the DAC's open-circuit voltage, forgetting its 50 Ω source (which the loop model and 5.07 both use). The power was 2.8× too high: 65 mW at full scale was really 23 mW. Fixed, the 6.78 MHz dipole at AMP 25 is 294× over the limit (was 495×), and the legal 13.56 MHz dipole carries the frame 41 km (was 68). The console blocks, the "milliwatt and a half" sentence and the warning box are all redone. `ft8.py --ppm` now plays the fake crystal, and `dev/tools/comms/ft8_crystal.py` the drifting one, so the test is reproducible; both re-run. I dropped "as real FT8 searches": WSJT-X searches its whole passband.
+
+**`air.py`**'s dipole row now says `NO*`, with a footnote: 495× over Part 15 at 6.78 MHz; legal on 7.074 MHz with a General licence, or 28.074 MHz with a Technician's.
+
+### 5. Chapter 7
+
+- **7.01/7.02.** 7.01 is FIR-only. Its opening figure, block diagrams and scope traces have lost their IIR rows, which went to 7.02 as `dsp_iir_intuition.png`, `dsp_d_iir.png` and `dsp_iir_scope.png`. 7.02 ends with "FIR or IIR?" around a new figure, `dsp_fir_vs_iir.png`: the moving average and the one-pole side by side (impulse responses, the same test signal, |H|, and group delay, 7.5 samples flat against 15 at DC falling below zero near fs/2). I first wrote "falling to 0.5" in that title; it is negative there, and it's fixed.
+- **How complicated each was** (lines without comments or blank lines; a new section at the end of 7.04):
+
+  | | gateware you write | written for you | software you write |
+  | --- | ---: | --- | --- |
+  | `fir.sv` | 73 | | none |
+  | `iir.sv` | 85 | | none |
+  | `filter.sv` (bytes) | 191, plus `uart.sv`'s 64 | | `filter.py`, 414 |
+  | `filter_core.sv` (registers) | 130, plus 37 lines of Python declaring 25 registers | ~180 lines of Verilog for the registers, and the SoC | firmware command 66 lines of C, `filter_remote.py` 98, MicroPython 62 |
+
+  You guessed right. About 100 of `filter.sv`'s lines are the filter and its test signals, which `filter_core.sv` keeps. The byte protocol costs 50 more (settings, parser, wiring), all of which had to agree byte for byte with `filter.py`. As registers, LiteX writes that part. The price moves to the SoC: a CPU, a bus, a build that takes minutes, and 7 of the 28 multipliers.
+- **7.04 and the kernel.** The Linux SoC is rebuilt with the filter: 27 of 28 multipliers, 51 of 56 block RAMs, 61% of the logic, 63.7 MHz after routing. The root file systems have `/root/filter.py`. Measured from MicroPython on the board, through the cable, against the filter's own input as reference: low-pass −1.2/−12.0 dB at 1/3 MHz (design −1.2/−12.1), 5 MHz gone, edge detector −24.3/−0.6 dB at 1/4 MHz, one-pole −12.1 dB. The note is replaced by that table. The kernel itself didn't need rebuilding (the filter has no driver yet; a Try-this is to give it one), so `Image` is unchanged.
+- **7.05:** retitled.
+- **7.07.** **Earth's field:** yes, worth doing. Protons precess at 1960 Hz in Claremont's 46 µT, between two mains harmonics. The FPGA's value is control, not noise: the switch, the clamp, the relay and the receiver on one clock, and a 1.96 kHz B<sub>1</sub> from the DAC for Rabi, Ramsey, echoes and CPMG at audio speed. It needs ~100 dB of gain and dither for the 8-bit ADC, and costs ~$250–400. **Neodymium and PCB coils:** the signal is easy and the magnet is hard. Homogeneity and 6 kHz per kelvin of drift are the problems; echoes and CPMG relaxometry don't mind. Printed coils lose for RF but are the proven choice for *gradients*. An FID is a weekend and $100–400, and a picture a semester and $0.8–2k; the PS2-A's magnet is the shortcut. **Fixed:** OSI² ONE is €25–60k, not under $10k. The 2025 three-day workshop built a 0.27 T system, and the three-day Halbach was ezyMRI in 2024. "2948 cubes" had no source and is gone.
+
+### 6. Brevity, and a hook
+
+- **0.00** now opens with a three-panel strip of Chapter 1 results, all measured (a new script, `dev/tools/fig_hook.py`): the 1 MHz sine; 85 cm of cable timed by the lock-in's phase slope at 3.89 ns, so light goes at 0.73 c in it; and Ode to Joy over AM. One sentence says you'll make all three from logic you describe, with no processor.
+- **6.00** now leads with what your phone and a GPS receiver have in common, and folds three things into Details: the gateware definition (now two sentences plus a Detail), the learnSDR lessons already covered, and the untested 915 MHz shopping list. Its one-paragraph story is six short paragraphs. Prose is 1080 words, down from 1409.
+- **7.00** opens on what the student sees on the scope.
+- **1.00, 2.00 and 4.00** had paragraphs split or a hook added.
+- 0.01 and the README now mention `src/dsp/`.
+- Every intro page's paragraphs are under ~100 words, outside Details.
+
+### 7. Navigation
+
+Chapters 6 and 7 (18 pages) had the top navigation line only: the author line and bottom navigation were never added to the pages written in Prompts 14–16, and nothing checked for them. `sync_md.py` now adds both to any page without them, so `make check` fails if one is missing. The navigation and the README's contents link to the files, not their title anchors. In-text links to sections still carry anchors, which do no harm.
+
+### 8. Appendix D (and A)
+
+The "Coming soon" section was in **Appendix A**, not C. It moved to the new Appendix D as "The next board". A gains a short "Open, all the way down: good for learning with an AI".
+
+D, in order:
+
+- **An AMOD** (sketched to scale in `amod_sketch.png`, by `dev/tools/fig_amod.py`). Two 100 × 100 mm boards, because the cheap fab tier stops there: five boards cost $5 at PCBWay, and $40 at 150 × 100 (quoted 2026-10-05). Tiles are 20 mm squares, each numbered with its schematic and expected result, NanoVNA-style. The power is visible: a coloured frame plus a jumper. Connectors are SMA, not U.FL, since U.FL is rated for about 30 matings and SMA jacks are $0.31 at LCSC. A Pmod brings 3.3 V and 8 pins; a rev-B adapter could expose the ~10 header pins the adapter leaves unused.
+- **The tile table** (28 tiles: area, power, parts cost, the pages that already ask for each, and a verdict; after the review, P5 is a pair of LC low-passes, 9 MHz for anti-aliasing and 100 kHz for reconstruction, and P6 a 4.7–7.8 MHz band-pass, because my first P5, a 2.5 MHz low-pass, would have blocked Chapter 6's signal) covers everything from 7.05's "what this hardware cannot show", 6.12's and 6.00's parts lists, 5.08, 4.10, 6.13 and 7.06's plants. The rejects: I²S modules (use the Pmod), anything at 915 MHz, laser optics. The AD633 needs ±8 V and the AD835 costs $25, so the mixer is an MC1496. The parts come to ~$10 passive and ~$40 active, plus $12 of SMAs. The "one tile, many pages" list shows the LC low-pass serving four pages, from 4.02 to removing 6.10's ghost.
+- **Two in, two out:** a chapter it would enable ("phase, impedance and quadrature"): a reference channel, simultaneous V and I, IQ, a lockbox, cross-correlated Johnson noise, MIMO.
+- **The antenna.** `air.py`'s model of a two-turn loop round a 95 mm board says the DAC at full power is legal into it. Two boards reach 0.4 m with the modem and 4 m with the frame, or 2 m and ~200 m with the LNA tile. But it should **not** go round the AMOD's edge: a ground plane inside a loop is a shorted turn. It belongs on its own 100 mm board, $5 for five, with two turns (four would be over the limit at full power).
+- **Long cables** (researched; prices as of 2026-10-05):
+
+  | option | about |
+  | --- | --- |
+  | 100 ft of BNC RG-58, plus adapters, a T and a terminator | $35 (the cable is $28) |
+  | ten 10 ft cables and a ten-pack of BNC T's | $85, each section a quarter wave at 16 MHz |
+  | RG-174, the cheapest thin cable, 100 ft | ~$20 |
+  | RG-316, 100 ft | $75 |
+  | RG-178 (thinnest, 1.8 mm) | costly and lossy |
+
+  U.FL cables stop at about a metre, so on a PCB the AMOD's tapped LC delay line plays the long cable: 400 ns, about 260 ft of RG-58.
+- **What Red Pitaya teaching covers that this doesn't**, ranked: a lockbox (PyRPL/Linien: the biggest gap, and doable with the DDS and a crystal, all electronic), pulse-height analysis, noise as a measurement, an impedance analyzer, op-amp characterization, the speed of light by phase, a triggered scope, I–V curves, sensors. Each is mapped to the AMOD tiles that would enable it.
+- **"Open to the copper: hardware an AI can read"**: the case you asked for. An assistant can reason *forward* from the KiCad files and datasheets (this op-amp and network give this bandwidth, so the measurement should show this), then check on the bench and re-run the script that draws the board.
+
+The research was done by subagents, which hit the session's 200-web-search limit. Their numbers are sourced and dated; AliExpress and eBay prices came from search snippets, and Appendix D says "about".
+
+### 9. A better order? Four options, argued
+
+**The facts.** Chapter 6 is 94k of the tutorial's 222k words (42%) and Chapter 7 40k, while Chapter 4 is 8k. That's because the chapters are cut along three different axes at once:
+
+- by layer: 1 logic, 2 CPU, 3 Linux;
+- by how much hardware: 4 one board, 5 two boards;
+- by topic: 6 comms, 7 DSP.
+
+Hence the oddities you noticed. Control is in both 4.08 and 7.06; filters are analog in 4.02 and digital in 7.01; the modem and radio are in 5.05–5.07, while the rest of comms is in 6. DSP came after comms only because Chapter 6 was written first (Prompts 14–15) and had its number; there was no pedagogical reason. The dependencies are shallow, though. Nearly everything after Chapter 1 needs only the spine (1.00–1.08). The real links are few:
+
+- 6 → 5's `awgcap.sv`, which is just loaded;
+- 6.07 → 1.09's FFT;
+- 7.04 → Chapter 2's LiteX;
+- 5.05's networking → 3.
+
+So a wide diagram is available.
+
+**Option 1, the minimal one: swap 6 and 7.** DSP becomes 6, comms 7. *For:* comms can lean on FIR/IIR and the matched filter instead of re-teaching them, and control (7.06) needs IIR first. A day's renumbering. *Against:* it fixes the order but not the mixed axes; the diagram stays deep and 4/5 stay odd. If you do nothing else, do this.
+
+**Option 2, recommended: a spine, a toolkit, then tracks.**
+
+```
+0 Getting started          (as now)
+1 The spine                (1.00–1.10, as now)
+2 Signal processing        (7.00–7.03, 7.05: FIR, IIR, loadable, delta-sigma)
+3 Physics with one board   (4.02–4.07, 4.10)
+4 Clocks and time          (4.01 PLL, 4.09, 5.01–5.04: needs a second board)
+5 Modems and radio         (5.05–5.07, 6.01–6.04, 6.11, 6.12)
+6 Channels and limits      (6.05–6.10)
+7 Control                  (4.08, 7.06)
+8 A processor, and Linux   (2.x, 3.x, and 7.04 as its capstone)
+9 Bigger ideas             (7.07, 6.13's radar, 5.08, Appendix D's AMOD)
+```
+
+The diagram becomes:
+
+```mermaid
+flowchart LR
+  spine["1 The spine"] --> dsp["2 Signal processing"]
+  spine --> phys["3 Physics, one board"]
+  spine --> clocks["4 Clocks, two boards"]
+  spine --> platform["8 A processor, and Linux"]
+  dsp --> modems["5 Modems and radio"]
+  dsp --> channels["6 Channels and limits"]
+  dsp --> control["7 Control"]
+  clocks -.-> modems
+  phys -.-> control
+  platform -.-> dsp
+  modems --> ideas["9 Bigger ideas"]
+  channels --> ideas
+  control --> ideas
+```
+
+Four wide after the spine, three deep at most. *For:* it answers your either/or. Chapter 1 already teaches correlation and filtering *in service of applications*: the lock-in is a correlator, the FFT a filter bank, the AM radio mixing and filtering. So a toolkit chapter right after it isn't unmotivated: it generalizes what students have just built ("1.08's average was a boxcar FIR; here is the whole family"). Comms then splits into two chapters of human size. Control is one topic in one place. The CPU and Linux become a track that a physics course can skip, instead of a wall between Chapter 1 and the experiments. And each track's opener says what it needs, as now. *Against:* the biggest move. It means 827 section links (a script can redo those) and 119 "Chapter N" mentions in prose. Many of those need rewriting by hand where the narrative order changes ("Chapters 1 to 3 built instruments...", "Chapter 6 did its signal processing in Python..."). Call it a night's work for me, then a proofread for you.
+
+**Option 3: one storyline for a physics course.** Measurement (1, 4) → time and frequency (4.01, 4.09, 5.01–5.04) → signals (7) → information (5.05–6.12) → control (7.06) → quantum (7.07): from "measure a signal" to "control a qubit". *For:* the best single arc for a course read in order; every chapter motivates the next; it's your "dream tutorial" told as a story. *Against:* it's the deepest possible diagram, the opposite of what you want, and it punishes anyone who skips.
+
+**Option 4: applications pull the blocks, with no DSP chapter.** FIR and the matched filter go into comms, IIR into control, delta-sigma into measurement, and the loadable filter into the platform track as the LiteX example. *For:* every block arrives exactly when something needs it, and motivation is maximal. *Against:* the toolkit is scattered and hard to use as reference, and FIR vs IIR, which deserves one place, gets split. Chapter 1 already does this for correlation, so it's the strategy we've had, not a new one.
+
+**My opinion:** Option 2. If that's too much churn, Option 1 plus moving 4.08 next to 7.06 and 5.05–5.07 into the comms chapter gets most of the benefit for a fraction of the edits. I haven't moved anything: say which, and I'll do it with a script that renumbers and relinks, then rewrite the chapter references by hand.
+
+### 10. Things only you can settle, or check
+
+- **The order** (section 9).
+- **The empty-slot wait** (section 1): pull a card and time it.
+- **The prebuilt binaries are in the diff**: the bitstream, both root file systems, their device trees, and `sdcard.img.xz`. The kernel is unchanged.
+- **Appendix D's tile list** is a proposal, priced. Nothing in it is designed.
+- **The 5.04 fix**: ship the rounded `pll.sv` or not (section 2).
+- **6.10** changed more than anything else; it deserves a read.
+
+### Files
+
+- **New:**
+  - `tutorial/D_coming_soon.md`
+  - `dev/tools/fig_hook.py`, `dev/tools/fig_amod.py`, `dev/tools/comms/ft8_crystal.py`
+  - images: `hook.png`, `amod_sketch.png`, `comms_chirp/waves/shape/peaks/doppler.png`, `dsp_iir_intuition/iir_scope/fir_vs_iir/d_iir.png`
+- **Changed, code:**
+  - `src/comms/chirp.py` (`--shape`), `ft8.py` (search width, `--ppm`), `air.py` (NO*, the dipole's 50 Ω source)
+  - `src/linux/make_linux.py` (SD timeout), `install-sd.sh` (rebind)
+  - `src/linux/prebuilt/*`
+  - `dev/tools/sync_md.py`, `check_tutorial.py`
+  - figure scripts: `fig_compression.py`, `fig_comms_diagrams.py`, `dsp/fig_fir_intuition.py`, `fig_filter_diagrams.py`, `fig_fixed_scope.py`, `fig_enob.py`
+  - `dev/data/comms_compression.npz` (re-measured)
+- **Changed, pages:** 0.00, 0.01, 1.00, 2.00, 3.01, 3.03, 4.00, 5.04, 5.08, 6.00, 6.10, 6.12, 7.00–7.07, A, B, C, README; and every page's navigation.
+
+### 11. A second pass: a reviewer's findings, fixed
+
+A fresh reviewer agent read every tutorial change from tonight against the code, the data and the console outputs. It found about thirty things. The ones that were real errors, all fixed:
+
+- the AMOD's 2.5 MHz low-pass, which couldn't do the 6.10 jobs I gave it;
+- the dipole powers (above);
+- a four-turn loop that would break Part 15 at full power;
+- `install-sd.sh`'s retry, which could exit silently under `set -e`. It now loops over `/sys/bus/platform/devices/*.mmc` and can't fail. I re-tested it on a fifth serial boot, which missed the card again, and the retry found it;
+- 7.04's design value for `rc 4` (−12.1, not −12.3 dB);
+- "times 85 cm of cable to a hundredth of a nanosecond" (a twentieth);
+- 6.00 claiming the text message went through the air (only the cable has carried it);
+- Appendix A claiming every layer is readable (the converter module's schematic isn't);
+- the AD9226 parts for the next board (it's an AD9238);
+- the cable sums and a 16 MHz claim above the ADC's Nyquist;
+- the edge detector's "spike up, spike down" (it's a doublet at every edge);
+- "1.10's IF" (1.10 is direct-conversion).
+
+It also caught a figure bug from before tonight. In 6.10's noise panel, every trace sat 29 dB low, under the next trace's label, because `transmit()` scales the noisy waveform, noise and all, to the DAC's range. Each trace is now drawn relative to its own peak.
+
+Smaller fixes:
+
+- wording and tone, mostly in Appendix D;
+- the long paragraphs in the parts written tonight, split;
+- links straight to 3.03's new section from 3.01 and B;
+- 6.10's ZC chip rate (3.116 Mchip/s, not B);
+- a "third harmonic" that could be the DAC's or the ADC's;
+- "ten milliwatts" for LoRa's +14 dBm (25).
+
+The reviewer suspected "2948 cubes" was right for Leiden's magnet. The paper (arXiv:2005.02834) says 23 rings of two layers of 12 mm cubes and gives no total, so the page says that.
+
+### Board state (2026-10-06 00:58:31)
+
+- **DP051TLX** (converters, cable on): `awgcap.bit` loaded. Its card still holds an older tuned system (login at 57.9 s).
+- **DK0GFLAW**: booting the *new* Linux from its card, which `install-sd.sh` rewrote tonight.
+
+## Prompt 18
+
+The "Recorded spectra" plot in 6.10 does not seem to be apples-to-apples in terms of signal level and band-pass filtering. Add this as a prompt in dev/CLAUDE_CODE_CHAT.md and do it. I'll address the rest later.
+
+## Response 18 2026-10-06 09:59:50 Claude Opus 5.5
+
+You were right on both counts. `make check`: 0 errors, 0 warnings. No board was plugged in (only the Xilinx cable and the GPIB adapter), so nothing new was recorded.
+
+**Level.** The old panel drew each trace in dB re its own peak, then stacked them 14 dB apart, so levels meant nothing. Every waveform is played at the same peak swing (±100 DAC codes), so the recordings compare directly. Both spectrum panels (`comms_waves.png`, and the top left of `comms_shape.png`) now share one scale: dB re the held chirp's level in the band. What that shows, from the saved recordings:
+
+- Held: the four long waveforms are within 0.7 dB of each other in the band. The pulse is 30 dB down (one chip of energy, not 1023).
+- Filtered to B: the m-sequence and Gold code are 7 dB down, Zadoff–Chu 1.7. Filtering makes peaks, and the same peak swing then leaves less power. This is the PAPR column, now visible in the spectra.
+
+**Filtering.** The old panel showed only held waveforms, and the chirp was the exception everywhere: `--shape filtered` passed it through unfiltered as "already B wide". It isn't quite. Its wrap from +B/2 to −B/2 makes skirts at −30 dB and below. `chirp.py --shape filtered` now band-limits the chirp too, and `comms_waves.png` gets a second panel, "Filtered to B", with all five. The cost, computed: band-limiting the wrap overshoots to 1.76× the swing, so the filtered chirp's PAPR is 5.0 dB, not 0, and it plays 4.3 dB quieter. A filter 10% wider than the sweep would cost 2.8 dB. The filtered chirp now matches filtered ZC at 0.996 (was 0.993). 6.10's text, the summary table and the PAPR list are updated to match.
+
+**Needs a board** (DP051TLX looped back):
+
+- `python3 dev/tools/comms/fig_compression.py` re-records everything, including the chirp filtered at the DAC. Until then, the figure's filtered chirp is the held recording filtered after the ADC and scaled down 4.3 dB, and it says so on the plot. The script switches to the real recording when the data has one.
+- `python3 src/comms/chirp.py --no-plot --shape filtered` for 6.10's `CHIRP_HW_FILTERED` block. Its chirp row still comes from the old code (PAPR 0.0; the simulation now gives 5.0).
+
+## Prompt 19
+
+In the "An AMOD" section, add a 3rd RF board capable of at least 915 MHz, preferably 2.4 GHz, and at a stretch, 5.8 GHz experiments. There should be a TX and RX PLL going into mixers. There should be LNAs. There should be optional power amplifiers -- basically a cheap and less-shielded version of a bunch of common Mini-circuits blocks that can SMA'ed together at will to do cool RF experiments. There should be 3 sub-sections, one for each board. One thing I don't understand about the passive board is labels like "thr, open, short, 50 ohms" all one one tile with only one pair of SMAs... Or "low pass and high pass" with a single pair of SMAs. Or "series and parallel", etc. Are students meant to swap out components, or are these meant to be soldered in like on the NanoVNA board?
+
+## Response 19 2026-10-07 15:06:27 Claude Opus 5.5
+
+Researched (prices from LCSC, Mouser and DigiKey on 2026-10-07), not built. `make check`: 0 errors, 0 warnings.
+
+**Your question: soldered in, and the sketch was wrong.** On the NanoVNA's demo kit, short, open, load and thru are four separate circuits (13 to 16), each with its own U.FL connector. My tiles put two or more circuits behind one pair of SMAs. The new rule is one circuit to a tile, soldered in, with its own jacks:
+
+- A 20 mm tile holds one two-port (jacks in opposite corners) or two one-ports. A circuit with three or more jacks (a mixer, the tapped line) gets a 40 × 20 mm tile. Corners keep every two jacks at least 11 mm apart, even on neighbouring tiles.
+- The only switches are jumpers and DIP switches at low frequency (the crystal's pulling capacitor, the LED colour, the Johnson-noise resistors). A jumper's picofarad and few nanohenries are nothing at a megahertz.
+
+That roughly doubles the tile count, so the passive and active boards each keep their 16 most-used circuits, and the rest are "maybe" (for a second board):
+
+- **Passive:** a −6 dB pad, a parallel RLC, a 10 MHz crystal, a 10.7 MHz ceramic filter, the varactor LC and the transformers.
+- **Active:** the fan, the 74HC4046, the HB100 socket and the NMR front end.
+- **The calibration standards** moved to the RF board. A centimetre of trace is under 1° at 30 MHz (a NanoVNA's SMA open/short/load is fine) and 127° at 5.8 GHz (the reference plane has to be at the tile).
+
+**The RF board** (`tutorial/img/amod_rf.png`, with one way to cable it):
+
+- **Synthesizers:** two MAX2870s (23.5 MHz to 6 GHz, .78), TX and RX LO, from one 25 MHz TCXO or the FPGA board's clock, so phases mean something.
+- **Mixers:** two LTC5510s (0.50): 6.25 MHz up to the band, and back down to the ADC through the active board's ×100.
+- **Amplifiers:** a QPL9547 LNA (0.1 to 6 GHz, .69); a GALI-84+ gain block (the 915 MHz PA, .99); an RFX2401C 2.4 GHz front end (PA, LNA and switch, /bin/bash.68).
+- **Filters and test pieces:** a 915 MHz SAW, a 2.45 GHz LTCC band-pass, the calibration standards, and 4.05's quarter-wave stub at 2.4 GHz (17 mm of microstrip).
+- **Cost:** about 0 in parts with 29 jacks, against about 30 a side for 6.00's list of connectorized parts. Four layers, QFNs, machine assembly.
+- **5.8 GHz:** receiving works. Transmitting is the stretch: the LTC5510's output is specified to 4.5 GHz. A 5.8 GHz PA (SE5004L), a 5.8 GHz filter and an I/Q pair (ADL5375/ADL5380) are maybes.
+- **Opens:** Chapter 6 on the air; a 6 GHz network analyzer (step both synthesizers, the lock-in at 6.25 MHz); a spectrum analyzer; stepped-frequency radar (1.8 m cells at 2.4 GHz, 1.0 m at 5.8); PA distortion; board leakage.
+- **Catches:** with a 6.25 MHz IF the image is in band (quadrature is the cure); Part 15.249 is about −1 dBm EIRP (47 dB of SNR at 10 m), so the +22 dBm PAs are for cables and hams; 30 dB of pads before any receiver.
+
+**Renumbering.** Tiles are numbered in board order, and Appendix D's other references are updated: the antenna section, "Long cables" and the other-platforms table. `dev/tools/fig_amod.py` draws both sketches.
+
+**Unconfirmed:** these came from search summaries, not datasheets, and should be checked before anyone draws the board: the LTC5510's 4.5 GHz output limit, the RFX2401C's +22 dBm, and the GALI-84+'s 7 V bias.

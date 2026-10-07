@@ -1339,13 +1339,21 @@ def fig_air():
         ax.plot([x, x], [3.0, 69.0], color=INK2, lw=2.4, solid_capstyle="round", zorder=1)
     for y in ys:
         ax.plot([xl, xr], [y - 5.5, y - 5.5], color=INK2, lw=2.0, zorder=1)
-    labels = ["1  minigrabber leads on both SMAs (a 10 cm wire each):\n    the electric near field, 1/r³: tens of centimetres",
-              "2  a tuned 30 cm loop on each (5.07): the magnetic near field,\n    1/r³ to λ/2π = 7 m, then 1/r: metres with the modem,\n"
-              "    tens of metres with the FT8-style frame",
-              "3  an active receiving loop, 40 dB of gain before the ADC:\n    the ADC's floor stops mattering, the sky's noise starts:\n"
-              "    hundreds of metres",
-              "4  a half-wave dipole (22 m at 6.78 MHz, 11 m at 13.56 MHz)\n    at the legal field strength: kilometres",
-              "5  a licence, 7.074 MHz and real FT8: the world"]
+    labels = ["1  minigrabber leads on both SMAs, 10 cm of wire each; DAC at 0.8 V\n"
+              "    the electric near field, 1/r³: 0.15 µV at the ADC from 1 m away\n"
+              "    modem (9600 bit/s): 2 cm  ·  FT8-style frame (5 bit/s): 20 cm",
+              "2  a tuned 30 cm loop on each (5.07); 15 mA in it, the legal field\n"
+              "    the magnetic near field, 1/r³: 10 mV at the ADC from 1 m away\n"
+              "    modem: 80 cm  ·  FT8-style: 9 m",
+              "3  + an LNA: an active receiving loop, 40 dB before the ADC.  The\n"
+              "    ADC's floor (8 µV in a 6 Hz bin) stops mattering; the sky's starts\n"
+              "    modem: 4 m  ·  FT8-style: 1 km",
+              "4  + a half-wave dipole receiving (22 m of wire), with the LNA:\n"
+              "    1/r in the far field, FT8-style 5 km from the legal loop.\n"
+              "    (13.56 MHz allows 1.4 mW into a dipole: 40 km of free space)",
+              "5  + a licence and 7.074 MHz: a power amplifier (5 W, 23 dB above\n"
+              "    the DAC's best, 24 mW), band filters, an LNA, and real FT8\n"
+              "    (77 bits every 15 s): the ionosphere, and the world"]
     for y, t in zip(ys, labels):
         ax.text(37.0, y, t, ha="left", va="center", size=8.0, color=INK)
     # rung 1: two wires, a grabber clip on each, the field lines between them
@@ -1418,14 +1426,18 @@ def fig_air():
         ax.plot([sx - 0.6, sx + 0.6], [sy(m), sy(m)], color=INK2, lw=1.0)
         ax.text(sx + 1.2, sy(m), t, ha="left", va="center", size=7.2, color=INK2)
     ax.text(sx, sy(1e4) + 6.8, "how far (log scale)", ha="center", va="center", size=8, weight="bold", color=INK)
-    bars = [(0.1, 1.0, "1", C1), (1.0, 10.0, "2, the modem", C2), (10.0, 100.0, "2, FT8-style", C1),
-            (100.0, 1e3, "3", C1), (1e3, 1e4, "4", C1)]
-    for lo, hi, t, c in bars:
-        ax.plot([sx - 2.2, sx - 2.2], [sy(lo) + 0.3, sy(hi) - 0.3], color=c, lw=5, solid_capstyle="butt", zorder=3)
-        ax.text(sx - 3.2, (sy(lo) + sy(hi)) / 2, t, ha="right", va="center", size=7.4, weight="bold", color=c)
-    arrow(ax, (sx - 2.2, sy(1e4) + 0.3), (sx - 2.2, sy(1e4) + 5.5), color=C1, lw=3, ms=12)
-    ax.text(sx - 3.2, sy(1e4) + 2.5, "5, the world", ha="right", va="center", size=7.4, weight="bold", color=C1)
-    ax.plot([sx - 6.0, sx + 6.5], [sy(7), sy(7)], color=C2, lw=0.9, ls="--", zorder=2)
+    # each rung's reach: from the modem's (9600 bit/s, the bottom) to the frame's (5 bit/s, the top)
+    bars = [(0.02, 0.2, "1"), (0.8, 9.0, "2"), (4.0, 1.1e3, "3"), (17.0, 4.7e3, "4")]
+    for i, (lo, hi, t) in enumerate(bars):
+        x = sx - 9.0 + 1.9 * i
+        ax.plot([x, x], [sy(lo), sy(hi)], color=C1, lw=4, solid_capstyle="butt", zorder=3)
+        ax.plot([x - 0.6, x + 0.6], [sy(lo), sy(lo)], color=C2, lw=2.2, zorder=4)
+        ax.text(x, sy(hi) + 0.8, t, ha="center", va="bottom", size=7.4, weight="bold", color=C1)
+    arrow(ax, (sx - 1.4, sy(1e4) + 0.3), (sx - 1.4, sy(1e4) + 5.5), color=C1, lw=3, ms=12)
+    ax.text(sx - 2.4, sy(1e4) + 2.5, "5, the world", ha="right", va="center", size=7.4, weight="bold", color=C1)
+    ax.text(79.0, 4.6, "on the right, each rung's reach: from the modem's (the orange tick)\nto the FT8-style frame's (the top of the bar)",
+            ha="right", va="bottom", size=6.4, color=INK2)
+    ax.plot([sx - 10.0, sx + 6.5], [sy(7), sy(7)], color=C2, lw=0.9, ls="--", zorder=2)
     ax.text(sx + 6.5, sy(7) - 0.5, "λ/2π = 7 m", ha="right", va="top", size=6.8, color=C2)
     note(fig, "computed, not measured: see air.py", top=False)
     finish(fig, "comms_d_air.png")

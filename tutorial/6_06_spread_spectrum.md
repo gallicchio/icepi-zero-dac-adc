@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.05 The channel: sounding it, and equalizing it](6_05_the_channel.md#605-the-channel-sounding-it-and-equalizing-it) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.07 OFDM: the triumph of physics over math →](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)
+[← 6.05 The channel: sounding it, and equalizing it](6_05_the_channel.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.07 OFDM: the triumph of physics over math →](6_07_ofdm.md)
 
 # 6.06 Spread spectrum, the GPS way
 
@@ -380,6 +380,9 @@ the timing loop of [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-cloc
   antenna, this board's ADC could take the same samples at an IF; `cdma.py`'s
   acquisition is already the right algorithm, with a search over Doppler
   added.
+
+<!-- nav -->
+[← 6.05 The channel: sounding it, and equalizing it](6_05_the_channel.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.07 OFDM: the triumph of physics over math →](6_07_ofdm.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

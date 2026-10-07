@@ -1,5 +1,5 @@
 <!-- nav -->
-[← Appendix B. Troubleshooting](B_troubleshooting.md#appendix-b-troubleshooting) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)**
+[← Appendix B. Troubleshooting](B_troubleshooting.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix D. Coming soon… hopefully →](D_coming_soon.md)
 
 # Appendix C. How this tutorial was tested
 
@@ -284,9 +284,8 @@ Later still:
   0.5 dB of the design); [7.05](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits)'s `sigma_delta.py --m2k --table` and
   `oversample_adc.py --m2k` (both `--dc` too), and the gateware's four modes
   on the scope. Not measured: [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s `--measure` loopback path, [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s
-  firmware and MicroPython loaders (built, not run: the firmware's expected
-  codes are predictions, and the filter is not in the prebuilt Linux
-  bitstream), the two-board VNA, [7.05](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits)'s CIC readback and everything the
+  firmware loader (built, not run: its expected codes are predictions),
+  the two-board VNA, [7.05](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits)'s CIC readback and everything the
   loopback cable would allow, and [7.06](7_06_control.md#706-control-at-the-speed-of-the-cable)'s mode 0 (the cable as the plant: the
   loop-delay measurement that is the page's point); its modes 1 and 2 were
   measured on the M2k bench (critical gain 4.25 at 1.10 MHz against the
@@ -296,6 +295,29 @@ Later still:
   size cast with the wrong sign, which every RTL testbench had evaluated
   correctly; a gate-level replay of the laptop's bytes found it (the page
   tells the story). [7.07](7_07_bigger_ideas.md#707-bigger-ideas-nmr-mri-and-qubits) is priced, not built.
+- **The fifth night** (October 5–6), on the converter board through its
+  101.5 cm cable unless it says otherwise:
+  [5.04](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other)'s PLL pull-in, tones 1–3 kHz above and below, 20 s each
+  (its old claim that 3 kHz doesn't lock in 1.2 s checked, and the
+  asymmetry found), then a variant with the loop filter's shifts rounded
+  instead of floored, built outside the repository, which pulled in
+  symmetrically;
+  [6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)'s five waveforms held and filtered, every number in its four
+  console blocks and six figures, and the ghost's lag (−194 samples
+  recorded, −192 predicted); [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s slow frame with the transmitter
+  pretending to be 3, 10 and 20 ppm off and drifting 1 ppm per frame (and
+  5 ppm drifting 2), with `ft8.py --ppm` and `dev/tools/comms/ft8_crystal.py`,
+  and its three console runs again with the wider search; the Linux SoC
+  rebuilt with [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s filter and [3.03](3_03_building_linux.md#303-building-linux-yourself)'s 20 ms SD timeout,
+  serial-booted, and the filter driven from MicroPython and measured with
+  the driver's capture (six points, all within 0.4 dB of the design); the
+  same SoC booted from the cards of both boards; on the board without
+  converters, [3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card)'s whole installer (serial boot, `install-sd.sh` in 5 min
+  10 s, the card booted to `login:` in 84.8 s), and four serial boots,
+  two with the old SoC and two with the new, in each of which the kernel's
+  first try at the card timed out. The figures of [7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product) and [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line) were split
+  between the two pages from the same data; [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s line counts were
+  counted from the files.
 
 ## Not tested
 
@@ -334,8 +356,13 @@ Later still:
   mode returns the taps to the ADC's resolution but one tap late, and the
   step and noise modes return zeros; the alignment code is wrong and the
   `--m2k` sweeps are the measurements the pages use.
-- **[7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s firmware and MicroPython loaders**, and the Linux SoC with the
-  filter (not rebuilt).
+- **[7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s firmware loader** (built, not run).
+- **The BIOS with an empty SD slot.** [3.03](3_03_building_linux.md#303-building-linux-yourself)'s "about 45 s" is computed
+  from the BIOS's code and the new 20 ms timeout: both boards had cards in
+  them, and the cards could not be taken out remotely. The register's value
+  was read back (0x000F4240), and cards still work with it.
+- **[7.07](7_07_bigger_ideas.md#707-bigger-ideas-nmr-mri-and-qubits)'s Earth's-field and permanent-magnet sections, and
+  [Appendix D](D_coming_soon.md)**: researched and priced (prices as of 2026-10-05), not built.
 - **[7.07](7_07_bigger_ideas.md#707-bigger-ideas-nmr-mri-and-qubits)**: nothing on it has been built; the TeachSpin connections are
   read from its manual.
 - **[6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s air.** Every rung of the antenna ladder is a calculation
@@ -349,7 +376,7 @@ Later still:
   of [4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) (the loop's own harmonics).
 
 <!-- nav -->
-[← Appendix B. Troubleshooting](B_troubleshooting.md#appendix-b-troubleshooting) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)**
+[← Appendix B. Troubleshooting](B_troubleshooting.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix D. Coming soon… hopefully →](D_coming_soon.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.01 A faster DAC: PLLs](4_01_a_faster_dac.md#401-a-faster-dac-plls) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.03 The Q of a quartz crystal →](4_03_quartz_crystal.md#403-the-q-of-a-quartz-crystal)
+[← 4.01 A faster DAC: PLLs](4_01_a_faster_dac.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.03 The Q of a quartz crystal →](4_03_quartz_crystal.md)
 
 # 4.02 RC and LC circuits
 
@@ -69,7 +69,7 @@ the 100 Ω to 1 kΩ and watch Q fall. An inductor's self-resonance limits how
 high this works; small 100 µH chokes are fine to about 5 MHz.
 
 <!-- nav -->
-[← 4.01 A faster DAC: PLLs](4_01_a_faster_dac.md#401-a-faster-dac-plls) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.03 The Q of a quartz crystal →](4_03_quartz_crystal.md#403-the-q-of-a-quartz-crystal)
+[← 4.01 A faster DAC: PLLs](4_01_a_faster_dac.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.03 The Q of a quartz crystal →](4_03_quartz_crystal.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

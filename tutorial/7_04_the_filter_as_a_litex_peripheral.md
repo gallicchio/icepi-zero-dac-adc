@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 7.03 A filter you can load](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.05 Trading speed for bits →](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits)
+[← 7.03 A filter you can load](7_03_a_filter_you_can_load.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.05 Trading speed for bits →](7_05_trading_speed_for_bits.md)
 
 # 7.04 The filter as a LiteX peripheral
 
@@ -312,14 +312,35 @@ Twenty register writes take a few tens of milliseconds over the bridge;
 a new design is one edited line and a rerun. This is the way to iterate.
 
 **From MicroPython on the board's Linux**, with `machine.mem32`
-([3.02](3_02_a_driver.md#302-a-driver)'s way to a register
-without a driver): `micropython /root/filter.py lowpass src 4 on`, `show`,
-`rc 4 tone 5000000`, several per line, no laptop and no scipy. The
-honest footnote: the filter is **not in the prebuilt Linux bitstream**,
-which was built before this page; `make_linux.py` calls the same
-`add_adda()`, so the next rebuild puts it at the same address with
-nothing else moving, and the script is in the root overlay waiting for
-it.
+([3.01](3_01_booting_linux.md#301-booting-linux)'s way to a register
+without a driver). `make_linux.py` calls the same `add_adda()`, so the
+Linux SoC of [3.01](3_01_booting_linux.md#301-booting-linux) has the filter
+at the same address, and `/root/filter.py` takes the commands of the
+firmware, several per line, with no laptop and no scipy. Measured through
+the loopback cable, with [3.02](3_02_a_driver.md#302-a-driver)'s driver
+capturing DAC OUT and `out 1` (the filter's input, same delay) as the
+reference:
+
+```console
+# micropython /root/filter.py lowpass src 4 tone 1000000 out 0 on
+filter: b = -12 8 87 289 625 1020 1344 1470 1344 1020 625 289 87 8 -12 0
+        a = 0 0 0 0   (x 8192)
+        src tone, out the output, tone 1000000 Hz; the DAC plays the filter, running
+```
+
+Each point is `micropython /root/filter.py ... out 0 on`, then
+`sh /root/dump.sh` (a capture of DAC OUT through the cable, with `adda.ko`
+loaded), then the same with `out 1`; the laptop fits the tone's amplitude
+in both and takes the ratio.
+
+| filter, tone | through the cable | design |
+| --- | ---: | ---: |
+| low-pass 2 MHz, 1 MHz | −1.2 dB | −1.2 dB |
+| low-pass, 3 MHz | −12.0 dB | −12.1 dB |
+| low-pass, 5 MHz | below the noise | −54 dB |
+| edge detector, 1 MHz | −24.3 dB | −24.0 dB |
+| edge detector, 4 MHz | −0.6 dB | −0.6 dB |
+| one-pole `rc 4`, 1 MHz | −12.1 dB | −12.1 dB |
 
 ## The price of the bus, and the price of the chip
 
@@ -337,6 +358,34 @@ conversation every FPGA designer eventually has with the resource report.
 The firmware SoC fits at 69 MHz, the bridge SoC at 74, both with the
 filter.
 
+## How much code each one took
+
+| | gateware you write | written for you | software you write |
+| --- | ---: | ---: | --- |
+| [7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product)'s fixed FIR, `fir.sv` | 73 | | none: one bitstream per filter |
+| [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)'s fixed IIR, `iir.sv` | 85 | | none |
+| [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s byte-loadable `filter.sv` | 191, and `uart.sv`'s 64 | | `filter.py`, 414 lines of Python |
+| this page's `filter_core.sv` | 130, and 37 lines of Python declaring the 25 registers | about 180 lines of Verilog for the registers, and the whole SoC | the firmware's `filter` command, 66 lines of C; `filter_remote.py`, 98; MicroPython's `filter.py`, 62 |
+
+Lines are counted without comments or blank lines. The fixed filters are
+small because a parameter chooses the taps at build time and nothing can
+change them afterwards. Of `filter.sv`'s 191 lines, about 100 are the
+filter itself and its test signals; `filter_core.sv` keeps those 100
+almost unchanged.
+
+The rest of `filter.sv` is what loading by bytes costs:
+50 lines of settings, command parser and serial-port wiring, which had to
+agree byte for byte with `filter.py`, plus 23 for the capture and 9 for
+the LEDs. In the peripheral that parser becomes 37 lines of register
+declarations, and LiteX writes the bus decoding: about 180 lines of
+generated Verilog in an SoC of 9430.
+
+So the register-loadable filter is
+the *less* gateware to write and the easier to get right. You pay for it
+elsewhere: a processor and a bus, a build that takes minutes, seven of the
+28 multipliers spent before the filter starts, and Chapter 2's framework to
+learn first.
+
 **Try this:**
 
 - A third DAC source: a 2-bit `dac_source` and your own module. The mux is
@@ -347,5 +396,14 @@ filter.
   bridge capture is aligned to the stimulus as [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s was (six lines), and
   then `filter_remote.py --src 1 --capture` gives the [impulse response](https://en.wikipedia.org/wiki/Impulse_response)
   through the loopback cable.
-- Rebuild the Linux SoC with the filter ([3.03](3_03_building_linux.md#303-building-linux-yourself)) and add `filter/` to the
-  [sysfs](https://en.wikipedia.org/wiki/Sysfs) driver of [3.02](3_02_a_driver.md#302-a-driver), so `echo 8192 > /sys/.../b0` works.
+- Add `filter/` to the [sysfs](https://en.wikipedia.org/wiki/Sysfs) driver of [3.02](3_02_a_driver.md#302-a-driver), so
+  `echo 8192 > /sys/.../b0` works. For the address to come from the device
+  tree instead of a script, add the filter's bank to the `reg` list of the
+  node that `make_linux.py` writes (it lists the function generator, the
+  capture unit, the lock-in and the buffer).
+
+<!-- nav -->
+[← 7.03 A filter you can load](7_03_a_filter_you_can_load.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.05 Trading speed for bits →](7_05_trading_speed_for_bits.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

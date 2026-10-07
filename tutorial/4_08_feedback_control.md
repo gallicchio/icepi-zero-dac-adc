@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.07 An optical link](4_07_optical_link.md#407-an-optical-link) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.09 Your crystal against a reference →](4_09_your_crystal.md#409-your-crystal-against-a-reference)
+[← 4.07 An optical link](4_07_optical_link.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.09 Your crystal against a reference →](4_09_your_crystal.md)
 
 # 4.08 Feedback control of an RC plant
 
@@ -43,7 +43,7 @@ reads that sample 240 ns after the register changed. It leaves out the DAC's
 much is the experiment.
 
 <!-- nav -->
-[← 4.07 An optical link](4_07_optical_link.md#407-an-optical-link) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.09 Your crystal against a reference →](4_09_your_crystal.md#409-your-crystal-against-a-reference)
+[← 4.07 An optical link](4_07_optical_link.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.09 Your crystal against a reference →](4_09_your_crystal.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

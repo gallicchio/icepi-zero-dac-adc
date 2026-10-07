@@ -13,6 +13,16 @@ SRC=/boot/sd
 for f in mbr.bin Image.gz opensbi.bin rv32.dtb boot.json; do
     [ -f "$SRC/$f" ] || { echo "missing $SRC/$f -- boot the installer payload first"; exit 1; }
 done
+if [ ! -b $DEV ]; then
+    # After a serial boot the kernel's first try at the card usually times out
+    # (dmesg: "litex-mmc ... error, status -110"): ask the driver to try again.
+    for MMC in /sys/bus/platform/devices/*.mmc; do
+        [ -e "$MMC" ] || continue
+        echo ${MMC##*/} > /sys/bus/platform/drivers/litex-mmc/unbind 2>/dev/null || true
+        echo ${MMC##*/} > /sys/bus/platform/drivers/litex-mmc/bind 2>/dev/null || true
+    done
+    sleep 3
+fi
 [ -b $DEV ] || { echo "no SD card"; exit 1; }
 
 echo "1/5 partition table"

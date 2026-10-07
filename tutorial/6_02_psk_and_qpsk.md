@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.01 Eye diagrams and pulse shaping](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.03 QAM: more bits per symbol →](6_03_qam.md#603-qam-more-bits-per-symbol)
+[← 6.01 Eye diagrams and pulse shaping](6_01_eye_diagrams.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.03 QAM: more bits per symbol →](6_03_qam.md)
 
 # 6.02 PSK and QPSK: finding the clock and the carrier
 
@@ -1235,6 +1235,9 @@ shape, `gardner_gain()`, to set its loops exactly.)
 - learnSDR's lessons [12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md) and [13](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson13.md) run a Costas loop on every sample of square
   pulses 100 samples long, with no timing recovery at all. Try that order
   here: what does it need, and why do real receivers find the timing first?
+
+<!-- nav -->
+[← 6.01 Eye diagrams and pulse shaping](6_01_eye_diagrams.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.03 QAM: more bits per symbol →](6_03_qam.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

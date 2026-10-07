@@ -4,14 +4,14 @@
    repository's top folder) has its contents replaced by that file, so the code
    on the page is always exactly the code that was tested.
 2. A line  <!-- nav -->  gets a line of links after it: to the previous page, the
-   contents, and the next page, in file-name order.  Each link goes to the page's
-   title (#1b-a-counter-on-the-leds), so that GitHub scrolls past its file list.
-   (The links go on their own line: Markdown doesn't look for links on a line
-   that starts with an HTML comment.)
-3. In README.md, each contents line  - [title](tutorial/file.md#anchor)  is
+   contents, and the next page, in file-name order.  Each link goes to the page
+   itself, not to its title.  (The links go on their own line: Markdown doesn't
+   look for links on a line that starts with an HTML comment.)  Every page has
+   one at the top and one at the bottom: a page without them gets them.
+3. In README.md, each contents line  - [title](tutorial/file.md)  is
    rewritten from that page's title, and every page must have one.
 4. A line  <!-- author -->  (the last line of every page) gets the author's
-   name and email after it.
+   name and email after it; a page without one gets one.
 
     python3 dev/tools/sync_md.py           # rewrite the pages in place
     python3 dev/tools/sync_md.py --check   # exit 1 if anything is out of date
@@ -43,7 +43,7 @@ def slug(title):
 
 
 def href(p):
-    return f"{os.path.basename(p)}#{slug(titles[p])}"
+    return os.path.basename(p)
 
 
 SEP = " &emsp;&emsp;&emsp; "
@@ -81,6 +81,13 @@ for p in pages + [README]:
     if p in pages:
         new = re.sub(r"^<!-- nav -->.*$(?:\n\[(?:←|Contents).*$)?", lambda m: nav(p), new, flags=re.M)
         new = re.sub(r"^<!-- author -->.*$(?:\n<sub>.*</sub>$)?", AUTHOR, new, flags=re.M)
+        if not new.startswith("<!-- nav -->"):
+            new = nav(p) + "\n\n" + new
+        if "<!-- author -->" not in new:
+            new = new.rstrip("\n") + "\n\n" + AUTHOR + "\n"
+        if new.count("<!-- nav -->") < 2:                  # the bottom one, above the author
+            body, _, tail = new.rpartition("<!-- author -->")
+            new = body.rstrip("\n") + "\n\n" + nav(p) + "\n\n<!-- author -->" + tail
     else:
         new = contents(new)
     if new != text:

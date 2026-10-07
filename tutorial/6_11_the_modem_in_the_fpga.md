@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.12 On the air: whispers, and how far they carry →](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)
+[← 6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable](6_10_chirps_and_lora.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.12 On the air: whispers, and how far they carry →](6_12_on_the_air.md)
 
 # 6.11 The modem in the FPGA
 
@@ -1557,3 +1557,9 @@ a real receiver's loop gains depend on the signal level.
 - 3.125 Msymbol/s: two samples per symbol after the decimator, where no
   four-tap interpolator is good enough (the band edge would be at 0.34 of
   the sample rate). What has to change, and what does it cost?
+
+<!-- nav -->
+[← 6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable](6_10_chirps_and_lora.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.12 On the air: whispers, and how far they carry →](6_12_on_the_air.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

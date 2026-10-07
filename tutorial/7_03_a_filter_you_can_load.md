@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 7.02 IIR filters: feedback, and an RC in one line](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.04 The filter as a LiteX peripheral →](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)
+[← 7.02 IIR filters: feedback, and an RC in one line](7_02_iir_filters.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.04 The filter as a LiteX peripheral →](7_04_the_filter_as_a_litex_peripheral.md)
 
 # 7.03 A filter you can load
 
@@ -988,3 +988,9 @@ SoC, which already used seven, ends up with one to spare.
 - Load the identity (`--b 1`) and `S` 3 (noise), `O` 0: the DAC plays
   white noise; the scope's FFT is flat. Then any filter: the FFT is |*H*|
   at a glance, which is the quickest filter measurement there is.
+
+<!-- nav -->
+[← 7.02 IIR filters: feedback, and an RC in one line](7_02_iir_filters.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.04 The filter as a LiteX peripheral →](7_04_the_filter_as_a_litex_peripheral.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

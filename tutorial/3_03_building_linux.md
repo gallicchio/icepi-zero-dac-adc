@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 3.02 A driver](3_02_a_driver.md#302-a-driver) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.04 Booting from an SD card →](3_04_booting_from_sd.md#304-booting-from-an-sd-card)
+[← 3.02 A driver](3_02_a_driver.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.04 Booting from an SD card →](3_04_booting_from_sd.md)
 
 # 3.03 Building Linux yourself
 
@@ -55,8 +55,8 @@ Run it from the linux-on-litex-vexriscv directory, like that project's make.py:
     python3 $ADDA/src/linux/make_linux.py --board=icepi_zero_adda --build --uart-baudrate=460800
 
 It registers one extra board, "icepi_zero_adda": the stock icepi_zero plus
-add_adda() from ../riscv, with the SD card in its native 4-bit mode and no HDMI
-terminal.  It runs make.py, then writes a device tree with a node for the
+add_adda() from ../riscv, with the SD card in its native 4-bit mode (and a
+20 ms command timeout instead of 1 s) and no HDMI terminal.  It runs make.py, then writes a device tree with a node for the
 peripherals -- so a Linux driver can find them -- and one for the five LEDs,
 to <images-dir>/rv32.dtb.
 
@@ -81,6 +81,7 @@ sys.path.insert(0, os.getcwd())
 
 import make      # linux-on-litex-vexriscv's make.py
 import boards
+from migen import Constant
 from litex_boards.targets import icepi_zero
 from adda_litex import add_adda
 
@@ -95,6 +96,15 @@ class IcepiZeroAddaSoC(icepi_zero.BaseSoC):
     def __init__(self, **kwargs):
         icepi_zero.BaseSoC.__init__(self, **kwargs)
         add_adda(self)
+
+    def add_sdcard(self, *args, **kwargs):
+        icepi_zero.BaseSoC.add_sdcard(self, *args, **kwargs)
+        # LiteX gives each SD-card command 1 s to answer, and the BIOS tries 1000 times
+        # to wake a card, for boot.json and again for boot.bin: with the slot empty,
+        # half an hour.  A card answers in
+        # microseconds, and Linux's own driver gives up after 20 ms, so the hardware
+        # waits 20 ms too.  It is a register's reset value, so no LiteX source changes.
+        self.sdcard.phy.cmdr.timeout.storage.reset = Constant(int(20e-3 * self.sys_clk_freq), 32)
 
 
 class Icepi_zero_adda(boards.Icepi_zero):
@@ -200,9 +210,10 @@ python3 $ADDA/src/linux/make_linux.py --board=icepi_zero_adda --build --uart-bau
 
 The result is
 `build/icepi_zero_adda/gateware/icepi_zero_adda.bit` and
-`images_adda/rv32.dtb`. This SoC fills 51 of the 56 block RAMs and 55% of
-the logic, and only just passes timing at 50 MHz (nextpnr reports 50–54 MHz,
-depending on the run). The serial port runs at 460,800 baud, the fastest
+`images_adda/rv32.dtb`. This SoC fills 51 of the 56 block RAMs, 27 of the 28
+multipliers (20 of them are [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s filter) and 61% of the logic,
+and passes timing at 50 MHz: nextpnr estimates 51 MHz after placing it and
+reports 63.7 MHz after routing it, for this build. The serial port runs at 460,800 baud, the fastest
 that serial boot handles reliably.
 
 ## 2. Linux, with Buildroot
@@ -449,6 +460,31 @@ openFPGALoader -b icepi-zero build/icepi_zero_adda/gateware/icepi_zero_adda.bit 
 litex_term --speed=460800 --images=images_adda/boot.json /dev/ttyUSB0
 ```
 
+## Waiting, and what the build can change
+
+Building your own images means you have already left upstream, so it is
+fair to ask which of the boot's waits the build could shorten. Four things
+wait, and they are set in four different places:
+
+| what waits | where it is set | what it costs | here |
+| --- | --- | --- | --- |
+| the BIOS's offer of a serial boot | a `#define` in LiteX's `bios/boot.c` | 0.25 s | left alone: a patch to LiteX, for a quarter of a second |
+| the BIOS waking an SD card | the reset value of a register: `add_sdcard()` gives each command 1 s, and the BIOS tries 1000 times, for `boot.json` and again for `boot.bin` | with the slot empty, half an hour | `make_linux.py` makes it 20 ms, the limit Linux's own driver uses: about 45 s, then the `litex>` prompt |
+| the kernel waiting for its root file system | `rootwait`, on the kernel's command line in the device tree | nothing: it waits only until the card answers | left alone |
+| the start-up scripts | configure-time options: Buildroot's `BR2_PACKAGE_URANDOM_SCRIPTS` and `BR2_PACKAGE_IFUPDOWN_SCRIPTS`, BusyBox's `CONFIG_SYSLOGD`, `CONFIG_KLOGD`, `CONFIG_BB_SYSCTL` and `CONFIG_CROND` | 25 s of an 86 s boot from the card | left in, because [3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card) switches them off by hand, which teaches more |
+
+The 20 ms needs no patch to LiteX. The timeout is a register that the BIOS
+and Linux could set, and neither does, so its reset value is what counts:
+one method in `make_linux.py` sets it. Read it back with `devmem 0xf000400c 32`
+in Linux: 0x000F4240, a million clocks.
+
+The rest of the boot is work, not waiting: the BIOS copying the 9.2 MB
+kernel from the card (about 14 s, at about 650 kB/s), the kernel starting
+(about 10 s), and BusyBox starting programs at about 0.4 s each on a
+50 MHz CPU. A smaller kernel
+shortens the first two (the last "Try this"); [3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card)'s Detail says where the
+rest goes.
+
 **Try this:**
 
 - Getting a new `adda.ko` onto the board doesn't need a new root file system
@@ -463,7 +499,7 @@ litex_term --speed=460800 --images=images_adda/boot.json /dev/ttyUSB0
   a start), rebuild, and see how much smaller `Image` gets.
 
 <!-- nav -->
-[← 3.02 A driver](3_02_a_driver.md#302-a-driver) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.04 Booting from an SD card →](3_04_booting_from_sd.md#304-booting-from-an-sd-card)
+[← 3.02 A driver](3_02_a_driver.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.04 Booting from an SD card →](3_04_booting_from_sd.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

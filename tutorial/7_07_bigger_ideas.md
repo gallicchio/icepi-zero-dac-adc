@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 7.06 Control at the speed of the cable](7_06_control.md#706-control-at-the-speed-of-the-cable) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix A. Why this hardware? →](A_why_this_hardware.md#appendix-a-why-this-hardware)
+[← 7.06 Control at the speed of the cable](7_06_control.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix A. Why this hardware? →](A_why_this_hardware.md)
 
 # 7.07 Bigger ideas: NMR, MRI and qubits
 
@@ -112,23 +112,118 @@ knob at a time.
   encoding gradient during the echo and a phase-encoding gradient pulse
   before it, 32 phase-encoding steps, a 2-D FFT, and an image in a
   minute. This is where the second DAC of the board in
-  [Appendix A](A_why_this_hardware.md#coming-soon-hopefully) earns its keep.
+  [Appendix D](D_coming_soon.md#the-next-board) earns its keep.
   Do not drive the PS2's coils from anything until you have read its
   gradient supply's limits and put a fuse in.
 
 If you want a scanner rather than a demonstration, the open-source
 low-field community has done the work: [MaRCoS](https://arxiv.org/abs/2203.11314)
 is an open MRI console on a Red Pitaya (two ADCs, two DACs, 125 MS/s,
-14 bits, about $600: the board in Appendix A is the same idea), and it
-runs the 0.36 T tabletop scanner MIT built for teaching and the 50 mT
-Halbach scanners of the [Open Source Imaging Initiative](https://www.opensourceimaging.org/),
-whose magnet is 2948 neodymium cubes glued into a cylinder; a
-[2025 workshop](https://arxiv.org/abs/2511.20979) built one in three days.
-The console-plus-magnet systems come in under $10,000. For the price of
-one TeachSpin module, then, a student could have a Halbach magnet and a
-console that this tutorial has already taught them to understand. The
+14 bits, about $600: the board in [Appendix D](D_coming_soon.md#the-next-board) is the same idea). It runs the
+[tabletop scanner](https://tabletop.martinos.org) that MGH and MIT built for
+teaching (0.19 T at first, 0.36 T later; twenty built, about $10,000
+each, more than 800 students), and Leiden's 50 mT
+[Halbach scanner](https://doi.org/10.1002/mrm.28396), whose magnet is 23 rings
+of neodymium cubes and whose hardware cost under €10,000. The
+[Open Source Imaging Initiative](https://www.opensourceimaging.org/)'s
+50 mT OSI<sup>2</sup> ONE is a 150 kg scanner at €25,000–60,000.
+
+Building one is now
+a workshop's work: a 2024 hackathon built a 35–38 mT Halbach scanner in three days
+([ezyMRI](https://arxiv.org/abs/2411.11365)), and a
+[2025 workshop](https://arxiv.org/abs/2511.20979) a 0.27 T one in three days.
+For the price of one TeachSpin module, then, a student could have a
+tabletop magnet and a console that this tutorial has already taught them
+to understand. The
 author's own answer to "do I need more channels": yes, two, which is why
-Appendix A's board has two of each.
+[Appendix D](D_coming_soon.md#the-next-board)'s board has two of each.
+
+## Earth's field: NMR with no magnet at all
+
+Is Earth's-field NMR worth doing with this board? Yes. It is cheap, and it
+is the purest quantum-control demonstration on this page, at audio
+frequencies you can watch on a scope. The field in Claremont is 46 µT,
+so protons precess at 1960 Hz, between the 32nd and 33rd harmonics of the
+mains.
+
+A coil of about a thousand turns round a bottle of water first
+*polarizes* the protons. A few amperes for 3 s (about *T*<sub>1</sub>) gives 10–50 mT,
+hundreds of times Earth's field. A MOSFET switches the current off
+faster than one precession period, the clamp diode takes the coil's
+flyback, and the protons are left precessing about Earth's field. The same
+coil, through a relay, picks up a few microvolts that ring for a second or
+two.
+
+TeachSpin sells it as a
+[product](https://www.teachspin.com/earths-field-nmr), about $9,400; open
+designs cost about $130–230, among them
+[Carl Michal's](https://doi.org/10.1088/0957-0233/21/10/105902) with a
+microcontroller as pulse programmer and digitizer, Worley's
+[PyPPM](https://github.com/geekysuavo/pyppm) and
+[Viciana et al.](https://pmc.ncbi.nlm.nih.gov/articles/PMC11398021/), 2024.
+
+What the FPGA adds over a sound card is not lower noise. The
+preamplifier sets the noise (1 nV/√Hz, an INA849), and a 24-bit sound card
+digitizes as well as anything.
+
+What it adds is *control*: the polarizing
+switch, the clamp, the relay and the receiver on one clock, so that
+records average coherently; a 1.96 kHz B<sub>1</sub> burst from the DAC through a
+class-D amplifier into a small spin-flip coil, for Rabi, Ramsey, Hahn echo,
+CPMG and composite pulses on a qubit that precesses slowly enough to hear;
+and a digital lock-in that tracks Earth's field as it drifts by a few
+hertz a day.
+
+Two warnings. The microvolts need about 100 dB of gain to
+reach the ADC's 39 mV code, with the mains' harmonics notched out first,
+and the coil's flyback (hundreds of volts) must never reach the ADC.
+[7.05](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits)'s
+oversampling gains about 9 bits between 25 MS/s and a 33 Hz bandwidth,
+but only with at least a code of dither, which the DAC can inject. Work
+outdoors, on a battery, with the coil's axis horizontal and east–west.
+
+Imaging is possible but slow: gradients of 50–100 µT/m from FPGA pins
+through op-amp current drivers, a fresh polarization for every line, and a
+32 × 32 picture in a few minutes (Magritek's
+[Terranova](https://www.bmmr.ovgu.de/en/Research/Resources/Terranova.html)
+does exactly this). Beyond the board it costs about $250–400.
+
+## A neodymium magnet and printed coils
+
+How easy is permanent-magnet MRI with PCB coils? The signal is easy, the
+magnet is hard, and the coils are a mixed bag. A Halbach ring of
+32 neodymium cubes (12.7 mm, N52, about $190) makes about 0.12 T, protons
+at 5.1 MHz, in the middle of this board's band. A tenth of a millilitre of
+water in a hand-wound coil there gives a single-shot signal-to-noise
+ratio of about 150 in a 10 kHz band (computed). The
+hard part is everything else:
+
+- **Homogeneity.** Ideal cubes give about 600 ppm over 5 mm, and real ones
+  are worse, so an FID dies in a tenth of a millisecond. Echoes and CPMG
+  relaxometry do not care: they work even in
+  [two disc magnets at 15,700 ppm](https://pmc.ncbi.nlm.nih.gov/articles/PMC12302856/).
+  A picture needs gradients that beat the inhomogeneity: about 70 mT/m for
+  1 mm pixels at 600 ppm. Chemical shifts need 0.5 ppm, and are out of reach.
+- **Temperature.** Neodymium loses 0.12% of its field per kelvin, which is
+  6 kHz per kelvin at 0.12 T. Put the magnet in a foam box, measure the
+  frequency from every FID, and retune the NCO before the next shot. That
+  per-shot lock is natural in an FPGA.
+- **Printed coils.** For the RF coil, a printed spiral gives about half a
+  solenoid's field per ampere, and an uneven flip angle; six hand-wound
+  turns and a trimmer are better for a vial. For *gradients*, printed coils
+  are the proven answer. The MGH tabletop scanner uses 8-layer
+  [PCB gradient coils](https://cds.ismrm.org/protected/14MProceedings/PDFfiles/4819.pdf)
+  of 10–14 mT/m per ampere, driven by power op-amps.
+- **The front end.** A transmit/receive switch (crossed diodes and a
+  λ/4 network) and a low-noise amplifier are a day's work, and they are on
+  [Appendix D](D_coming_soon.md#an-amod-a-board-of-analog-blocks)'s list
+  of tiles. The new board's +10 dBm is enough for 50 µs pulses on a small
+  sample; this board's DAC wants a small amplifier.
+
+So an FID or a CPMG decay from a homemade magnet is a weekend and
+$100–400, and a 2-D image is a semester and $800–2,000. The shortcut is
+the magnet you already own: the PS2-A's 0.49 T, temperature-controlled,
+with gradient coils, is the "homemade" magnet and gradient set done right.
 
 ## Qubits that are not nuclei
 
@@ -165,8 +260,16 @@ physics starts. It is the right second experiment, not the first.
 | quantum control on protons | nothing: the PS2, this board, four BNC cables, two jumpers | $0 |
 | 2-D MRI by hand | a 10 mm vial with two capillaries of oil, patience | $5 |
 | 2-D MRI with switched gradients | a 20 W class-D amplifier board, a fuse, a current-sense resistor | $30 |
+| Earth's-field NMR, with pulses | a 1000-turn coil, a battery or 36 V supply, a MOSFET and clamp, an INA849 preamplifier, a class-D amplifier and spin-flip coil | $250–400 |
+| NMR in a magnet you built | 32 N52 cubes in a printed former, a solenoid, a T/R switch, a low-noise amplifier, a foam box | $100–400 |
 | NV centres | a 520 nm laser diode and driver, a 20× objective, a dichroic and a long-pass filter, a photodiode, an NV-rich diamond plate, an ADF4351 board, a 2.4–3 GHz amplifier module, a loop antenna | $1,500–3,000, by the UNSW and Steinfurt parts lists |
-| a real low-field scanner | a MaRCoS-class console (or Appendix A's board) and a Halbach magnet | under $10,000 |
+| a real low-field scanner | a MaRCoS-class console (or [Appendix D](D_coming_soon.md#the-next-board)'s board) and a Halbach magnet | $1,000–10,000 for a tabletop one |
 
 **Try this:** none of this is a "try this"; it is a semester. The order
 above is the order of cost, and the first row is free.
+
+<!-- nav -->
+[← 7.06 Control at the speed of the cable](7_06_control.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix A. Why this hardware? →](A_why_this_hardware.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -10,7 +10,8 @@ the student to beat with a tape measure.
     python3 air.py --zin 1e3           # the ADC module's input impedance, if you've measured it
     python3 air.py --fa 40             # the site's noise: ITU-R P.372's Fa in dB above kT0
 
-The transmitter is the DAC: 3.07 V peak into 50 ohm at AMP = 100 (5.07).  The receiver is
+The transmitter is the DAC: 3.07 V peak at AMP = 100, open-circuit, behind its 50 ohm
+source (5.07): 61 mA into a loop, at most 24 mW into a matched load.  The receiver is
 the ADC: 8 bits of 39 mV, its own noise about 0.1 code rms, so its floor, quantization
 and all, is about 0.3 code rms = 12 mV over 12.5 MHz: 3.4 uV per root hertz, 8 uV in a
 6 Hz FT8 tone bin.  That floor is what a small passive antenna fights, not the sky.
@@ -38,7 +39,7 @@ import numpy as np
 
 C0, MU0, EPS0, ETA0 = 299792458.0, 4e-7 * np.pi, 8.854e-12, 376.73
 K_B, T0 = 1.380649e-23, 290.0
-V_DAC_FULL = 3.07                   # volts peak into 50 ohm at AMP = 100
+V_DAC_FULL = 3.07                   # volts peak, open-circuit, at AMP = 100 (behind 50 ohm)
 ADC_FLOOR = 3.4e-6                  # volts per root hertz at the ADC (0.3 code rms over 12.5 MHz)
 BIN = 5.96                          # hertz: one FT8-style tone bin (2^22 samples at 25 MS/s)
 MODEM_V = 20e-3                     # volts at the ADC for 5.07's modem
@@ -79,8 +80,8 @@ class Loop:
 
 class Dipole:
     name = "half-wave dipole"
-    def tx_field(self, v, r, k, f):                 # fed with the DAC's power into 73 ohm
-        p = (v**2 / 2) / 73.0
+    def tx_field(self, v, r, k, f):                 # the DAC's 50 ohm driving 73 ohm
+        p = (v * 73.0 / (50.0 + 73.0))**2 / 2 / 73.0
         return np.sqrt(ETA0 * 1.64 * p / (4 * np.pi * r**2))     # far field only
     def rx_volts(self, e, h, f, zin):
         lam = C0 / f
@@ -103,6 +104,7 @@ def ladder(f, amp, lna_db, zin, fa_db, rs):
     print()
     print("%-18s %-18s %10s %10s %12s %12s %14s" % ("transmit", "receive", "field@30m", "legal?", "V at 1 m", "5.07 modem", "FT8-style"))
     print("%-18s %-18s %10s %10s %12s %12s %14s" % ("", "", "(uV/m)", "", "", "range", "range"))
+    over = None
     for tx, rx in pairs:
         if tx.field == "H" and rx.field == "E" and not isinstance(rx, Dipole):
             continue
@@ -122,7 +124,9 @@ def ladder(f, amp, lna_db, zin, fa_db, rs):
         v_noise = np.hypot(ADC_FLOOR * np.sqrt(BIN), v_ext)
         e30 = tx.tx_field(v, 30.0, k, f)
         e30 = e30 if tx.field == "E" else ETA0 * e30
-        legal = "" if limit is None else ("yes" if e30 * 1e6 <= limit else "NO, %.0fx over" % (e30 * 1e6 / limit))
+        legal = "" if limit is None else ("yes" if e30 * 1e6 <= limit else "NO*")
+        if limit is not None and e30 * 1e6 > limit:
+            over = max(over or 0, e30 * 1e6 / limit)
         def rng_for(target):
             lo, hi = 0.01, 1e6
             if volts_at(lo) < target:
@@ -142,6 +146,11 @@ def ladder(f, amp, lna_db, zin, fa_db, rs):
             return "0 (never)" if r == 0 else ("%.0f cm" % (r * 100) if r < 1 else ("%.0f m" % r if r < 1000 else "%.1f km" % (r / 1000)))
         v1 = "(far field)" if isinstance(tx, Dipole) else "%.3g uV" % (volts_at(1.0) * 1e6)
         print("%-18s %-18s %10.3g %10s %12s %12s %14s" % (tx.name, rx.name, e30 * 1e6, legal, v1, fmt(r_modem), fmt(r_ft8)))
+    if over:
+        print("* NO: over the %g uV/m at 30 m that Part 15 allows anyone at %.2f MHz (the worst by %.0f times)."
+              % (limit, f / 1e6, over))
+        print("  Turn it down (--amp), or move to an amateur band with a licence, where this and more is legal:")
+        print("  7.074 MHz (40 m, FT8's busiest) with a General licence, 28.074 MHz with a Technician's (6.12).")
     print()
     print("Read down the last two columns: each rung is an antenna you can make in an afternoon, and the")
     print("FT8-style frame hears what the modem can't, because a 6 Hz bin lets in a thousandth of the noise")

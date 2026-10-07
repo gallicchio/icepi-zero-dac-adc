@@ -1,20 +1,24 @@
 <!-- nav -->
-[← 6.13 More ideas, and a radar chapter](6_13_more_ideas.md#613-more-ideas-and-a-radar-chapter) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.01 FIR filters: the sliding dot product →](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product)
+[← 6.13 More ideas, and a radar chapter](6_13_more_ideas.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.01 FIR filters: the sliding dot product →](7_01_fir_filters.md)
 
 # 7.00 Signal processing in gateware
 
 ![The three ways to measure a filter running in the FPGA: an ADALM2000's function generator into ADC IN and its oscilloscope on DAC OUT; a second board's lock-in sweeping the first; or one board in loopback with the stimulus made inside the FPGA](img/dsp_d_three_ways.png)
 
-Chapter 6 did its signal processing in Python, on records the board sent
-to the laptop, except for one page ([6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga))
-that moved a whole modem into the FPGA and found out what that costs.
-This chapter is about that move. A filter, a decimator, a feedback
-controller: each is a few lines of numpy on the laptop and a few dozen
-lines of SystemVerilog in the FPGA, and the gateware version runs on
-every sample at 25 MS/s with a latency of nanoseconds, which the laptop
-version never will. *Gateware* is the word for what you load into an
-FPGA, as [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
-explains: not software, not firmware, not quite hardware.
+Put a square wave into ADC IN, load a bitstream, and DAC OUT plays it back
+filtered: as ramps, as a rounded wave, as a spike at every edge, or as a
+capacitor charging. The filter runs on every sample, 25 million times a
+second, and its output leaves a few hundred nanoseconds after its input
+arrived. No laptop could do that.
+
+Chapter 6 did its signal processing in Python on recorded data, except in
+[6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga), which moved
+a modem into the FPGA. This chapter makes that move its subject: filters you
+design in scipy and reload while they run, converters that trade speed for
+bits, and a feedback loop whose speed is set by its latency. *Gateware* is
+the word for what runs in the FPGA
+([6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
+explains it).
 
 **What you need first:** the spine, Chapter 1 through
 [1.08](1_08_lockin.md#108-a-lock-in-amplifier), and a way to put a known
@@ -60,3 +64,9 @@ figure says so; where they were computed, it says that.
 > the firmware (`adda>`), as MicroPython on the board (`>>>`), and as
 > Python on the laptop through LiteX's bridge. The `--m2k` flags are laptop
 > Python talking to the ADALM2000 over its own USB cable.
+
+<!-- nav -->
+[← 6.13 More ideas, and a radar chapter](6_13_more_ideas.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.01 FIR filters: the sliding dot product →](7_01_fir_filters.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

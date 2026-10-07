@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.06 The speed of sound at 40 kHz](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.08 Feedback control of an RC plant →](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)
+[← 4.06 The speed of sound at 40 kHz](4_06_speed_of_sound.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.08 Feedback control of an RC plant →](4_08_feedback_control.md)
 
 # 4.07 An optical link
 
@@ -31,7 +31,7 @@ current, and R<sub>L</sub> into a voltage: tens to hundreds of mV at a few cm.
   with the LED to cut its light about 70×, and the lock-in still finds it.
 
 <!-- nav -->
-[← 4.06 The speed of sound at 40 kHz](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.08 Feedback control of an RC plant →](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)
+[← 4.06 The speed of sound at 40 kHz](4_06_speed_of_sound.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.08 Feedback control of an RC plant →](4_08_feedback_control.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.07 A radio link](5_07_radio_link.md#507-a-radio-link) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.00 Digital communications (Hardware Defined Radio) →](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
+[← 5.07 A radio link](5_07_radio_link.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.00 Digital communications (Hardware Defined Radio) →](6_00_digital_communications.md)
 
 # 5.08 With a little more hardware
 
@@ -34,12 +34,12 @@ of it open source. None has been tried with this board yet.
 | **A muon detector** | a scintillator and a silicon photomultiplier, as in MIT's open-source [CosmicWatch](http://www.cosmicwatch.lns.mit.edu/): the ADC records each pulse's height, and two detectors in coincidence show the muons coming from above | [1.06](1_06_fast_capture.md#106-fast-captures) with a trigger |
 | **The electron's charge, from [shot noise](https://en.wikipedia.org/wiki/Shot_noise)** | a photodiode, a lamp and a [low-noise amplifier](https://en.wikipedia.org/wiki/Low-noise_amplifier): the photocurrent's noise power is 2*eI* per hertz. Measure it against the current *I* with the averaged FFT, and *e* is the slope (an MIT Junior Lab classic) | [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer) |
 | **Boltzmann's constant, from Johnson noise** | the "Thermal noise" row above, done carefully: 4*k*<sub>B</sub>*TRB* against *R* and *T* | two boards, as above |
-| **Earth's-field NMR** | a coil of a few hundred turns around a bottle of water and a preamplifier: polarize the protons with a current, switch it off, and record their precession, about 2 kHz in the Earth's field; the FFT gives the field to a few parts per million | [1.05](1_05_adc_to_python.md#105-adc-samples-to-python) or [1.06](1_06_fast_capture.md#106-fast-captures), [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer) |
+| **Earth's-field NMR** | a coil of a few hundred turns around a bottle of water and a preamplifier: polarize the protons with a current, switch it off, and record their precession, about 2 kHz in the Earth's field; the FFT gives the field to a few parts per million. [7.07](7_07_bigger_ideas.md#earths-field-nmr-with-no-magnet-at-all) works it out and prices it | [1.05](1_05_adc_to_python.md#105-adc-samples-to-python) or [1.06](1_06_fast_capture.md#106-fast-captures), [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer) |
 | **A Doppler radar speed gun** | a $5 HB100 10.5 GHz Doppler module and an op-amp: its output is the Doppler shift, 70 Hz per m/s, which the FFT turns into speed | [1.05](1_05_adc_to_python.md#105-adc-samples-to-python), [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer) |
 | **Music over a light beam** | the [FM](https://en.wikipedia.org/wiki/Frequency_modulation) LED transmitter of many electronics courses, done digitally: board A's ADC hears a music player and FM-modulates an LED; board B's photodiode and ADC demodulate it and stream it to `stream.py --play` | [5.05](5_05_fsk_modem.md#505-a-modem)'s phase accumulator, [4.07](4_07_optical_link.md#407-an-optical-link)'s optics |
 
 <!-- nav -->
-[← 5.07 A radio link](5_07_radio_link.md#507-a-radio-link) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.00 Digital communications (Hardware Defined Radio) →](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
+[← 5.07 A radio link](5_07_radio_link.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.00 Digital communications (Hardware Defined Radio) →](6_00_digital_communications.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

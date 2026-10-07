@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.04 Harmonics: a diode clipper](4_04_harmonics.md#404-harmonics-a-diode-clipper) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.06 The speed of sound at 40 kHz →](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)
+[← 4.04 Harmonics: a diode clipper](4_04_harmonics.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.06 The speed of sound at 40 kHz →](4_06_speed_of_sound.md)
 
 # 4.05 A quarter-wave stub
 
@@ -27,7 +27,7 @@ the cable's electrical length. It's [1.08](1_08_lockin.md#108-a-lock-in-amplifie
 engineers do it. (With a 10 m stub the notch moves to 4.95 MHz.)
 
 <!-- nav -->
-[← 4.04 Harmonics: a diode clipper](4_04_harmonics.md#404-harmonics-a-diode-clipper) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.06 The speed of sound at 40 kHz →](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)
+[← 4.04 Harmonics: a diode clipper](4_04_harmonics.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.06 The speed of sound at 40 kHz →](4_06_speed_of_sound.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

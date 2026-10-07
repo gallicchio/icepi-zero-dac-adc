@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.05 A quarter-wave stub](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.07 An optical link →](4_07_optical_link.md#407-an-optical-link)
+[← 4.05 A quarter-wave stub](4_05_quarter_wave_stub.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.07 An optical link →](4_07_optical_link.md)
 
 # 4.06 The speed of sound at 40 kHz
 
@@ -27,7 +27,7 @@ distance, so raise the pair off the table. Then warm the air with a hair dryer. 
 44 kHz shows the transducers' own resonance (Q ≈ 20–30).
 
 <!-- nav -->
-[← 4.05 A quarter-wave stub](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.07 An optical link →](4_07_optical_link.md#407-an-optical-link)
+[← 4.05 A quarter-wave stub](4_05_quarter_wave_stub.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.07 An optical link →](4_07_optical_link.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

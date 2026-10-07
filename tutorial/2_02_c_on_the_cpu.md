@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 2.01 A CPU and its BIOS](2_01_a_cpu_and_its_bios.md#201-a-cpu-and-its-bios) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.03 A function-generator peripheral →](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)
+[← 2.01 A CPU and its BIOS](2_01_a_cpu_and_its_bios.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.03 A function-generator peripheral →](2_03_function_generator_peripheral.md)
 
 # 2.02 C on the CPU
 
@@ -278,7 +278,7 @@ factor of two; `riscv64-unknown-elf-objdump -d primes.elf` shows them.
   (`static unsigned char sieve[N];`). How much faster is it?
 
 <!-- nav -->
-[← 2.01 A CPU and its BIOS](2_01_a_cpu_and_its_bios.md#201-a-cpu-and-its-bios) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.03 A function-generator peripheral →](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)
+[← 2.01 A CPU and its BIOS](2_01_a_cpu_and_its_bios.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.03 A function-generator peripheral →](2_03_function_generator_peripheral.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

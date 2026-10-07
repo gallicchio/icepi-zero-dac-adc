@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 3.01 Booting Linux](3_01_booting_linux.md#301-booting-linux) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.03 Building Linux yourself →](3_03_building_linux.md#303-building-linux-yourself)
+[← 3.01 Booting Linux](3_01_booting_linux.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.03 Building Linux yourself →](3_03_building_linux.md)
 
 # 3.02 A driver
 
@@ -603,7 +603,7 @@ accumulator of [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) star
   `CONFIG_IIO=y` to `src/linux/kernel_modules.config`.)
 
 <!-- nav -->
-[← 3.01 Booting Linux](3_01_booting_linux.md#301-booting-linux) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.03 Building Linux yourself →](3_03_building_linux.md#303-building-linux-yourself)
+[← 3.01 Booting Linux](3_01_booting_linux.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.03 Building Linux yourself →](3_03_building_linux.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

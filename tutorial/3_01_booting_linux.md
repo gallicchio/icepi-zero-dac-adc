@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 3.00 Linux on the FPGA](3_00_linux_on_the_fpga.md#300-linux-on-the-fpga) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.02 A driver →](3_02_a_driver.md#302-a-driver)
+[← 3.00 Linux on the FPGA](3_00_linux_on_the_fpga.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.02 A driver →](3_02_a_driver.md)
 
 # 3.01 Booting Linux
 
@@ -19,8 +19,8 @@ when the SoC starts. About a second after the bitstream loads, the [BIOS](https:
 to boot from the serial port, and it waits only a quarter of a second for an
 answer. `litex_term --images` answers by itself and starts sending the files.
 Start it any later and the offer has gone; the BIOS moves on to the micro-SD
-card. (With no card in the slot it can be stuck there for a quarter of an
-hour: [Appendix B](B_troubleshooting.md). Just run the command again.)
+card. (With no card in the slot it should give up after about 45 s and show
+the `litex>` prompt: [3.03](3_03_building_linux.md#waiting-and-what-the-build-can-change) says why it waits at all. Just run the command again.)
 
 The files go over the serial port at about 44 kB/s: **4 minutes**. Then
 OpenSBI starts the kernel, which takes 19 s to boot (half of that is unpacking
@@ -165,7 +165,7 @@ and the ADC and DAC become files like the LEDs.
   `devmem`.
 
 <!-- nav -->
-[← 3.00 Linux on the FPGA](3_00_linux_on_the_fpga.md#300-linux-on-the-fpga) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.02 A driver →](3_02_a_driver.md#302-a-driver)
+[← 3.00 Linux on the FPGA](3_00_linux_on_the_fpga.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.02 A driver →](3_02_a_driver.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

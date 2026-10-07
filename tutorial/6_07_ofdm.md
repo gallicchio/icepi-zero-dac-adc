@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.06 Spread spectrum, the GPS way](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.08 Shannon's limit, and how far from it you are →](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are)
+[← 6.06 Spread spectrum, the GPS way](6_06_spread_spectrum.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.08 Shannon's limit, and how far from it you are →](6_08_shannons_limit.md)
 
 # 6.07 OFDM: the triumph of physics over math
 
@@ -436,7 +436,7 @@ Two things about 8-bit converters that the experiment shows:
   without re-measuring the channel.
 
 <!-- nav -->
-[← 6.06 Spread spectrum, the GPS way](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.08 Shannon's limit, and how far from it you are →](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are)
+[← 6.06 Spread spectrum, the GPS way](6_06_spread_spectrum.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.08 Shannon's limit, and how far from it you are →](6_08_shannons_limit.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

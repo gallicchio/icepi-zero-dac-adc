@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.07 Closing the loop: the DAC talks to the ADC](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.09 A spectrum analyzer →](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)
+[← 1.07 Closing the loop: the DAC talks to the ADC](1_07_closing_the_loop.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.09 A spectrum analyzer →](1_09_spectrum_analyzer.md)
 
 # 1.08 A lock-in amplifier
 
@@ -767,7 +767,7 @@ than a low-impedance source does.
   ([4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) has the circuit and the numbers to expect).
 
 <!-- nav -->
-[← 1.07 Closing the loop: the DAC talks to the ADC](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.09 A spectrum analyzer →](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)
+[← 1.07 Closing the loop: the DAC talks to the ADC](1_07_closing_the_loop.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.09 A spectrum analyzer →](1_09_spectrum_analyzer.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

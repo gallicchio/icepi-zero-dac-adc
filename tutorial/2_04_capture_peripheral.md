@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 2.03 A function-generator peripheral](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.05 A lock-in peripheral →](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)
+[← 2.03 A function-generator peripheral](2_03_function_generator_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.05 A lock-in peripheral →](2_05_lockin_peripheral.md)
 
 # 2.04 A capture peripheral
 
@@ -259,7 +259,7 @@ meant for humans. Chapter 3 reads the same buffer under Linux.
   sample, so the firmware can be a slow voltmeter without a capture.
 
 <!-- nav -->
-[← 2.03 A function-generator peripheral](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.05 A lock-in peripheral →](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)
+[← 2.03 A function-generator peripheral](2_03_function_generator_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.05 A lock-in peripheral →](2_05_lockin_peripheral.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

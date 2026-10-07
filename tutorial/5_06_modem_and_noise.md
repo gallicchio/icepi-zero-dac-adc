@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.05 A modem](5_05_fsk_modem.md#505-a-modem) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.07 A radio link →](5_07_radio_link.md#507-a-radio-link)
+[← 5.05 A modem](5_05_fsk_modem.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.07 A radio link →](5_07_radio_link.md)
 
 # 5.06 The modem against noise
 
@@ -352,7 +352,7 @@ circles rests on only a handful of independent events.)
   1970s.
 
 <!-- nav -->
-[← 5.05 A modem](5_05_fsk_modem.md#505-a-modem) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.07 A radio link →](5_07_radio_link.md#507-a-radio-link)
+[← 5.05 A modem](5_05_fsk_modem.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.07 A radio link →](5_07_radio_link.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

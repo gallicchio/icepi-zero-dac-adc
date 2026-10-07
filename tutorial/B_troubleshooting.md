@@ -1,5 +1,5 @@
 <!-- nav -->
-[← Appendix A. Why this hardware?](A_why_this_hardware.md#appendix-a-why-this-hardware) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix C. How this tutorial was tested →](C_how_it_was_tested.md#appendix-c-how-this-tutorial-was-tested)
+[← Appendix A. Why this hardware?](A_why_this_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix C. How this tutorial was tested →](C_how_it_was_tested.md)
 
 # Appendix B. Troubleshooting
 
@@ -47,7 +47,7 @@ connectors toward you, **ADC IN is on the left and DAC OUT on the right**.
 
 | symptom | cause and fix |
 | --- | --- |
-| no `litex>` prompt after loading the Linux SoC; the [BIOS](https://en.wikipedia.org/wiki/BIOS) sits at `Booting from SDCard in SD-Mode... Booting from boot.json...` | the SD slot is empty. The BIOS tries 1000 times to wake a card and waits up to 1 s for each answer, so it's stuck for about 17 minutes. Load the bitstream and start `litex_term` in one command ([3.01](3_01_booting_linux.md#301-booting-linux)), or insert a card |
+| no `litex>` prompt after loading the Linux SoC; the [BIOS](https://en.wikipedia.org/wiki/BIOS) sits at `Booting from SDCard in SD-Mode... Booting from boot.json...` | the SD slot is empty. The BIOS tries 1000 times to wake a card, for `boot.json` and again for `boot.bin`. With the prebuilt SoC (20 ms a try, set in `make_linux.py`) that is about 45 s, then `litex>`; with LiteX's default of 1 s a try it is half an hour ([3.03](3_03_building_linux.md#waiting-and-what-the-build-can-change)). Load the bitstream and start `litex_term` in one command ([3.01](3_01_booting_linux.md#301-booting-linux)), or insert a card |
 | Linux: `unhandled signal 11 ... in ld-linux-riscv32-ilp32.so.1`, then `Attempted to kill init!` | a glibc root file system from [Buildroot](https://en.wikipedia.org/wiki/Buildroot) 2026.02; use the musl `icepi_adda_defconfig` of [3.03](3_03_building_linux.md#303-building-linux-yourself) |
 | Linux can't unpack its root file system, or can't find `/init` | `rv32.dtb` still records an old `rootfs.cpio.gz`'s size. Re-run `make_linux.py` |
 | `insmod: ... Invalid module format` | `adda.ko` was built against a different kernel from the one running. Rebuild it in `src/linux/driver/` |
@@ -55,7 +55,7 @@ connectors toward you, **ADC IN is on the left and DAC OUT on the right**.
 | `install-sd.sh` says `missing /boot/sd/mbr.bin` | the board was booted from `images/`, not `install/` ([3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card)) |
 | the BIOS can't boot from a card that's in the slot | no `boot.json` on its first (FAT) partition. Write the card as in [3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card) |
 | Linux stops at `Waiting for root device /dev/mmcblk0p2...` | the card has no second partition, or isn't seated. From a serial-booted system, `ls /dev/mmcblk0*` shows what Linux sees |
-| `install-sd.sh` says `no SD card`, and `dmesg` shows `litex-mmc ... Command (cmd 55) error, status -110` | Linux tried the card once at boot, and it didn't answer in time (seen on one board out of five). Ask again: `echo f0004000.mmc > /sys/bus/platform/drivers/litex-mmc/unbind`, then the same into `.../bind`. `ls /dev/mmcblk0` should then show the card |
+| `install-sd.sh` says `no SD card`, and `dmesg` shows `litex-mmc ... Command (cmd 55) error, status -110` | after a serial boot, the kernel's first try at the card times out (five serial boots of five on the test board, with the old SoC and the new). `install-sd.sh` now asks again by itself; if it still fails, ask by hand: `echo f0004000.mmc > /sys/bus/platform/drivers/litex-mmc/unbind`, then the same into `.../bind`. `ls /dev/mmcblk0` should then show the card |
 | the flashed board boots the RAM-disk system instead of the card | `litex_term` was started with `--images`, so it answered the BIOS's serial-boot request. Start it without |
 
 ## Chapters 5 and 6
@@ -69,7 +69,7 @@ connectors toward you, **ADC IN is on the left and DAC OUT on the right**.
 | `ofdm.py --sound` or `--qam` with two boards gives nothing but errors | the same cabling rule; with one board, give no ports at all and it loops back |
 
 <!-- nav -->
-[← Appendix A. Why this hardware?](A_why_this_hardware.md#appendix-a-why-this-hardware) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix C. How this tutorial was tested →](C_how_it_was_tested.md#appendix-c-how-this-tutorial-was-tested)
+[← Appendix A. Why this hardware?](A_why_this_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix C. How this tutorial was tested →](C_how_it_was_tested.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

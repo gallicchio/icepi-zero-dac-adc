@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 2.05 A lock-in peripheral](2_05_lockin_peripheral.md#205-a-lock-in-peripheral) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.00 Linux on the FPGA →](3_00_linux_on_the_fpga.md#300-linux-on-the-fpga)
+[← 2.05 A lock-in peripheral](2_05_lockin_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.00 Linux on the FPGA →](3_00_linux_on_the_fpga.md)
 
 # 2.06 The registers from the laptop
 
@@ -223,7 +223,7 @@ same `litex_server`.
   Jupyter notebook, with the [Bode plot](https://en.wikipedia.org/wiki/Bode_plot) drawn as it goes.
 
 <!-- nav -->
-[← 2.05 A lock-in peripheral](2_05_lockin_peripheral.md#205-a-lock-in-peripheral) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.00 Linux on the FPGA →](3_00_linux_on_the_fpga.md#300-linux-on-the-fpga)
+[← 2.05 A lock-in peripheral](2_05_lockin_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.00 Linux on the FPGA →](3_00_linux_on_the_fpga.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.00 Two boards on one laptop](5_00_two_boards.md#500-two-boards-on-one-laptop) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.02 Warming a crystal →](5_02_warming_a_crystal.md#502-warming-a-crystal)
+[← 5.00 Two boards on one laptop](5_00_two_boards.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.02 Warming a crystal →](5_02_warming_a_crystal.md)
 
 # 5.01 Two clocks
 
@@ -237,7 +237,7 @@ its module, and −1.70 ppm. A crystal's offset isn't a constant.)
   stop working, and why?
 
 <!-- nav -->
-[← 5.00 Two boards on one laptop](5_00_two_boards.md#500-two-boards-on-one-laptop) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.02 Warming a crystal →](5_02_warming_a_crystal.md#502-warming-a-crystal)
+[← 5.00 Two boards on one laptop](5_00_two_boards.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.02 Warming a crystal →](5_02_warming_a_crystal.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

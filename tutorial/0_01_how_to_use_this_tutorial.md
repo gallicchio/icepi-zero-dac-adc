@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 0.00 The hardware](0_00_the_hardware.md#000-the-hardware) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.00 Circuits from code →](1_00_circuits_from_code.md#100-circuits-from-code)
+[← 0.00 The hardware](0_00_the_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.00 Circuits from code →](1_00_circuits_from_code.md)
 
 # 0.01 How to use this tutorial
 
@@ -23,8 +23,8 @@ or with the green **Code → Download ZIP** button on the repository's GitHub
 page. Each page tells you which folder to work in: Chapters 1 and 4 in
 [`src/verilog/`](../src/verilog/), Chapter 2 in [`src/riscv/`](../src/riscv/),
 Chapter 3 in [`src/linux/`](../src/linux/), Chapter 5 in
-[`src/twoboard/`](../src/twoboard/) and Chapter 6 in
-[`src/comms/`](../src/comms/).
+[`src/twoboard/`](../src/twoboard/), Chapter 6 in
+[`src/comms/`](../src/comms/) and Chapter 7 in [`src/dsp/`](../src/dsp/).
 
 ## How the pages work
 
@@ -115,7 +115,7 @@ underscore so that they sort in order on GitHub:
 section named in the text is always a link to it.
 
 <!-- nav -->
-[← 0.00 The hardware](0_00_the_hardware.md#000-the-hardware) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.00 Circuits from code →](1_00_circuits_from_code.md#100-circuits-from-code)
+[← 0.00 The hardware](0_00_the_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.00 Circuits from code →](1_00_circuits_from_code.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

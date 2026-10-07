@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 0.01 How to use this tutorial](0_01_how_to_use_this_tutorial.md#001-how-to-use-this-tutorial) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.01 A counter on the LEDs →](1_01_led_counter.md#101-a-counter-on-the-leds)
+[← 0.01 How to use this tutorial](0_01_how_to_use_this_tutorial.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.01 A counter on the LEDs →](1_01_led_counter.md)
 
 # 1.00 Circuits from code
 
@@ -9,7 +9,9 @@ An [FPGA](https://en.wikipedia.org/wiki/Field-programmable_gate_array) is a chip
 wiring isn't fixed: you choose it, by loading a file into the chip. In this
 chapter you describe circuits in [SystemVerilog](https://en.wikipedia.org/wiki/SystemVerilog), a language that looks like
 code but describes hardware: every line becomes gates and wires that all run
-at once, 50 million times a second. You start with a counter on the LEDs
+at once, 50 million times a second.
+
+You start with a counter on the LEDs
 ([1.01](1_01_led_counter.md#101-a-counter-on-the-leds)), make the DAC play a sawtooth and a sine ([1.02](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac), [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis)), read the ADC
 ([1.04](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds) to [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)), and end with three real instruments made of nothing but
 logic: a [lock-in amplifier](https://en.wikipedia.org/wiki/Lock-in_amplifier) ([1.08](1_08_lockin.md#108-a-lock-in-amplifier)), a [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer) ([1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)) and an AM radio
@@ -202,7 +204,7 @@ users should stay with WSL.
 </details>
 
 <!-- nav -->
-[← 0.01 How to use this tutorial](0_01_how_to_use_this_tutorial.md#001-how-to-use-this-tutorial) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.01 A counter on the LEDs →](1_01_led_counter.md#101-a-counter-on-the-leds)
+[← 0.01 How to use this tutorial](0_01_how_to_use_this_tutorial.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.01 A counter on the LEDs →](1_01_led_counter.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

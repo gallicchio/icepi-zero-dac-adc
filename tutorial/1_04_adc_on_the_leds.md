@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.03 A sine: direct digital synthesis](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.05 ADC samples to Python →](1_05_adc_to_python.md#105-adc-samples-to-python)
+[← 1.03 A sine: direct digital synthesis](1_03_dac_sine.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.05 ADC samples to Python →](1_05_adc_to_python.md)
 
 # 1.04 The ADC on the LEDs
 
@@ -168,7 +168,7 @@ these designs do, and that timing is the same every time you load the design.
   [0.00](0_00_the_hardware.md#000-the-hardware): code = 126.7 + 25.35 × V.
 
 <!-- nav -->
-[← 1.03 A sine: direct digital synthesis](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.05 ADC samples to Python →](1_05_adc_to_python.md#105-adc-samples-to-python)
+[← 1.03 A sine: direct digital synthesis](1_03_dac_sine.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.05 ADC samples to Python →](1_05_adc_to_python.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

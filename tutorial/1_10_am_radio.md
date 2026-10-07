@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.09 A spectrum analyzer](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.00 A processor on the FPGA →](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga)
+[← 1.09 A spectrum analyzer](1_09_spectrum_analyzer.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.00 A processor on the FPGA →](2_00_a_processor_on_the_fpga.md)
 
 # 1.10 An AM radio
 
@@ -1038,7 +1038,7 @@ a [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer) and a rad
 a computer in the FPGA next to them.
 
 <!-- nav -->
-[← 1.09 A spectrum analyzer](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.00 A processor on the FPGA →](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga)
+[← 1.09 A spectrum analyzer](1_09_spectrum_analyzer.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.00 A processor on the FPGA →](2_00_a_processor_on_the_fpga.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 3.04 Booting from an SD card](3_04_booting_from_sd.md#304-booting-from-an-sd-card) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.01 A faster DAC: PLLs →](4_01_a_faster_dac.md#401-a-faster-dac-plls)
+[← 3.04 Booting from an SD card](3_04_booting_from_sd.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.01 A faster DAC: PLLs →](4_01_a_faster_dac.md)
 
 # 4.00 One-board experiments
 
@@ -10,7 +10,9 @@
 
 Chapters 1 to 3 built instruments out of logic: a function generator, a
 digitizer, a [lock-in amplifier](https://en.wikipedia.org/wiki/Lock-in_amplifier) that is also a [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)), and a spectrum
-analyzer. This chapter uses them. First, [4.01](4_01_a_faster_dac.md#401-a-faster-dac-plls) doubles
+analyzer. This chapter points them at physics: the Q of a quartz crystal,
+the harmonics of a diode, a cable that swallows one frequency, the speed of
+sound, data on a beam of light, and a feedback loop. First, [4.01](4_01_a_faster_dac.md#401-a-faster-dac-plls) doubles
 the DAC's speed with one of the FPGA's [phase-locked loops](https://en.wikipedia.org/wiki/Phase-locked_loop). Then come the
 experiments.
 
@@ -51,7 +53,7 @@ response and the loop oscillator, both in [1.07](1_07_closing_the_loop.md#107-cl
 for one board, none tried yet, each a good size for a final project.
 
 <!-- nav -->
-[← 3.04 Booting from an SD card](3_04_booting_from_sd.md#304-booting-from-an-sd-card) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.01 A faster DAC: PLLs →](4_01_a_faster_dac.md#401-a-faster-dac-plls)
+[← 3.04 Booting from an SD card](3_04_booting_from_sd.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.01 A faster DAC: PLLs →](4_01_a_faster_dac.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

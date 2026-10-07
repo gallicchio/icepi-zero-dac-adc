@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.06 Fast captures](1_06_fast_capture.md#106-fast-captures) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.08 A lock-in amplifier →](1_08_lockin.md#108-a-lock-in-amplifier)
+[← 1.06 Fast captures](1_06_fast_capture.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.08 A lock-in amplifier →](1_08_lockin.md)
 
 # 1.07 Closing the loop: the DAC talks to the ADC
 
@@ -421,7 +421,7 @@ within 1%; towards 12.5 MHz they part ways.)
   edge gets.
 
 <!-- nav -->
-[← 1.06 Fast captures](1_06_fast_capture.md#106-fast-captures) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.08 A lock-in amplifier →](1_08_lockin.md#108-a-lock-in-amplifier)
+[← 1.06 Fast captures](1_06_fast_capture.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.08 A lock-in amplifier →](1_08_lockin.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

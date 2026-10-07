@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.01 A counter on the LEDs](1_01_led_counter.md#101-a-counter-on-the-leds) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.03 A sine: direct digital synthesis →](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis)
+[← 1.01 A counter on the LEDs](1_01_led_counter.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.03 A sine: direct digital synthesis →](1_03_dac_sine.md)
 
 # 1.02 A sawtooth from the DAC
 
@@ -73,7 +73,7 @@ that filtering as a ~20 ns edge with some ringing.
   multimeter instead. How long is one ramp now?
 
 <!-- nav -->
-[← 1.01 A counter on the LEDs](1_01_led_counter.md#101-a-counter-on-the-leds) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.03 A sine: direct digital synthesis →](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis)
+[← 1.01 A counter on the LEDs](1_01_led_counter.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.03 A sine: direct digital synthesis →](1_03_dac_sine.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

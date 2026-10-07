@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.08 Feedback control of an RC plant](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.10 More ideas for one board →](4_10_more_ideas.md#410-more-ideas-for-one-board)
+[← 4.08 Feedback control of an RC plant](4_08_feedback_control.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.10 More ideas for one board →](4_10_more_ideas.md)
 
 # 4.09 Your crystal against a reference
 
@@ -51,7 +51,7 @@ minutes, gives the crystal's offset to parts per *billion*. Put a finger on
 the Icepi Zero's oscillator and watch its temperature coefficient happen.
 
 <!-- nav -->
-[← 4.08 Feedback control of an RC plant](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.10 More ideas for one board →](4_10_more_ideas.md#410-more-ideas-for-one-board)
+[← 4.08 Feedback control of an RC plant](4_08_feedback_control.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.10 More ideas for one board →](4_10_more_ideas.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

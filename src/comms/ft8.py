@@ -233,12 +233,12 @@ def soft_bits(M):
     return v.ravel()
 
 
-def receive(z, sps, nu_max=1.0, period=None):
+def receive(z, sps, nu_max=1.0, period=None, nu_step=0.125):
     """Baseband in; dict out: text, crc ok, the tones heard, the sync, the magnitudes.
     period: the record repeats every this many samples (the fast frame: one loop), so
     the start is reported modulo it; without one, a start past the middle is reported
     as negative (the frame began before the record did)."""
-    t0, nu, C, surface, nus = sync(z, sps, nu_max)
+    t0, nu, C, surface, nus = sync(z, sps, nu_max, nu_step)
     M = magnitudes(C, t0, sps)
     if period:
         t0 %= period
@@ -315,21 +315,26 @@ def slow_tones_hz():
     return [SLOW_F0 + (k + TONE_OFF) * SLOW_DF for k in range(8)]
 
 
-def slow_send(port, text, amp=100):
+def slow_send(port, text, amp=100, ppm=0.0):
+    """Queue the frame on ddc.sv.  ppm: play it as if this board's crystal were that many
+    parts per million fast, tones and symbol clock together (a second board, simulated)."""
     sys.path.insert(0, os.path.join(HERE, "..", "twoboard"))
     import ddc
     ser = ddc.open_port(port)
     for k, f in enumerate(slow_tones_hz()):
-        ddc.set_tone(ser, k, f)
+        ddc.set_tone(ser, k, f * (1 + ppm * 1e-6))
     ddc.set_amp(ser, amp)
-    ddc.set_symbol(ser, 2**(SLOW_LOG2 + 1))
+    ddc.set_symbol(ser, round(2**(SLOW_LOG2 + 1) / (1 + ppm * 1e-6)))
     tones = encode(text)
     ddc.queue(ser, [int(t) for t in tones])
     print("sending %r: 79 tones, %.2f s, %.2f Hz apart at %.4f MHz" % (text, NSYM * 2**SLOW_LOG2 / FS_ADC, SLOW_DF, SLOW_F0 / 1e6))
     return tones
 
 
-def slow_listen(port, seconds=30.0, nu_max=3.0):
+def slow_listen(port, seconds=30.0, nu_max=25.0):
+    """Record and decode.  nu_max: the frequency search, in tone spacings either way.  Each
+    ppm between the two boards' crystals is 6.78 Hz, 1.14 tone spacings; the default 25 covers
+    +-22 ppm, in steps of a quarter of a spacing, in seconds."""
     sys.path.insert(0, os.path.join(HERE, "..", "twoboard"))
     import ddc
     ser = ddc.open_port(port)
@@ -342,7 +347,7 @@ def slow_listen(port, seconds=30.0, nu_max=3.0):
     ddc.stream(ser, False)
     rms = np.sqrt(np.mean(np.abs(z)**2))
     z = np.concatenate([z, np.zeros(SLOW_SPS * NSYM, complex)])      # room for a linear search
-    r = receive(z, SLOW_SPS, nu_max)
+    r = receive(z, SLOW_SPS, nu_max, nu_step=0.25)
     print("signal: %.2f codes rms over the record; the frame's tones peak at %.1f codes"
           % (rms, r["M"].max() / SLOW_SPS))
     return r, z
@@ -361,6 +366,8 @@ def main():
     ap.add_argument("--send", help="--slow: transmit this text")
     ap.add_argument("--listen", action="store_true", help="--slow: receive for --seconds and decode")
     ap.add_argument("--seconds", type=float, default=30.0)
+    ap.add_argument("--ppm", type=float, default=0.0, help="--slow --send: as if this board's crystal were this many ppm fast")
+    ap.add_argument("--search", type=float, default=25.0, help="--slow: search +- this many tone spacings (1 ppm = 1.14)")
     ap.add_argument("--amp", type=int, default=100, help="--slow: the tone's amplitude in DAC codes")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("-o", "--out", help="save the results (.npz)")
@@ -373,9 +380,9 @@ def main():
     if args.slow:
         port = args.ports[0] if args.ports else find_port()
         if args.send:
-            slow_send(port, args.send, args.amp)
+            slow_send(port, args.send, args.amp, args.ppm)
         if args.listen:
-            r, z = slow_listen(port, args.seconds)
+            r, z = slow_listen(port, args.seconds, args.search)
             report(r, encode(args.send or ""), sps=SLOW_SPS, df=SLOW_DF)
             if args.out:
                 np.savez(args.out, z=z, M=r["M"], heard=r["heard"], t0=r["t0"], nu=r["nu"], text=r["text"], ok=r["ok"])

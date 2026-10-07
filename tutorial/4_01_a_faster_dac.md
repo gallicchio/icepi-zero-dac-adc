@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.00 One-board experiments](4_00_one_board_experiments.md#400-one-board-experiments) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.02 RC and LC circuits →](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)
+[← 4.00 One-board experiments](4_00_one_board_experiments.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.02 RC and LC circuits →](4_02_rc_and_lc_circuits.md)
 
 # 4.01 A faster DAC: PLLs
 
@@ -463,7 +463,7 @@ half.
   divided by its own through reference. Which result can you believe?
 
 <!-- nav -->
-[← 4.00 One-board experiments](4_00_one_board_experiments.md#400-one-board-experiments) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.02 RC and LC circuits →](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)
+[← 4.00 One-board experiments](4_00_one_board_experiments.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.02 RC and LC circuits →](4_02_rc_and_lc_circuits.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

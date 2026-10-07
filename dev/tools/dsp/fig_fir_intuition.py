@@ -1,13 +1,16 @@
-"""7.01/7.02 figure, COMPUTED (no hardware): what a filter's taps do.
+"""7.01/7.02 figures, COMPUTED (no hardware): what a filter's taps do.
 
-dsp_fir_intuition.png: four rows, one per kernel.  Left: the taps.  Middle: the kernel
-sliding along a test signal (a square wave plus noise plus a slow ramp, in ADC codes) and
-what comes out.  Right: the frequency response in dB.
+dsp_fir_intuition.png (7.01): three rows, one per kernel.  Left: the taps.  Middle: the
+kernel sliding along a test signal (a square wave plus noise plus a slow ramp, in ADC
+codes) and what comes out.  Right: the frequency response in dB.
   1. a 16-sample moving average            (fir.sv SET 0)
   2. a 15-tap windowed-sinc low-pass, 2 MHz (fir.sv SET 1, the taps as fir.sv rounds them)
   3. the edge detector [-1 2 -1]           (fir.sv SET 2)
-  4. the one-tap IIR y += (x - y)/16       (iir.sv K = 4): its impulse response, its step
-     response beside an RC's, and its response beside 1/(1 + j f/fc)
+dsp_iir_intuition.png (7.02): the one-tap IIR y += (x - y)/16 (iir.sv K = 4): its impulse
+  response, its step response beside an RC's, and its response beside 1/(1 + j f/fc)
+dsp_fir_vs_iir.png (7.02, at the end): the moving average and the one-pole side by side,
+  two low-passes with the same 16-sample memory: impulse responses, the test signal through
+  both, |H|, and the group delay (flat for the FIR: linear phase)
 
     python3 fig_fir_intuition.py
 """
@@ -73,7 +76,7 @@ def freq_response(ax, h, color, label, a=(1.0,)):
     ax.grid(True, which="both")
 
 
-fig, axs = plt.subplots(4, 3, figsize=(10, 12.6), gridspec_kw=dict(width_ratios=[1, 1.9, 1.3]))
+fig, axs = plt.subplots(3, 3, figsize=(10, 9.6), gridspec_kw=dict(width_ratios=[1, 1.9, 1.3]))
 fig.subplots_adjust(hspace=0.62)
 rows = [(avg, C1, "16 taps of 1/16", "A moving average: a dot product that slides"),
         (lpf, C2, "windowed sinc, 15 taps", "A windowed sinc: a sophisticated average"),
@@ -105,11 +108,18 @@ axs[1, 2].legend(fontsize=7.5, loc="upper right")
 axs[2, 2].annotate("4 sin²(πf/fs): rises as f²,\n+12 dB at fs/2", (2, -12), (0.13, 2), fontsize=7.5, color=INK2,
                    arrowprops=dict(arrowstyle="-|>", color=MUTED, lw=0.8))
 
-# ---- row 4: the one-tap IIR -----------------------------------------------------------------
+fig.text(0.995, 0.995, "computed, not measured", ha="right", va="top", size=8, color=MUTED)
+fig.suptitle("Three kernels: the taps, the taps at work on a square wave + noise + a ramp, and |H|",
+             x=0.01, ha="left", fontsize=11.5, weight="bold", y=0.995)
+save(fig, IMG)
+print("wrote", IMG)
+
+# ---- 7.02: the one-tap IIR ---------------------------------------------------------------------
 alpha = 2.0**-K
 fc = FS * alpha / (2 * np.pi)                   # the RC's cutoff: 249 kHz
 tau = 2**K                                      # samples
-a, b, c = axs[3]
+fig, axs = plt.subplots(1, 3, figsize=(10, 3.7), gridspec_kw=dict(width_ratios=[1, 1.9, 1.3]))
+a, b, c = axs
 k = np.arange(48)
 h_iir = alpha * (1 - alpha)**k
 a.stem(k, h_iir, linefmt=C2, markerfmt="o", basefmt=" ")
@@ -154,7 +164,42 @@ dev2, devn = 20 * np.log10(np.abs(Hd)) - 20 * np.log10(np.abs(1 / (1 + 1j * np.a
 c.set_title("vs an RC: %+.1f dB at 2 MHz,\n%+.1f dB at fs/2" % (dev2, devn), fontsize=9.5)
 
 fig.text(0.995, 0.995, "computed, not measured", ha="right", va="top", size=8, color=MUTED)
-fig.suptitle("Four kernels: the taps, the taps at work on a square wave + noise + a ramp, and |H|",
-             x=0.01, ha="left", fontsize=11.5, weight="bold", y=0.995)
-save(fig, IMG)
-print("wrote", IMG, "  one-pole vs RC: %+.2f dB at 2 MHz, %+.2f dB at fs/2; fc = %.1f kHz" % (dev2, devn, fc / 1e3))
+save(fig, IMG.replace("fir_intuition", "iir_intuition"))
+print("wrote dsp_iir_intuition.png   one-pole vs RC: %+.2f dB at 2 MHz, %+.2f dB at fs/2; fc = %.1f kHz"
+      % (dev2, devn, fc / 1e3))
+
+# ---- 7.02, at the end: the moving average against the one-pole --------------------------------
+fig, axs = plt.subplots(1, 4, figsize=(11, 4.0), gridspec_kw=dict(width_ratios=[1, 1.7, 1.2, 1.2], wspace=0.35))
+a, b, c, d = axs
+k = np.arange(64)
+h_avg = np.where(k < 16, 1 / 16, 0.0)
+h_one = alpha * (1 - alpha)**k
+a.plot(k, h_avg, drawstyle="steps-mid", color=C1, lw=1.4, label="FIR: 16 taps of 1/16")
+a.plot(k, h_one, drawstyle="steps-mid", color=C2, lw=1.4, label="IIR: (1/16)(15/16)$^k$")
+a.set_xlabel("sample k"); a.set_ylabel("h[k]"); a.set_ylim(0, 0.075)
+a.set_title("the impulse responses", fontsize=9.5)
+a.legend(fontsize=7.5, loc="upper right")
+b.plot(n, sig, color=MUTED, lw=0.9, label="in")
+b.plot(n, run(h_avg[:16], sig), color=C1, lw=1.5, label="FIR: 16 multiply-adds")
+b.plot(n, signal.lfilter([alpha], [1, -(1 - alpha)], sig), color=C2, lw=1.5, label="IIR: one register, a shift")
+b.set_xlim(0, len(n)); b.set_ylim(-75, 95); b.set_xlabel("sample n"); b.set_ylabel("ADC codes")
+b.set_title("the same smoothing, two ways", fontsize=9.5)
+b.legend(fontsize=7.5, loc="upper left", ncol=1)
+f = np.geomspace(1e4, FS / 2, 600)
+for h, aa, col in ((h_avg[:16], [1.0], C1), ([alpha], [1, -(1 - alpha)], C2)):
+    _, H = signal.freqz(h, aa, worN=f, fs=FS)
+    c.semilogx(f / 1e6, 20 * np.log10(np.abs(H) + 1e-9), color=col)
+    _, gd = signal.group_delay((h, aa), w=f, fs=FS)
+    gd[np.abs(H) < 1e-3] = np.nan                          # undefined at the FIR's nulls
+    d.semilogx(f / 1e6, gd, color=col)
+c.set_xlim(0.01, 12.5); c.set_ylim(-50, 5); c.grid(True, which="both")
+c.set_xlabel("frequency (MHz)"); c.set_ylabel("|H| (dB)")
+c.set_title("|H|: nulls and lobes,\nor one smooth slope", fontsize=9.5)
+d.set_xlim(0.01, 12.5); d.set_ylim(-1, 17); d.grid(True, which="both")
+d.set_xlabel("frequency (MHz)"); d.set_ylabel("group delay (samples)")
+d.set_title("delay: 7.5 samples at every f,\nor 15 at DC, below 0 near fs/2", fontsize=9.5)
+fig.suptitle("Two low-passes with a 16-sample memory: an FIR and an IIR", x=0.01, ha="left", fontsize=11.5,
+             weight="bold", y=0.99)
+fig.text(0.995, 0.99, "computed, not measured", ha="right", va="top", size=8, color=MUTED)
+save(fig, IMG.replace("fir_intuition", "fir_vs_iir"))
+print("wrote dsp_fir_vs_iir.png")

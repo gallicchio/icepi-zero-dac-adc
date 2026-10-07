@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 7.01 FIR filters: the sliding dot product](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.03 A filter you can load →](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)
+[← 7.01 FIR filters: the sliding dot product](7_01_fir_filters.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.03 A filter you can load →](7_03_a_filter_you_can_load.md)
 
 # 7.02 IIR filters: feedback, and an RC in one line
 
@@ -23,6 +23,8 @@ infinitely long, which is the name: an *infinite impulse response*
 filter, an IIR. The bargain is an RC for the price of one tap; the fine
 print is the rest of this page.
 
+![Computed: the one-pole y += (x − y)/16: its impulse response, (1/16)(15/16) to the k, on the exponential e to the minus t over tau; its step response beside an RC charging, the dots on the curve; and its frequency response beside an RC's 1 over 1 plus j f over f c, together to 2 MHz](img/dsp_iir_intuition.png)
+
 <details>
 <summary><b>Detail:</b> where the digital RC and the real one part company</summary>
 
@@ -40,6 +42,8 @@ flattening from 2 MHz up.
 </details>
 
 ## The one-pole and a resonator, in gateware
+
+![The IIR as a block diagram, computed: direct form I, the input through a delay line and the b taps into an adder, the output through its own delay line and the minus a taps back into the same adder; and the one-tap case, x minus y, times 1/16, plus y, with one delay in the loop](img/dsp_d_iir.png)
 
 `iir.sv` has two modes. Mode 0 is literally the line above, with one
 refinement that is the first lesson of IIR filters: the state *y* is kept
@@ -226,6 +230,13 @@ need more bits than their inputs: rounding inside a feedback loop is
 fed back too. And the resonator passes a 50-code sine at 2 MHz at 50.0
 codes and one at 4 MHz at 3.0 codes, −24.4 dB against scipy's −24.1.
 
+On the board, with [7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product)'s
+300 kHz square wave from the ADALM2000 into ADC IN and `iir_k4` loaded,
+DAC OUT charges and discharges like a capacitor, with τ = 16 samples,
+640 ns:
+
+![Measured on the M2k: the 300 kHz, 1 V square wave through the one-pole y += (x − y)/16 (iir_k4), on the scope at DAC OUT: an RC's exponential rise and fall, tau = 640 ns](img/dsp_iir_scope.png)
+
 ## Why IIR filters need more bits, and more care
 
 Three things go wrong in a feedback loop that cannot go wrong in an FIR,
@@ -257,7 +268,20 @@ and one add per loop, and that is what
 [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s design
 is built around.
 
-## When to use which
+## FIR or IIR?
+
+![Computed: the 16-sample moving average (an FIR) and the one-pole with K = 4 (an IIR), two low-passes with the same 16-sample memory: the impulse responses, a box and an exponential; the same square wave with noise and a ramp through both; the FIR's response with its nulls and lobes against the one-pole's smooth slope; and the group delay, 7.5 samples at every frequency for the FIR, 15 samples at DC falling below zero near half the sample rate for the IIR](img/dsp_fir_vs_iir.png)
+
+Now the two can be compared. The figure puts
+[7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product)'s
+moving average beside this page's one-pole, two low-passes that remember
+about 16 samples. They smooth about equally. The FIR needs 16 taps (16
+multiply-adds per sample, though ×1/16 is a shift); the IIR needs one
+register and a shift, and an FIR could only imitate its exponential tail
+with ever more taps. But the FIR delays every frequency by the same 7.5
+samples (linear phase: its edges come out symmetric and unskewed), while
+the IIR delays low frequencies by 15 samples and high ones by almost
+nothing, which is exactly what an RC does to a square wave.
 
 Use an IIR when you want an analog filter's *behaviour* (an RC, a
 resonator, a Butterworth) for nearly nothing, when a long memory matters
@@ -281,3 +305,9 @@ loop filters were one-poles with the gains written as shifts.
 - A two-pole low-pass (a biquad) by hand, with poles at *r* = 0.9 and
   ±30°: what Q is that, and what happens to the step response as *r*
   goes to 0.99?
+
+<!-- nav -->
+[← 7.01 FIR filters: the sliding dot product](7_01_fir_filters.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.03 A filter you can load →](7_03_a_filter_you_can_load.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.08 Shannon's limit, and how far from it you are](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable →](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)
+[← 6.08 Shannon's limit, and how far from it you are](6_08_shannons_limit.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable →](6_10_chirps_and_lora.md)
 
 # 6.09 Error-correcting codes
 
@@ -752,3 +752,8 @@ gap, not a physics gap. The physics was done in 1948.
   is the next page to read: it goes on to LDPC and turbo codes with the
   same honesty about what a code buys.
 
+<!-- nav -->
+[← 6.08 Shannon's limit, and how far from it you are](6_08_shannons_limit.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable →](6_10_chirps_and_lora.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

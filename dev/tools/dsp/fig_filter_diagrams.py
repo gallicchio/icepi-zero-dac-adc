@@ -2,10 +2,11 @@
 (its canvas/node/arrow helpers copied from fig_openers.py, not imported, so this file stands
 alone).
 
-dsp_d_filters.png:
+dsp_d_filters.png (7.01):
   (a) an FIR as a delay line (z^-1 boxes), taps (triangles) and an adder chain, 5 taps
   (b) the symmetric trick: samples that share a tap are added first, then multiplied once
-  (c) an IIR in direct form I, with the feedback path; and the one-tap case y += (x - y)/16
+dsp_d_iir.png (7.02):
+      an IIR in direct form I, with the feedback path; and the one-tap case y += (x - y)/16
 dsp_d_clocks.png:
   (d) what filter.sv does in the two clocks between ADC samples, with its 20 multipliers
 
@@ -36,6 +37,14 @@ def canvas(w, h):
     ax.set_ylim(0, 10 * h)
     ax.axis("off")
     return fig, ax
+
+
+def crop(fig, ax, y0, y1, name):
+    """Save the band y0..y1 of a canvas as a figure of its own, at the same scale."""
+    fig.set_size_inches(fig.get_size_inches()[0], (y1 - y0) / 10)
+    ax.set_ylim(y0, y1)
+    fig.savefig(os.path.join(IMG, name), dpi=DPI, facecolor=fig.get_facecolor())
+    print("wrote", name)
 
 
 def finish(fig, name):
@@ -207,7 +216,7 @@ def fig_filters():
            "phase is a straight line in f (\"linear phase\") and a\nsquare wave comes out rounded but not skewed.")
 
     # ================= (c) the IIR, direct form I, and the one-tap case =======================
-    title(ax, 1.0, 41.0, "(c)  An IIR in direct form I: the feed-forward taps b, then the output fed back through a")
+    title(ax, 1.0, 41.0, "An IIR in direct form I: the feed-forward taps b, then the output fed back through a")
     mono(ax, 1.0, 37.5, "y[n] = b0 x[n] + b1 x[n−1] + b2 x[n−2] − a1 y[n−1] − a2 y[n−2]      (filter.sv: 16 b's, 4 a's, all ÷ 8192)",
          size=8.2)
     yl, yt, ya = 32.0, 25.5, 19.5
@@ -261,7 +270,9 @@ def fig_filters():
     arrow(ax, (ox + 22.3, oy - 4.0), (ox + 22.3, oy - 1.7))
     italic(ax, ox, oy - 10.5, "b0 = 1/16, a1 = −15/16: one pole at 15/16, an RC\nwith τ = 16 samples.  No multiplier at all:\n"
            "÷ 16 is a shift (iir.sv).")
-    finish(fig, "dsp_d_filters.png")
+    crop(fig, ax, 44.0, 108.0, "dsp_d_filters.png")         # (a) and (b): 7.01's FIRs
+    crop(fig, ax, 0.0, 43.5, "dsp_d_iir.png")               # the IIR: 7.02
+    plt.close(fig)
 
 
 def fig_clocks():

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 7.05 Trading speed for bits](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.07 Bigger ideas: NMR, MRI and qubits →](7_07_bigger_ideas.md#707-bigger-ideas-nmr-mri-and-qubits)
+[← 7.05 Trading speed for bits](7_05_trading_speed_for_bits.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.07 Bigger ideas: NMR, MRI and qubits →](7_07_bigger_ideas.md)
 
 # 7.06 Control at the speed of the cable
 
@@ -1498,6 +1498,9 @@ been grepped for the pattern.
 | a heater and a thermistor | the thermal regime | dull at 25 MS/s (`X` = 15 gives 21 s records); the drone's world |
 | a piezo and a mirror with a position sensor | the Thorlabs one | the real thing, for a few hundred dollars |
 
+The RC, the LC, the delay line, the light link, a fan and a heater are tiles
+of the accessory board sketched in [Appendix D](D_coming_soon.md#an-amod-a-board-of-analog-blocks).
+
 **Try this:**
 
 - Mode 0 again with 10 m more cable: the hum moves down, the critical
@@ -1513,3 +1516,9 @@ been grepped for the pattern.
   loop sing at the plant's own frequency?
 - An LC between DAC OUT and ADC IN, and the whole page again on a plant
   that rings for real.
+
+<!-- nav -->
+[← 7.05 Trading speed for bits](7_05_trading_speed_for_bits.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.07 Bigger ideas: NMR, MRI and qubits →](7_07_bigger_ideas.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

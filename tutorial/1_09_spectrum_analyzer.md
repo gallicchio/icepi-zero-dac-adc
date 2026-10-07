@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.08 A lock-in amplifier](1_08_lockin.md#108-a-lock-in-amplifier) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.10 An AM radio →](1_10_am_radio.md#110-an-am-radio)
+[← 1.08 A lock-in amplifier](1_08_lockin.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.10 An AM radio →](1_10_am_radio.md)
 
 # 1.09 A spectrum analyzer
 
@@ -861,7 +861,7 @@ turns the lock-in's multiplier and the DDS into an AM transmitter and
 receiver.
 
 <!-- nav -->
-[← 1.08 A lock-in amplifier](1_08_lockin.md#108-a-lock-in-amplifier) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.10 An AM radio →](1_10_am_radio.md#110-an-am-radio)
+[← 1.08 A lock-in amplifier](1_08_lockin.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.10 An AM radio →](1_10_am_radio.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

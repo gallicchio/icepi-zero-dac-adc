@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 3.03 Building Linux yourself](3_03_building_linux.md#303-building-linux-yourself) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.00 One-board experiments →](4_00_one_board_experiments.md#400-one-board-experiments)
+[← 3.03 Building Linux yourself](3_03_building_linux.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.00 One-board experiments →](4_00_one_board_experiments.md)
 
 # 3.04 Booting from an SD card
 
@@ -224,6 +224,16 @@ SRC=/boot/sd
 for f in mbr.bin Image.gz opensbi.bin rv32.dtb boot.json; do
     [ -f "$SRC/$f" ] || { echo "missing $SRC/$f -- boot the installer payload first"; exit 1; }
 done
+if [ ! -b $DEV ]; then
+    # After a serial boot the kernel's first try at the card usually times out
+    # (dmesg: "litex-mmc ... error, status -110"): ask the driver to try again.
+    for MMC in /sys/bus/platform/devices/*.mmc; do
+        [ -e "$MMC" ] || continue
+        echo ${MMC##*/} > /sys/bus/platform/drivers/litex-mmc/unbind 2>/dev/null || true
+        echo ${MMC##*/} > /sys/bus/platform/drivers/litex-mmc/bind 2>/dev/null || true
+    done
+    sleep 3
+fi
 [ -b $DEV ] || { echo "no SD card"; exit 1; }
 
 echo "1/5 partition table"
@@ -458,7 +468,7 @@ serial line, [SLIP](https://en.wikipedia.org/wiki/Serial_Line_Internet_Protocol)
   sooner.
 
 <!-- nav -->
-[← 3.03 Building Linux yourself](3_03_building_linux.md#303-building-linux-yourself) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.00 One-board experiments →](4_00_one_board_experiments.md#400-one-board-experiments)
+[← 3.03 Building Linux yourself](3_03_building_linux.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [4.00 One-board experiments →](4_00_one_board_experiments.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

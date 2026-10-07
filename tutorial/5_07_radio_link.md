@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.06 The modem against noise](5_06_modem_and_noise.md#506-the-modem-against-noise) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.08 With a little more hardware →](5_08_more_hardware.md#508-with-a-little-more-hardware)
+[← 5.06 The modem against noise](5_06_modem_and_noise.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.08 With a little more hardware →](5_08_more_hardware.md)
 
 # 5.07 A radio link
 
@@ -280,7 +280,7 @@ the loops small.
   the highest baud rate falls by four. Does it?
 
 <!-- nav -->
-[← 5.06 The modem against noise](5_06_modem_and_noise.md#506-the-modem-against-noise) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.08 With a little more hardware →](5_08_more_hardware.md#508-with-a-little-more-hardware)
+[← 5.06 The modem against noise](5_06_modem_and_noise.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.08 With a little more hardware →](5_08_more_hardware.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

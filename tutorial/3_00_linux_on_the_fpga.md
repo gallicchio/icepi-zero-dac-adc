@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 2.06 The registers from the laptop](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.01 Booting Linux →](3_01_booting_linux.md#301-booting-linux)
+[← 2.06 The registers from the laptop](2_06_registers_from_the_laptop.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.01 Booting Linux →](3_01_booting_linux.md)
 
 # 3.00 Linux on the FPGA
 
@@ -76,7 +76,7 @@ shows how to build them on your laptop, on Linux or in WSL.
 | an SD card that boots by itself | [3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card) | 6 min | `sdcard.img.xz` |
 
 <!-- nav -->
-[← 2.06 The registers from the laptop](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.01 Booting Linux →](3_01_booting_linux.md#301-booting-linux)
+[← 2.06 The registers from the laptop](2_06_registers_from_the_laptop.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.01 Booting Linux →](3_01_booting_linux.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

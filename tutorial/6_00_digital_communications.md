@@ -1,53 +1,53 @@
 <!-- nav -->
-[← 5.08 With a little more hardware](5_08_more_hardware.md#508-with-a-little-more-hardware) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.01 Eye diagrams and pulse shaping →](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping)
+[← 5.08 With a little more hardware](5_08_more_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.01 Eye diagrams and pulse shaping →](6_01_eye_diagrams.md)
 
 # 6.00 Digital communications (Hardware Defined Radio)
 
 ![Above, this chapter's link: psk.py builds a waveform, the DAC plays it on a 6.25 MHz carrier, a coax carries it to the ADC, and psk.py finds the clock, the carrier and the bits. Below, the same link through the air: at each end a mixer with a local oscillator (an ADF4351 synthesizer), a band filter and an amplifier move the 6.25 MHz signal to and from 915 MHz between two antennas; the FPGA, the Python and the algorithms stay the same](img/hdr.png)
 
-The subtitle is a joke at software-defined radio's expense, and the honest
-name is *gateware-defined radio*. **Gateware** is what you load into an
-FPGA: the configuration that wires its look-up tables and flip-flops into
-the circuit you described in SystemVerilog. It is not software, which runs
-on a processor (Chapter 2's VexRiscv, or the laptop); it is not firmware,
-which is software that lives in a microcontroller's flash and never changes
-(Chapter 2's `adda.c` is firmware); and it is not quite hardware, which is
-silicon and solder you cannot change at all. It is a description of
-hardware that becomes hardware at the flick of a bitstream, and the people
-who build open FPGA designs for a living, the LiteX and Migen projects
-this tutorial's Chapter 2 is built on, M-Labs' ARTIQ control system for
-quantum experiments, the open SDR boards whose FPGA images are shipped as
-"gateware", call it that to keep the three layers straight. When a page
-here says something runs "in gateware", it means the logic in the FPGA is
-doing it, one clock at a time, with no processor in the loop.
+Your phone, your Wi-Fi router and a GPS receiver do the same few things.
+They put bits on a carrier and shape them to stay in their band. They find
+the transmitter's clock and carrier, which nobody tells them. They undo
+what the channel did, and correct the bits it still got wrong. This
+chapter builds each of these with one board, a cable and Python on the
+laptop, then puts the whole modem into the FPGA
+([6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga)) and works out
+how far a text message would carry through the air
+([6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)).
 
+The subtitle is a joke at software-defined radio's expense. The honest name
+is *gateware-defined radio*: the radio is logic in the FPGA, with no
+processor in the loop.
 
-> This chapter is a companion to **[learnSDR](https://github.com/gallicchio/learnSDR)**, a course in
-> software-defined radio with GNU Radio, an RTL-SDR and a Pluto, whose
-> lessons are videos drawn on a lightboard. learnSDR does its signal
-> processing in software, on samples from a dongle; here the hardware is
-> yours down to the clock, hence the name. The same ideas run on
-> hardware you built yourself, in code short enough to read, and where
-> learnSDR stopped (at a [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) modem and a GPS fix), this chapter keeps going.
-> Each section links the lessons it builds on, and the chapters of
-> **[PySDR](https://pysdr.org)**, Marc Lichtman's textbook, which goes deeper into the theory
-> and the Python than these pages do.
+<details>
+<summary><b>Detail:</b> what "gateware" means</summary>
+
+**Gateware** is what you load into an FPGA: the configuration that wires
+its look-up tables and flip-flops into the circuit you described in
+SystemVerilog. It is not software, which runs on a processor (Chapter 2's
+VexRiscv, or the laptop). It is not firmware, which is software living in
+a microcontroller's flash (Chapter 2's `adda.c` is firmware). And it is not
+quite hardware, which is silicon and solder you cannot change. It is a
+description of hardware that becomes hardware at the flick of a
+bitstream. The people who build open FPGA designs for a living (the LiteX
+and Migen projects that Chapter 2 uses, M-Labs' ARTIQ control system for
+quantum experiments, the open SDR boards that ship "gateware" images) use
+the word to keep the three layers apart. When a page here says something
+runs "in gateware", the logic in the FPGA is doing it, one clock at a time.
+
+</details>
 
 **What you need first:** Chapter 1 through [1.08](1_08_lockin.md#108-a-lock-in-amplifier) (the loopback and the lock-in's
 cos/−sin are used on every page), and [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)'s FFT for [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math). One board is enough.
 The board runs [5.01](5_01_two_clocks.md#501-two-clocks)'s `awgcap.sv`, which you can load without reading Chapter 5
 (below). Nothing here needs Chapters 2, 3 or 4; [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga) borrows [5.05](5_05_fsk_modem.md#505-a-modem)'s modem as a pattern.
 
-Your phone, your Wi-Fi router and a GPS receiver do the same few things.
-They put bits onto a carrier as its phase (and amplitude), shape each symbol
-so that the signal stays inside its band, and filter what arrives with the
-same shape. They find the transmitter's clock and carrier, neither of which
-they know in advance, with two feedback loops. They measure the channel and
-undo it. They add redundancy so that a few wrong bits don't matter. Some
-spread the signal far wider than it needs to be, so that it hides under the
-noise and many users share one frequency. This chapter does each of these
-with one board and a cable, or two boards, and Python on the laptop doing
-the receiving. By the end the whole modem runs inside the FPGA.
+> This chapter is a companion to **[learnSDR](https://github.com/gallicchio/learnSDR)**, a video course in
+> software-defined radio with GNU Radio, an RTL-SDR and a Pluto. learnSDR
+> stops at a [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) modem and a GPS fix; this chapter keeps going, on
+> hardware that is yours down to the clock. Each section links the lessons
+> it builds on, and the chapters of **[PySDR](https://pysdr.org)**, Marc Lichtman's textbook,
+> which goes deeper into the theory and the Python.
 
 | section | what | learnSDR |
 | --- | --- | --- |
@@ -65,6 +65,9 @@ the receiving. By the end the whole modem runs inside the FPGA.
 | [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry) | on the air: an FT8-style text message, forty thousand times too fast on the cable and at real speed through 6.78 MHz, and the antenna ladder from minigrabber leads to a dipole | [24](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson24.md) |
 | [6.13](6_13_more_ideas.md#613-more-ideas-and-a-radar-chapter) | more ideas, and a radar chapter (Chapter 8, one day) | [8b](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson08b.md) |
 
+<details>
+<summary>learnSDR's other lessons, which earlier chapters already did</summary>
+
 Earlier chapters already did learnSDR's other topics: complex numbers and
 what an SDR multiplies by (the lock-in, [1.08](1_08_lockin.md#108-a-lock-in-amplifier); lessons
 [3a](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson03a.md), [3b](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson03b.md), [4](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson04.md)), sampling and [aliasing](https://en.wikipedia.org/wiki/Aliasing) ([1.06](1_06_fast_capture.md#106-fast-captures); lesson [6](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson06.md)), the FFT and
@@ -72,26 +75,37 @@ windows ([1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer); lesson [7](h
 ([5.05](5_05_fsk_modem.md#505-a-modem); lesson [24](https://github.com/gallicchio/learnSDR/blob/main/lesson24_FSKhardware.grc)) and noise ([5.06](5_06_modem_and_noise.md#506-the-modem-against-noise); lesson [32](https://github.com/gallicchio/learnSDR/blob/main/lesson32b_noiseRXsim.grc)). On-off keying (lessons
 [5](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson05.md), [10](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson10.md), [11](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson11.md)) is BPSK with one of its two points at zero; it needs no section.
 
-## The story, in one paragraph
+</details>
 
-Here is the chapter's opinion, so that you know where it's going. The first
-half is about *waveforms*: how to put bits on a sine wave ([6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping)–[6.04](6_04_msk_and_gmsk.md#604-msk-and-gmsk-constant-envelope)) and
-how a receiver recovers them without being told the clock or the carrier
-([6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)). The second half is about the *channel*, and it's a story with a
-winner. A cable, or the air between two antennas, is a linear system: it
-delays, attenuates and echoes, and the echoes make some frequencies
-disappear ([6.05](6_05_the_channel.md#605-the-channel-sounding-it-and-equalizing-it)). The 1990s' answer was to spread every user's signal over
-the whole band with a clever code and sort the echoes out afterwards (CDMA,
-[6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)): mathematically beautiful, and it ran 3G phones. It lost. The
-channels got wider, the echoes got messier, and the untangling grew with the square of the bandwidth (more chips a second, each needing more taps), while an FFT grows only as N log N. The answer that runs 4G, 5G and Wi-Fi is OFDM ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)): split
-the band into many narrow pieces, each of which the channel barely changes,
-and fix each with one complex multiplication. The basis functions that do
-this are sines and cosines, because sines and cosines are the eigenfunctions
-of every linear time-invariant system. That's not a theorem of
-communications; it's the physics of the channel, and a physicist could have
-told you. Shannon says how many bits a channel can carry ([6.08](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are)), codes get
-you there ([6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)), chirps and LoRa show what a wideband signal can do besides
-carry bits ([6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)), and [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga) puts the whole receiver into the FPGA.
+## The story
+
+Here is the chapter's opinion, so that you know where it is going. The
+first half is about *waveforms*: how to put bits on a sine wave
+([6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping)–[6.04](6_04_msk_and_gmsk.md#604-msk-and-gmsk-constant-envelope)), and how a receiver recovers them without being told the clock or
+the carrier ([6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)).
+
+The second half is about the *channel*, and it is a story with a winner. A
+cable, or the air between two antennas, is a linear system: it delays,
+attenuates and echoes, and the echoes make some frequencies disappear
+([6.05](6_05_the_channel.md#605-the-channel-sounding-it-and-equalizing-it)).
+
+The 1990s' answer was to spread every user's signal over the whole
+band with a clever code and sort the echoes out afterwards (CDMA,
+[6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)). It was mathematically beautiful, and it ran 3G phones. It lost: the
+channels got wider and the echoes messier, and the untangling grew with the
+square of the bandwidth, while an FFT grows only as *N* log *N*.
+
+The answer that runs 4G, 5G and Wi-Fi is OFDM ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)): split the band into
+many narrow pieces, each of which the channel barely changes, and fix each
+with one complex multiplication. The pieces are sines and cosines, because
+sines and cosines are the eigenfunctions of every linear time-invariant
+system. That is not a theorem of communications; it is the physics of the
+channel, and a physicist could have told you.
+
+Shannon says how many bits a channel can carry ([6.08](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are)), codes get you there
+([6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)), chirps and LoRa show what a wideband signal can do besides carry
+bits ([6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)), [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga) puts the receiver into the FPGA, and [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry) goes on the
+air.
 
 ## Why a cable, and 6.25 MHz
 
@@ -318,6 +332,9 @@ builders use. None of them was tried with this board, so treat this as a
 shopping list to check, not a recipe. Prices are what the linked pages said
 in October 2026:
 
+<details>
+<summary>The shopping list, with links and prices</summary>
+
 | part | for | example, and about what it costs |
 | --- | --- | --- |
 | local oscillator | the carrier you mix with | an **[ADF4351](https://www.analog.com/en/products/adf4351.html)** synthesizer board, 35 MHz–4.4 GHz, set over SPI (which the FPGA could do): [$27 on eBay](https://www.ebay.com/itm/35M-4-4GHz-PLL-RF-Signal-Source-Frequency-Synthesizer-ADF4351-Development-Board-/322520746831), [$44 at Newegg](https://www.newegg.com/p/2S7-09SH-00151). For bands below 200 MHz, Adafruit's [Si5351A breakout](https://www.adafruit.com/product/2045), $8 |
@@ -328,6 +345,8 @@ in October 2026:
 | antennas | the air | 915 MHz whips come with LoRa modules for a few dollars; 2.4 GHz "rubber ducks" from Wi-Fi gear (watch out: many are RP-SMA, not SMA) |
 | test gear | checking the transmitter, and a known-good receiver | an [RTL-SDR Blog V4](https://www.rtl-sdr.com/product/rtl-sdr-blog-v4-r828d-rtl2832u-1ppm-tcxo-sma-software-defined-radio-with-dipole-antenna/) dongle, $30–55 (learnSDR's receiver); an [ADALM-PLUTO](https://www.analog.com/en/resources/evaluation-hardware-and-software/evaluation-boards-kits/adalm-pluto.html), about $230, is learnSDR's transmitter and receives too; SMA attenuators and a 50 Ω load |
 | connectors | | an SMA T (a proper one is [$116 from Pasternack](https://www.pasternack.com/sma-female-female-female-tee-adapter-pe9246-p.aspx); the $5 kind from Amazon or eBay is fine at these frequencies), RG-316 SMA cables ($3–8 each) |
+
+</details>
 
 One catch: a mixer makes *both* the sum and the difference, LO ± 6.25 MHz,
 only 12.5 MHz apart. A filter for the whole 902–928 MHz band passes both. Put
@@ -343,3 +362,9 @@ needs the same care.
 > 902–928 MHz is also a radio-amateur band, for which you need a licence.
 > Other countries' rules differ. Start with cables and attenuators between
 > the two ends, and keep the power tiny.
+
+<!-- nav -->
+[← 5.08 With a little more hardware](5_08_more_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.01 Eye diagrams and pulse shaping →](6_01_eye_diagrams.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 2.02 C on the CPU](2_02_c_on_the_cpu.md#202-c-on-the-cpu) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.04 A capture peripheral →](2_04_capture_peripheral.md#204-a-capture-peripheral)
+[← 2.02 C on the CPU](2_02_c_on_the_cpu.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.04 A capture peripheral →](2_04_capture_peripheral.md)
 
 # 2.03 A function-generator peripheral
 
@@ -515,7 +515,7 @@ scope on DAC OUT (the right-hand SMA, as in [1.02](1_02_dac_sawtooth.md#102-a-sa
 - Show the waveform number on the LEDs with `leds_out_write()`.
 
 <!-- nav -->
-[← 2.02 C on the CPU](2_02_c_on_the_cpu.md#202-c-on-the-cpu) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.04 A capture peripheral →](2_04_capture_peripheral.md#204-a-capture-peripheral)
+[← 2.02 C on the CPU](2_02_c_on_the_cpu.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.04 A capture peripheral →](2_04_capture_peripheral.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

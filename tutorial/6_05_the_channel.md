@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.04 MSK and GMSK: constant envelope](6_04_msk_and_gmsk.md#604-msk-and-gmsk-constant-envelope) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.06 Spread spectrum, the GPS way →](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)
+[← 6.04 MSK and GMSK: constant envelope](6_04_msk_and_gmsk.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.06 Spread spectrum, the GPS way →](6_06_spread_spectrum.md)
 
 # 6.05 The channel: sounding it, and equalizing it
 
@@ -1092,3 +1092,8 @@ bandwidth. (The single-carrier frequency-domain equalizer that
   cannot make; its [sync chapter](https://pysdr.org/content/sync.html) has the
   same equalizer ideas in a few lines of numpy.
 
+<!-- nav -->
+[← 6.04 MSK and GMSK: constant envelope](6_04_msk_and_gmsk.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.06 Spread spectrum, the GPS way →](6_06_spread_spectrum.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,9 +1,9 @@
 <!-- nav -->
-[← 7.00 Signal processing in gateware](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.02 IIR filters: feedback, and an RC in one line →](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)
+[← 7.00 Signal processing in gateware](7_00_signal_processing_in_gateware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.02 IIR filters: feedback, and an RC in one line →](7_02_iir_filters.md)
 
 # 7.01 FIR filters: the sliding dot product
 
-![Four kernels, computed: a 16-tap moving average, a 15-tap windowed sinc, the edge detector minus one two minus one, and the one-tap leaky integrator; for each, the taps, the kernel sliding along a square wave with noise and a ramp, and the frequency response in decibels](img/dsp_fir_intuition.png)
+![Three kernels, computed: a 16-tap moving average, a 15-tap windowed sinc, and the edge detector minus one two minus one; for each, the taps, the kernel sliding along a square wave with noise and a ramp, and the frequency response in decibels](img/dsp_fir_intuition.png)
 
 A digital filter is a dot product that slides. Take the last *N* samples,
 multiply each by a number, add them up, and that is the output for this
@@ -41,12 +41,7 @@ ever need to know about them.
   matched filter) is an FIR with symmetric taps. Its only sin is cost:
   *N* multiplies per sample.
 
-The fourth row of the figure is an IIR, the subject of
-[7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line);
-it is there so you can see that a one-line feedback loop does what an RC
-does, which an FIR can only approximate with a long tail of taps.
-
-![Block diagrams, computed: an FIR as a delay line with a tap on every sample and an adder chain; the symmetric trick, adding the mirrored pair before one multiply; and an IIR in direct form I with its feedback path, and the one-tap case](img/dsp_d_filters.png)
+![Block diagrams, computed: an FIR as a delay line with a tap on every sample and an adder chain; and the symmetric trick, adding the mirrored pair before one multiply](img/dsp_d_filters.png)
 
 ## The same thing in gateware
 
@@ -226,18 +221,16 @@ about an FIR made visible: **the [impulse response](https://en.wikipedia.org/wik
 
 ## On the oscilloscope
 
-![Measured on the M2k: a 300 kHz, 1 V square wave into ADC IN and DAC OUT on the scope with each fixed bitstream loaded in turn: the moving average turns the edges into 640 ns ramps, the windowed-sinc low-pass rounds them with a little ring, the edge detector passes only the edges, both signs, and the one-pole makes an RC's exponential](img/dsp_fixed_scope.png)
+![Measured on the M2k: a 300 kHz, 1 V square wave into ADC IN and DAC OUT on the scope with each fixed bitstream loaded in turn: the moving average turns the edges into 640 ns ramps, the windowed-sinc low-pass rounds them with a little ring, and the edge detector passes only the edges, both signs](img/dsp_fixed_scope.png)
 
 With the ADALM2000's W1 playing a 300 kHz square wave into ADC IN and its
 scope on DAC OUT (the first of [7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)'s
 three ways), each bitstream in turn shows its character: the moving
 average's ramps are exactly 16 samples, 640 ns, long; the windowed sinc
 rounds the corners and rings a little, as a filter with a sharp cutoff
-must (the ring *is* the sinc's sidelobes, in time); the edge detector
-outputs a positive spike at each rising edge and a negative one at each
-falling edge and nothing between; and the one-pole of
-[7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)
-charges like a capacitor. The frequency responses of the same four
+must (the ring *is* the sinc's sidelobes, in time); and the edge detector
+outputs a doublet at every edge, two spikes of opposite sign, and nothing
+between. The frequency responses of the same
 filters, swept with the generator through
 [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s loadable
 version, agree with scipy's prediction to a quarter of a decibel.
@@ -276,3 +269,9 @@ scipy's `firwin` and lets you load the result.
   with `filter.py --m2k --ch2` in [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load).
 - Write a 7-tap filter by hand that passes 1 MHz and blocks 3 MHz, then
   see what `firwin` would have chosen and why it does better.
+
+<!-- nav -->
+[← 7.00 Signal processing in gateware](7_00_signal_processing_in_gateware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.02 IIR filters: feedback, and an RC in one line →](7_02_iir_filters.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

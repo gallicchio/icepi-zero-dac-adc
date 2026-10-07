@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.04 The ADC on the LEDs](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.06 Fast captures →](1_06_fast_capture.md#106-fast-captures)
+[← 1.04 The ADC on the LEDs](1_04_adc_on_the_leds.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.06 Fast captures →](1_06_fast_capture.md)
 
 # 1.05 ADC samples to Python
 
@@ -407,7 +407,7 @@ rather than seen.
   can an average have finer steps than the numbers it averages?
 
 <!-- nav -->
-[← 1.04 The ADC on the LEDs](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.06 Fast captures →](1_06_fast_capture.md#106-fast-captures)
+[← 1.04 The ADC on the LEDs](1_04_adc_on_the_leds.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.06 Fast captures →](1_06_fast_capture.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

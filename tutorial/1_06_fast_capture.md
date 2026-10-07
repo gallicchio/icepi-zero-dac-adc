@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.05 ADC samples to Python](1_05_adc_to_python.md#105-adc-samples-to-python) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.07 Closing the loop: the DAC talks to the ADC →](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)
+[← 1.05 ADC samples to Python](1_05_adc_to_python.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.07 Closing the loop: the DAC talks to the ADC →](1_07_closing_the_loop.md)
 
 # 1.06 Fast captures
 
@@ -410,7 +410,7 @@ None of this has been tried with this board yet. It's a good project.
   scope's.
 
 <!-- nav -->
-[← 1.05 ADC samples to Python](1_05_adc_to_python.md#105-adc-samples-to-python) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.07 Closing the loop: the DAC talks to the ADC →](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)
+[← 1.05 ADC samples to Python](1_05_adc_to_python.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.07 Closing the loop: the DAC talks to the ADC →](1_07_closing_the_loop.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

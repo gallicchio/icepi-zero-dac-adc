@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.09 Your crystal against a reference](4_09_your_crystal.md#409-your-crystal-against-a-reference) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.00 Two boards on one laptop →](5_00_two_boards.md#500-two-boards-on-one-laptop)
+[← 4.09 Your crystal against a reference](4_09_your_crystal.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.00 Two boards on one laptop →](5_00_two_boards.md)
 
 # 4.10 More ideas for one board
 
@@ -29,7 +29,7 @@ spectrum, and more ideas for modems and radar, now have a chapter of their
 own: [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio).
 
 <!-- nav -->
-[← 4.09 Your crystal against a reference](4_09_your_crystal.md#409-your-crystal-against-a-reference) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.00 Two boards on one laptop →](5_00_two_boards.md#500-two-boards-on-one-laptop)
+[← 4.09 Your crystal against a reference](4_09_your_crystal.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.00 Two boards on one laptop →](5_00_two_boards.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

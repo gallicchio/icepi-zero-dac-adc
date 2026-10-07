@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.11 The modem in the FPGA](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.13 More ideas, and a radar chapter →](6_13_more_ideas.md#613-more-ideas-and-a-radar-chapter)
+[← 6.11 The modem in the FPGA](6_11_the_modem_in_the_fpga.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.13 More ideas, and a radar chapter →](6_13_more_ideas.md)
 
 # 6.12 On the air: whispers, and how far they carry
 
@@ -306,12 +306,12 @@ def soft_bits(M):
     return v.ravel()
 
 
-def receive(z, sps, nu_max=1.0, period=None):
+def receive(z, sps, nu_max=1.0, period=None, nu_step=0.125):
     """Baseband in; dict out: text, crc ok, the tones heard, the sync, the magnitudes.
     period: the record repeats every this many samples (the fast frame: one loop), so
     the start is reported modulo it; without one, a start past the middle is reported
     as negative (the frame began before the record did)."""
-    t0, nu, C, surface, nus = sync(z, sps, nu_max)
+    t0, nu, C, surface, nus = sync(z, sps, nu_max, nu_step)
     M = magnitudes(C, t0, sps)
     if period:
         t0 %= period
@@ -388,21 +388,26 @@ def slow_tones_hz():
     return [SLOW_F0 + (k + TONE_OFF) * SLOW_DF for k in range(8)]
 
 
-def slow_send(port, text, amp=100):
+def slow_send(port, text, amp=100, ppm=0.0):
+    """Queue the frame on ddc.sv.  ppm: play it as if this board's crystal were that many
+    parts per million fast, tones and symbol clock together (a second board, simulated)."""
     sys.path.insert(0, os.path.join(HERE, "..", "twoboard"))
     import ddc
     ser = ddc.open_port(port)
     for k, f in enumerate(slow_tones_hz()):
-        ddc.set_tone(ser, k, f)
+        ddc.set_tone(ser, k, f * (1 + ppm * 1e-6))
     ddc.set_amp(ser, amp)
-    ddc.set_symbol(ser, 2**(SLOW_LOG2 + 1))
+    ddc.set_symbol(ser, round(2**(SLOW_LOG2 + 1) / (1 + ppm * 1e-6)))
     tones = encode(text)
     ddc.queue(ser, [int(t) for t in tones])
     print("sending %r: 79 tones, %.2f s, %.2f Hz apart at %.4f MHz" % (text, NSYM * 2**SLOW_LOG2 / FS_ADC, SLOW_DF, SLOW_F0 / 1e6))
     return tones
 
 
-def slow_listen(port, seconds=30.0, nu_max=3.0):
+def slow_listen(port, seconds=30.0, nu_max=25.0):
+    """Record and decode.  nu_max: the frequency search, in tone spacings either way.  Each
+    ppm between the two boards' crystals is 6.78 Hz, 1.14 tone spacings; the default 25 covers
+    +-22 ppm, in steps of a quarter of a spacing, in seconds."""
     sys.path.insert(0, os.path.join(HERE, "..", "twoboard"))
     import ddc
     ser = ddc.open_port(port)
@@ -415,7 +420,7 @@ def slow_listen(port, seconds=30.0, nu_max=3.0):
     ddc.stream(ser, False)
     rms = np.sqrt(np.mean(np.abs(z)**2))
     z = np.concatenate([z, np.zeros(SLOW_SPS * NSYM, complex)])      # room for a linear search
-    r = receive(z, SLOW_SPS, nu_max)
+    r = receive(z, SLOW_SPS, nu_max, nu_step=0.25)
     print("signal: %.2f codes rms over the record; the frame's tones peak at %.1f codes"
           % (rms, r["M"].max() / SLOW_SPS))
     return r, z
@@ -434,6 +439,8 @@ def main():
     ap.add_argument("--send", help="--slow: transmit this text")
     ap.add_argument("--listen", action="store_true", help="--slow: receive for --seconds and decode")
     ap.add_argument("--seconds", type=float, default=30.0)
+    ap.add_argument("--ppm", type=float, default=0.0, help="--slow --send: as if this board's crystal were this many ppm fast")
+    ap.add_argument("--search", type=float, default=25.0, help="--slow: search +- this many tone spacings (1 ppm = 1.14)")
     ap.add_argument("--amp", type=int, default=100, help="--slow: the tone's amplitude in DAC codes")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("-o", "--out", help="save the results (.npz)")
@@ -446,9 +453,9 @@ def main():
     if args.slow:
         port = args.ports[0] if args.ports else find_port()
         if args.send:
-            slow_send(port, args.send, args.amp)
+            slow_send(port, args.send, args.amp, args.ppm)
         if args.listen:
-            r, z = slow_listen(port, args.seconds)
+            r, z = slow_listen(port, args.seconds, args.search)
             report(r, encode(args.send or ""), sps=SLOW_SPS, df=SLOW_DF)
             if args.out:
                 np.savez(args.out, z=z, M=r["M"], heard=r["heard"], t0=r["t0"], nu=r["nu"], text=r["text"], ok=r["ok"])
@@ -1180,18 +1187,18 @@ $ cd src/comms
 $ python3 ft8.py --slow --send "CQ HMC JASON" --listen --seconds 20
 sending 'CQ HMC JASON': 79 tones, 13.25 s, 5.96 Hz apart at 6.7800 MHz
 listening at 6.7800 MHz for 20 s (61035 I/Q samples)...
-signal: 63.71 codes rms over the record; the frame's tones peak at 78.4 codes
-sync: frame starts at sample -108, carrier off by +0.000 tone spacings (+0.0 Hz)
+signal: 63.72 codes rms over the record; the frame's tones peak at 78.4 codes
+sync: frame starts at sample -96, carrier off by +0.000 tone spacings (+0.0 Hz)
 tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
 decoded: 'CQ HMC JASON'  CRC ok
 $ python3 ft8.py --slow --send "HELLO WORLD?" --listen --seconds 20 --amp 4
-signal: 2.51 codes rms over the record; the frame's tones peak at 3.1 codes
-sync: frame starts at sample -111, carrier off by +0.000 tone spacings (+0.0 Hz)
+signal: 2.50 codes rms over the record; the frame's tones peak at 3.1 codes
+sync: frame starts at sample -95, carrier off by +0.000 tone spacings (+0.0 Hz)
 tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
 decoded: 'HELLO WORLD?'  CRC ok
 $ python3 ft8.py --slow --send "CQ HMC JASON" --listen --seconds 20 --amp 1
-signal: 0.77 codes rms over the record; the frame's tones peak at 0.9 codes
-sync: frame starts at sample -114, carrier off by +0.000 tone spacings (+0.0 Hz)
+signal: 0.81 codes rms over the record; the frame's tones peak at 1.0 codes
+sync: frame starts at sample -98, carrier off by +0.000 tone spacings (+0.0 Hz)
 tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
 decoded: 'CQ HMC JASON'  CRC ok
 ```
@@ -1200,8 +1207,8 @@ decoded: 'CQ HMC JASON'  CRC ok
 because `--send` queues it first; the receiver finds it anyway and reports
 the start as negative.)
 
-The third run is the point of the page. A tone of one DAC code, 0.9 of a
-code at the ADC, smaller than the converter's step, decodes with every one
+The third run is the point of the page. A tone of one DAC code, about a
+code at the ADC, no bigger than the converter's step, decodes with every one
 of its 79 symbols right, because 512 samples of lock-in output per symbol
 and 2<sup>13</sup> ADC samples per lock-in output make a bin 5.96 Hz wide, and
 in 5.96 Hz the ADC's own noise is 8 µV against a signal of 30 mV.
@@ -1210,17 +1217,48 @@ signal at 9600 baud only just; this one has 60 dB in hand if the floor
 arithmetic below is right (the third "Try this" tests it), and 60 dB is
 distance.
 
-With two boards there is one more thing to find: their crystals differ by
-about a part per million ([5.01](5_01_two_clocks.md#501-two-clocks)),
-which at 6.78 MHz is 7 Hz, more than a tone spacing. The Costas search
-runs over ±3 tone spacings in the slow mode for exactly this, and reports
-what it found; two boards 20 ppm apart would need ±25, which is what real
-FT8 searches. The frame also drifts in time by ten microseconds over its 13
-seconds, which nothing notices against a 168 ms symbol.
+With two boards there is one more thing to find: their crystals differ.
+The two boards of [5.01](5_01_two_clocks.md#501-two-clocks) are 0.76 ppm
+apart, and each is within 3 ppm of nominal, so another pair could be 6 ppm
+apart; at 6.78 MHz every ppm is 6.78 Hz, 1.14 tone spacings.
+
+The board's half of the receiver does not care. The lock-in runs at the
+*receiving* board's idea of 6.78 MHz, and its output, 3052 samples a second,
+is a band ±1.5 kHz wide, which holds a 20 ppm error (136 Hz) with room to
+spare. Finding the offset is the laptop's job, and it does it afresh on
+every record: the Costas search runs over ±25 tone spacings (±22 ppm) and
+reports what it found.
+
+That was tested with one board and the cable, by making the transmitter
+pretend to be a bad crystal: `--ppm` scales its tones and its symbol clock
+together. At 3, 10 and 20 ppm every frame decodes with no symbol wrong, and
+the search reports the offset to within 1 Hz. (The first version searched
+±3 spacings, which is ±2.6 ppm, and failed every frame at 10 ppm.)
+
+```console
+$ python3 ft8.py --slow --send "CQ HMC JASON" --ppm 10 --listen --seconds 20
+...
+sync: frame starts at sample -98, carrier off by +11.250 tone spacings (+67.1 Hz)
+tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
+decoded: 'CQ HMC JASON'  CRC ok
+```
+
+A crystal that drifts *during* a frame smears it across tones.
+`dev/tools/comms/ft8_crystal.py` plays that too, by rewriting the tone words
+while the frame goes out. A transmitter drifting by 1 ppm in the 13 seconds
+still decodes (2 symbols of 58 wrong, which the code corrects); one at
+5 ppm drifting by 2 ppm does not.
+
+Real crystals are far slower: the fastest
+drift in [5.02](5_02_warming_a_crystal.md#502-warming-a-crystal) is a board
+heating itself, 0.8 ppm in a minute, which is 0.2 ppm in a frame. Between
+frames the drift does not matter at all, because every record is searched
+from scratch. The frame also drifts in *time*, by 13 µs per ppm over its
+13 seconds, which nothing notices against a 168 ms symbol.
 
 ## The air, rung by rung
 
-![The antenna ladder: minigrabber leads, tuned loops, an active loop with a low-noise amplifier, a half-wave dipole at the legal field strength, and a licence; the near-field and far-field laws on the left and the distance scale on the right](img/comms_d_air.png)
+![The antenna ladder at 6.78 MHz, with what each rung adds and how far it reaches: minigrabber leads with the DAC at a quarter of full scale (the 9600 bit/s modem 2 cm, the 5 bit/s FT8-style frame 20 cm); tuned 30 cm loops (80 cm and 9 m); a 40 dB low-noise amplifier before the ADC (4 m and 1 km); a half-wave dipole receiving (5 km); and a licence, a 5 W power amplifier (23 dB above the DAC's 24 mW at most) and real FT8 (the world); the near- and far-field laws on the left, and each rung's reach on a log scale on the right](img/comms_d_air.png)
 
 Two laws and one floor decide everything. Within λ/2π of the transmitter
 (7 m at 6.78 MHz) the fields are the *near* fields of a dipole, electric
@@ -1253,7 +1291,8 @@ the student to beat with a tape measure.
     python3 air.py --zin 1e3           # the ADC module's input impedance, if you've measured it
     python3 air.py --fa 40             # the site's noise: ITU-R P.372's Fa in dB above kT0
 
-The transmitter is the DAC: 3.07 V peak into 50 ohm at AMP = 100 (5.07).  The receiver is
+The transmitter is the DAC: 3.07 V peak at AMP = 100, open-circuit, behind its 50 ohm
+source (5.07): 61 mA into a loop, at most 24 mW into a matched load.  The receiver is
 the ADC: 8 bits of 39 mV, its own noise about 0.1 code rms, so its floor, quantization
 and all, is about 0.3 code rms = 12 mV over 12.5 MHz: 3.4 uV per root hertz, 8 uV in a
 6 Hz FT8 tone bin.  That floor is what a small passive antenna fights, not the sky.
@@ -1281,7 +1320,7 @@ import numpy as np
 
 C0, MU0, EPS0, ETA0 = 299792458.0, 4e-7 * np.pi, 8.854e-12, 376.73
 K_B, T0 = 1.380649e-23, 290.0
-V_DAC_FULL = 3.07                   # volts peak into 50 ohm at AMP = 100
+V_DAC_FULL = 3.07                   # volts peak, open-circuit, at AMP = 100 (behind 50 ohm)
 ADC_FLOOR = 3.4e-6                  # volts per root hertz at the ADC (0.3 code rms over 12.5 MHz)
 BIN = 5.96                          # hertz: one FT8-style tone bin (2^22 samples at 25 MS/s)
 MODEM_V = 20e-3                     # volts at the ADC for 5.07's modem
@@ -1322,8 +1361,8 @@ class Loop:
 
 class Dipole:
     name = "half-wave dipole"
-    def tx_field(self, v, r, k, f):                 # fed with the DAC's power into 73 ohm
-        p = (v**2 / 2) / 73.0
+    def tx_field(self, v, r, k, f):                 # the DAC's 50 ohm driving 73 ohm
+        p = (v * 73.0 / (50.0 + 73.0))**2 / 2 / 73.0
         return np.sqrt(ETA0 * 1.64 * p / (4 * np.pi * r**2))     # far field only
     def rx_volts(self, e, h, f, zin):
         lam = C0 / f
@@ -1346,6 +1385,7 @@ def ladder(f, amp, lna_db, zin, fa_db, rs):
     print()
     print("%-18s %-18s %10s %10s %12s %12s %14s" % ("transmit", "receive", "field@30m", "legal?", "V at 1 m", "5.07 modem", "FT8-style"))
     print("%-18s %-18s %10s %10s %12s %12s %14s" % ("", "", "(uV/m)", "", "", "range", "range"))
+    over = None
     for tx, rx in pairs:
         if tx.field == "H" and rx.field == "E" and not isinstance(rx, Dipole):
             continue
@@ -1365,7 +1405,9 @@ def ladder(f, amp, lna_db, zin, fa_db, rs):
         v_noise = np.hypot(ADC_FLOOR * np.sqrt(BIN), v_ext)
         e30 = tx.tx_field(v, 30.0, k, f)
         e30 = e30 if tx.field == "E" else ETA0 * e30
-        legal = "" if limit is None else ("yes" if e30 * 1e6 <= limit else "NO, %.0fx over" % (e30 * 1e6 / limit))
+        legal = "" if limit is None else ("yes" if e30 * 1e6 <= limit else "NO*")
+        if limit is not None and e30 * 1e6 > limit:
+            over = max(over or 0, e30 * 1e6 / limit)
         def rng_for(target):
             lo, hi = 0.01, 1e6
             if volts_at(lo) < target:
@@ -1385,6 +1427,11 @@ def ladder(f, amp, lna_db, zin, fa_db, rs):
             return "0 (never)" if r == 0 else ("%.0f cm" % (r * 100) if r < 1 else ("%.0f m" % r if r < 1000 else "%.1f km" % (r / 1000)))
         v1 = "(far field)" if isinstance(tx, Dipole) else "%.3g uV" % (volts_at(1.0) * 1e6)
         print("%-18s %-18s %10.3g %10s %12s %12s %14s" % (tx.name, rx.name, e30 * 1e6, legal, v1, fmt(r_modem), fmt(r_ft8)))
+    if over:
+        print("* NO: over the %g uV/m at 30 m that Part 15 allows anyone at %.2f MHz (the worst by %.0f times)."
+              % (limit, f / 1e6, over))
+        print("  Turn it down (--amp), or move to an amateur band with a licence, where this and more is legal:")
+        print("  7.074 MHz (40 m, FT8's busiest) with a General licence, 28.074 MHz with a Technician's (6.12).")
     print()
     print("Read down the last two columns: each rung is an antenna you can make in an afternoon, and the")
     print("FT8-style frame hears what the modem can't, because a 6 Hz bin lets in a thousandth of the noise")
@@ -1420,7 +1467,10 @@ transmit           receive             field@30m     legal?     V at 1 m   5.07 
 10 cm wire         30 cm loop              0.452        yes       206 uV        22 cm            2 m
 30 cm loop         30 cm loop               21.3        yes   9.7e+03 uV        79 cm            9 m
 30 cm loop         half-wave dipole         21.3        yes  1.84e+05 uV          2 m          202 m
-half-wave dipole   half-wave dipole     1.48e+04 NO, 495x over  (far field)      127 m       > 100 km
+half-wave dipole   half-wave dipole     8.81e+03        NO*  (far field)         76 m        81.3 km
+* NO: over the 30 uV/m at 30 m that Part 15 allows anyone at 6.78 MHz (the worst by 294 times).
+  Turn it down (--amp), or move to an amateur band with a licence, where this and more is legal:
+  7.074 MHz (40 m, FT8's busiest) with a General licence, 28.074 MHz with a Technician's (6.12).
 ```
 
 | rung | what | the law | with the modem | with the FT8-style frame |
@@ -1485,11 +1535,11 @@ $ python3 air.py --f 13.56e6 --amp 25
 ...
 30 cm loop         30 cm loop                 87        yes  1.89e+04 uV        98 cm           85 m
 30 cm loop         half-wave dipole           87        yes  8.95e+04 uV          2 m          404 m
-half-wave dipole   half-wave dipole     1.48e+04        yes  (far field)         64 m        68.5 km
+half-wave dipole   half-wave dipole     8.81e+03        yes  (far field)         38 m        40.7 km
 ```
 
-Four milliwatts into a dipole is legal there, and 68 km of free space is
-what the frame could cross with that; the ground will take its share, but
+A milliwatt and a half into a dipole is legal there, and 41 km of free
+space is what the frame could cross with that; the ground will take its share, but
 a campus is not in doubt. The band is 14 kHz wide and the frame 50 Hz,
 the required frequency tolerance (±0.01%, 1.4 kHz) is met by any crystal,
 and both converters reach it: the DAC makes 13.56 MHz directly (its [sinc](https://en.wikipedia.org/wiki/Sinc_function)
@@ -1517,9 +1567,9 @@ better range measurement than a tape measure.
 > far-field ones are where the rules bite: keep the transmitter turned
 > down to the field strength your country allows, measure the field if
 > you can (an RTL-SDR with a calibrated antenna is the cheap way), and
-> remember that a dipole fed with the DAC's full 65 mW is two thousand
-> times over the field limit at 6.78 MHz, and still five hundred times
-> over when turned down to 4 mW.
+> remember that a dipole fed with the DAC's full 23 mW is twelve hundred
+> times over the field limit at 6.78 MHz, and still three hundred times
+> over when turned down to 1.4 mW.
 
 ## Parts
 
@@ -1532,6 +1582,10 @@ better range measurement than a tape measure.
 | 22 m (or 11 m at 13.56 MHz) of wire, a centre insulator, a 1:1 balun or a few turns of coax on a toroid | rung 4 | $20 |
 | an SMA 20 dB attenuator | turning the transmitter down without rebuilding | $10 |
 | an RTL-SDR dongle with an HF upconverter or direct-sampling mode | watching your own signal, and WSJT-X as a reference receiver | $30–55 |
+
+The attenuator, the band-pass filter and the HF amplifier would be tiles of
+the accessory board sketched in [Appendix D](D_coming_soon.md#an-amod-a-board-of-analog-blocks), and its antenna section works
+out what a loop printed on a 100 mm board would reach.
 
 **Try this:**
 
@@ -1561,3 +1615,8 @@ better range measurement than a tape measure.
   does the far-field arithmetic in decibels, which is how everyone else
   does it; redo rung 4 that way and check `air.py`.
 
+<!-- nav -->
+[← 6.11 The modem in the FPGA](6_11_the_modem_in_the_fpga.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.13 More ideas, and a radar chapter →](6_13_more_ideas.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.07 OFDM: the triumph of physics over math](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.09 Error-correcting codes →](6_09_error_correcting_codes.md#609-error-correcting-codes)
+[← 6.07 OFDM: the triumph of physics over math](6_07_ofdm.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.09 Error-correcting codes →](6_09_error_correcting_codes.md)
 
 # 6.08 Shannon's limit, and how far from it you are
 
@@ -349,3 +349,9 @@ you send down it, and the honest figure gives three.
 - Put a 20 dB attenuator in the cable and sound it again (`ofdm.py --sound`):
   the capacity falls by about 20 dB × 11 MHz / 3 = 73 Mbit/s. Does it?
 - `python3 ecc.py` through the cable, and compare its MER with [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s.
+
+<!-- nav -->
+[← 6.07 OFDM: the triumph of physics over math](6_07_ofdm.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.09 Error-correcting codes →](6_09_error_correcting_codes.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

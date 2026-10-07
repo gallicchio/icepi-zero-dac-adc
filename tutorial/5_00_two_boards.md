@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 4.10 More ideas for one board](4_10_more_ideas.md#410-more-ideas-for-one-board) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.01 Two clocks →](5_01_two_clocks.md#501-two-clocks)
+[← 4.10 More ideas for one board](4_10_more_ideas.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.01 Two clocks →](5_01_two_clocks.md)
 
 # 5.00 Two boards on one laptop
 
@@ -104,7 +104,7 @@ Chapter 6 ([6.00](6_00_digital_communications.md#600-digital-communications-hard
 clock and carrier recovery, spread spectrum, and OFDM ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)), with one board or two.
 
 <!-- nav -->
-[← 4.10 More ideas for one board](4_10_more_ideas.md#410-more-ideas-for-one-board) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.01 Two clocks →](5_01_two_clocks.md#501-two-clocks)
+[← 4.10 More ideas for one board](4_10_more_ideas.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.01 Two clocks →](5_01_two_clocks.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.03 What time is it over there?](5_03_time_transfer.md#503-what-time-is-it-over-there) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.05 A modem →](5_05_fsk_modem.md#505-a-modem)
+[← 5.03 What time is it over there?](5_03_time_transfer.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.05 A modem →](5_05_fsk_modem.md)
 
 # 5.04 Oscillators that listen to each other
 
@@ -460,9 +460,39 @@ python3 pll_test.py $A --test-offset 100      # one board looped back: lock to a
 Looped back on one board (the DAC playing a test tone, the PLL following it
 through the cable), it locked to tones 2 Hz, 100 Hz and ±1000 Hz away, with a
 phase error under 1°. A tone 1 kHz away took about a second to pull in, since
-the integrator has to wind up first. One 3 kHz away was out of its reach in
-the 1.2 s it was given (`--seconds 1.2`; the default is 3). Between two boards, B locks to A's sine and plays its own
-oscillator back, and A's lock-in watches:
+the integrator has to wind up first.
+
+Further out the pull-in is slower, and lopsided. Given 20 s (`--seconds 20`;
+the default is 3), tones 1.5, 2, 2.5 and 3 kHz *below* locked after 1.9,
+3.1, 4.6 and 6.5 s. *Above*, 1.5 and 2 kHz took 3.4 and 8.1 s, and 2.5 and
+3 kHz never locked: from 3 kHz above, the oscillator walked the wrong way,
+to 1.1 kHz below, and was still slipping at the end.
+
+<details>
+<summary><b>Detail:</b> why it pulls in from below but not from above</summary>
+
+`>>>` rounds toward minus infinity: `-3 >>> 1` is −2, not −1. While the
+loop slips, Q swings through ±6 million and `Q >>> 17` through about ±49,
+and on average the floor takes half a step off every one of the
+integrator's 24,414 updates a second. Half a step is half a tuning-word
+LSB, so the oscillator drifts *down* by tens of hertz a second: toward a
+tone below, away from a tone above. Locked, the same bias shows as a
+standing phase error. The integrator only stops when 0 ≤ Q < 2<sup>17</sup>,
+which is 0° to 1.17°, and every lock above sat between +0.4° and +1.0°.
+
+Round instead: `(Q + 32'sd65536) >>> 17`, and `(Q + 32'sd512) >>> 10` for
+the proportional term. Then the pull-in is symmetric: ±1, ±2, ±2.5 and
+±3 kHz lock after 1.01 s, 4.36 s, 7.13 s and 10.91 s on both sides, and the
+locked phase error averages 0° (±0.1° typically). It is
+[7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)'s
+first lesson met early: rounding inside a feedback loop is fed back.
+`pll.sv` above keeps the floor, because this page's measurements were made
+with it.
+
+</details>
+
+Between two boards, B locks to A's sine and plays its own oscillator back,
+and A's lock-in watches:
 
 <details>
 <summary>The whole file: <code>pll_pair.py</code></summary>
@@ -587,6 +617,10 @@ GPS-disciplined oscillator works, with A's sine in place of GPS.
 
 **Try this:**
 
+- Make the rounding fix of the Detail above (two constants), rebuild, and
+  measure the pull-in from both sides:
+  `python3 pll_test.py $A --test-offset 3000 --seconds 20 -o slip.npz`, then
+  `-3000`. Then plot the phase error while it slips, from `slip.npz`.
 - Change the shifts (`>>> 10` and `>>> 17`) to make the loop faster or
   slower. Measure its step response with `pll_test.py --test-offset`, by
   jumping the test tone 10 Hz.
@@ -596,7 +630,7 @@ GPS-disciplined oscillator works, with A's sine in place of GPS.
   (Compare the mutual coupling above.)
 
 <!-- nav -->
-[← 5.03 What time is it over there?](5_03_time_transfer.md#503-what-time-is-it-over-there) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.05 A modem →](5_05_fsk_modem.md#505-a-modem)
+[← 5.03 What time is it over there?](5_03_time_transfer.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.05 A modem →](5_05_fsk_modem.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

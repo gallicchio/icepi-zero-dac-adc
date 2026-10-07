@@ -11,6 +11,8 @@
                                         #   what a Doppler shift does to each waveform
     python3 chirp.py --bw 10e6          # the chirp and the pulse sweep 10 MHz (the codes
                                         #   keep their chip rate: it's set by their length)
+    python3 chirp.py --shape filtered   # every waveform through a low-pass exactly B wide,
+                                        #   as a digital up-converter would: one spectrum
     python3 chirp.py --sim --stub 30    # radar: a T at the DAC with a 30 m open stub
                                         #   (the model has no T; with a board, fit one)
     python3 chirp.py --stubs            # print stub lengths for 1, 2, 5, 10 range cells
@@ -29,6 +31,16 @@ each a complex envelope on the 6.25 MHz carrier (I on cos, Q on -sin, as psk.py)
           sweep of the chip rate per sequence (chirp.py --sim prints the check)
   m       GPS's G1 register (1.07): an m-sequence, 1023 chips of +-1 at 3.122 Mchip/s
   gold    GPS's C/A code for satellite 1 (6.06): G1 xor G2, the same chip rate
+
+How the chips are shaped is the other half of a waveform.  --shape held (the default)
+holds each chip for 1/B, a rectangle, as a pin would, or a DAC fed one value per chip:
+the spectrum is the sequence's times a sinc, with tails out to the ADC's band edge.
+--shape filtered interpolates the chips through a low-pass exactly B wide, as a digital
+up-converter with a perfect interpolation filter would: no tails, and every waveform's
+spectrum is flat and B wide (the pulse becomes a sinc pulse; the chirp, smooth already,
+loses only the skirts its wrap from +B/2 back to -B/2 makes once a loop, -30 dB and
+below just outside the band).
+Neither has an analog filter: the DAC has none after it, the ADC none before it.
 
 The receiver mixes down (1, -j, -1, j, as the lock-in), then correlates one loop with
 the waveform it sent at every lag at once (FFTs, as 6.06's acquisition): the MATCHED
@@ -87,10 +99,28 @@ def held(seq):
     return square(seq.real) + 1j * square(seq.imag)
 
 
-def envelope(kind, bw=B0, u=1, width=1.0):
-    """One loop's complex envelope for each waveform.  Peak size 1.  `width`: the
-    pulse's length in units of 1/B (a long pulse has energy; a short one, resolution)."""
+def interpolated(seq):
+    """Chips through an ideal low-pass exactly as wide as the chip rate, filling the
+    loop: the sequence's own DFT, zero-padded.  A digital up-converter with a perfect
+    interpolation filter makes this; a pin or a held DAC makes held(seq)."""
+    S = np.fft.fft(seq)
+    n, h = len(seq), len(seq) // 2
+    X = np.zeros(N, complex)
+    X[:h + 1], X[N - h:] = S[:h + 1], S[n - h:]
+    return np.fft.ifft(X) * N / n
+
+
+def envelope(kind, bw=B0, u=1, width=1.0, shape="held"):
+    """One loop's complex envelope for each waveform.  `width`: the pulse's length in
+    units of 1/B (a long pulse has energy; a short one, resolution).  `shape`: "held"
+    (rectangular chips, peak size 1) or "filtered" (band-limited to the chip rate)."""
     t = np.arange(N) / FS_DAC
+    if shape == "filtered" and kind == "chirp":       # nearly B wide already: the wrap's skirts
+        return bandlimit(envelope("chirp", bw), bw)
+    if shape == "filtered":
+        one = np.zeros(CHIPS); one[0] = 1                 # the pulse: one chip, then nothing
+        return interpolated({"pulse": one, "zc": zc(N_ZC, u), "m": 1.0 - 2 * g1(CHIPS),
+                             "gold": 1.0 - 2 * ca_code(1)}[kind])
     if kind == "pulse":
         return (t < width / bw).astype(complex)
     if kind == "chirp":
@@ -214,6 +244,17 @@ def sidelobes(r, bw):
     return 20 * np.log10(np.abs(r[out]).max() / np.abs(r[k]))
 
 
+def sidelobes_on_chips(r, bw, delay, up=16):
+    """The highest |r| (dB) at whole chips of delay from the peak (k / B, k = 1, 2, ...):
+    what a receiver that samples on the chip grid sees.  Read off the upsampled r."""
+    R = np.fft.fftshift(np.fft.fft(r))
+    fine = np.abs(np.fft.ifft(np.fft.ifftshift(np.concatenate(
+        [np.zeros((up - 1) * L // 2), R, np.zeros((up - 1) * L // 2)])))) * up
+    n = int(round(T * bw))
+    at = (delay + np.arange(1, n) * FS_ADC / bw) * up
+    return 20 * np.log10(fine[np.round(at).astype(int) % len(fine)].max() / fine.max())
+
+
 def papr(env):
     """Peak-to-average power ratio of an envelope, dB."""
     p = np.abs(env)**2
@@ -294,20 +335,21 @@ def make_link(args):
 
 
 def run(kind, play, record, bw=B0, snr=None, cfo_bins=0, stub=None, rng=None, u=1,
-        width=1.0, power=None):
+        width=1.0, power=None, shape="held"):
     """Play one waveform, record it, compress it.  Returns a dict."""
-    env = envelope(kind, bw, u, width)
+    env = envelope(kind, bw, u, width, shape)
     if stub:
         env = stub_echo(env, stub)
     b = chip_rate(kind, bw)
     play(transmit(env, snr, cfo_bins, rng, b, power))
     rec = record()
     z = mixdown(rec)
-    ref = reference(envelope(kind, bw, u, width))
+    ref = reference(envelope(kind, bw, u, width, shape))
     r = compress(z, ref)
     delay, pk = delay_of(r)
     return dict(kind=kind, bw=b, env=env, rec=rec, z=z, ref=ref, r=r, delay=delay,
-                peak=pk, width=width_3db(r), sidelobe=sidelobes(r, b))
+                peak=pk, width=width_3db(r), sidelobe=sidelobes(r, b),
+                on_chips=sidelobes_on_chips(r, b, delay))
 
 
 def main():
@@ -321,6 +363,8 @@ def main():
     ap.add_argument("--stub", type=float, help="--sim: an open stub this many metres long on a T")
     ap.add_argument("--stubs", action="store_true", help="print stub lengths per range cell and exit")
     ap.add_argument("--kinds", default=",".join(KINDS), help="which waveforms")
+    ap.add_argument("--shape", default="held", choices=("held", "filtered"),
+                    help="chips held for 1/B (as a pin), or through a low-pass B wide (as a DUC)")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("-o", "--out", help="save the results (.npz)")
     ap.add_argument("--no-plot", action="store_true")
@@ -344,22 +388,22 @@ def main():
 
     play, record = make_link(args)
     kinds = args.kinds.split(",")
-    print("B = %.3f MHz (%s), T = %.2f us, BT = %.0f;  SNR %s, carrier %+.0f Hz%s"
-          % (args.bw / 1e6, "chirp and pulse" if args.bw != B0 else "all", T * 1e6, args.bw * T,
+    print("B = %.3f MHz (%s), T = %.2f us, BT = %.0f, chips %s;  SNR %s, carrier %+.0f Hz%s"
+          % (args.bw / 1e6, "chirp and pulse" if args.bw != B0 else "all", T * 1e6, args.bw * T, args.shape,
              "none added" if args.snr is None else "%.0f dB" % args.snr, args.cfo * F_LOOP,
              "; stub %.1f m: echo %.1f ns = %.2f samples = %.1f cells" %
              (args.stub, 2 * args.stub / V_CABLE * 1e9, 2 * args.stub / V_CABLE * FS_ADC,
               2 * args.stub / V_CABLE * args.bw) if args.stub else ""))
-    print("          -3 dB width   sidelobe   B_rms    PAPR (dB)       delay   Doppler at 1 step: peak, slide")
-    print("          ns   x(1/B)        dB     MHz   ideal  in B      samples")
+    print("          -3 dB width   sidelobes (dB)    B_rms   PAPR    delay     Doppler at 1 step:")
+    print("          ns   x(1/B)   highest  on chips   MHz    (dB)   samples       peak, slide")
     out = {}
     for kind in kinds:
-        x = run(kind, play, record, args.bw, args.snr, args.cfo, args.stub, rng=args.seed)
-        env = envelope(kind, args.bw)
+        x = run(kind, play, record, args.bw, args.snr, args.cfo, args.stub, rng=args.seed,
+                shape=args.shape)
         h, d = doppler_cut(x["z"], x["ref"], np.array([0.0, F_LOOP]))
-        print("%-6s %7.1f  %5.2f   %7.1f   %6.2f   %5.1f  %5.1f   %8.3f    %5.2f  %s"
+        print("%-6s %6.1f  %5.2f   %7.1f   %7.1f   %6.2f  %5.1f  %8.3f      %5.2f  %s"
               % (kind, x["width"] / FS_ADC * 1e9, x["width"] / FS_ADC * x["bw"], x["sidelobe"],
-                 rms_bandwidth(x["ref"]) / 1e6, papr(env), papr(bandlimit(env, x["bw"])),
+                 x["on_chips"], rms_bandwidth(x["ref"]) / 1e6, papr(x["env"]),
                  x["delay"], h[1], "%+6.2f" % (d[1] - d[0]) if h[1] > 0.5 else "  lost"))
         out[kind] = x
     if args.out:

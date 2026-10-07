@@ -7,8 +7,8 @@ Run it from the linux-on-litex-vexriscv directory, like that project's make.py:
     python3 $ADDA/src/linux/make_linux.py --board=icepi_zero_adda --build --uart-baudrate=460800
 
 It registers one extra board, "icepi_zero_adda": the stock icepi_zero plus
-add_adda() from ../riscv, with the SD card in its native 4-bit mode and no HDMI
-terminal.  It runs make.py, then writes a device tree with a node for the
+add_adda() from ../riscv, with the SD card in its native 4-bit mode (and a
+20 ms command timeout instead of 1 s) and no HDMI terminal.  It runs make.py, then writes a device tree with a node for the
 peripherals -- so a Linux driver can find them -- and one for the five LEDs,
 to <images-dir>/rv32.dtb.
 
@@ -33,6 +33,7 @@ sys.path.insert(0, os.getcwd())
 
 import make      # linux-on-litex-vexriscv's make.py
 import boards
+from migen import Constant
 from litex_boards.targets import icepi_zero
 from adda_litex import add_adda
 
@@ -47,6 +48,15 @@ class IcepiZeroAddaSoC(icepi_zero.BaseSoC):
     def __init__(self, **kwargs):
         icepi_zero.BaseSoC.__init__(self, **kwargs)
         add_adda(self)
+
+    def add_sdcard(self, *args, **kwargs):
+        icepi_zero.BaseSoC.add_sdcard(self, *args, **kwargs)
+        # LiteX gives each SD-card command 1 s to answer, and the BIOS tries 1000 times
+        # to wake a card, for boot.json and again for boot.bin: with the slot empty,
+        # half an hour.  A card answers in
+        # microseconds, and Linux's own driver gives up after 20 ms, so the hardware
+        # waits 20 ms too.  It is a register's reset value, so no LiteX source changes.
+        self.sdcard.phy.cmdr.timeout.storage.reset = Constant(int(20e-3 * self.sys_clk_freq), 32)
 
 
 class Icepi_zero_adda(boards.Icepi_zero):

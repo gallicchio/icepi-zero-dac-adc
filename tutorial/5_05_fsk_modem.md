@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.04 Oscillators that listen to each other](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.06 The modem against noise →](5_06_modem_and_noise.md#506-the-modem-against-noise)
+[← 5.04 Oscillators that listen to each other](5_04_coupled_oscillators.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.06 The modem against noise →](5_06_modem_and_noise.md)
 
 # 5.05 A modem
 
@@ -447,7 +447,7 @@ physics. A 1000-byte ping is 1028 bytes of IP, 10 bits a byte on the wire at
 handling the packets, and that rest is also most of a small ping's 47 ms.
 
 <!-- nav -->
-[← 5.04 Oscillators that listen to each other](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.06 The modem against noise →](5_06_modem_and_noise.md#506-the-modem-against-noise)
+[← 5.04 Oscillators that listen to each other](5_04_coupled_oscillators.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.06 The modem against noise →](5_06_modem_and_noise.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

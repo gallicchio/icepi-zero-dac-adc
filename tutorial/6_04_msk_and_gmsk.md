@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 6.03 QAM: more bits per symbol](6_03_qam.md#603-qam-more-bits-per-symbol) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.05 The channel: sounding it, and equalizing it →](6_05_the_channel.md#605-the-channel-sounding-it-and-equalizing-it)
+[← 6.03 QAM: more bits per symbol](6_03_qam.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.05 The channel: sounding it, and equalizing it →](6_05_the_channel.md)
 
 # 6.04 MSK and GMSK: constant envelope
 
@@ -985,3 +985,9 @@ remove.
   sits under the knee and QPSK's peaks above it: the LEDs flash on QPSK's
   peaks, stay dark on MSK, and the ADC measures real spectral regrowth. (Not
   tried.)
+
+<!-- nav -->
+[← 6.03 QAM: more bits per symbol](6_03_qam.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.05 The channel: sounding it, and equalizing it →](6_05_the_channel.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,7 +1,18 @@
 <!-- nav -->
-[← Front page](../README.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [0.01 How to use this tutorial →](0_01_how_to_use_this_tutorial.md#001-how-to-use-this-tutorial)
+[← Front page](../README.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [0.01 How to use this tutorial →](0_01_how_to_use_this_tutorial.md)
 
 # 0.00 The hardware
+
+![Three results from Chapter 1, measured: a 1 MHz sine from the DAC; the extra phase of 85 cm of cable against frequency, a straight line whose slope is 3.89 ns, so light in the cable goes at 0.73 c; and a tune sent as AM at 1 MHz and received, as a spectrogram of its notes](img/hook.png)
+
+By the end of Chapter 1 you will have made all three of these, on
+$120 of hardware, out of nothing but logic you describe yourself: a sine
+wave ([1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis)), a
+[lock-in amplifier](https://en.wikipedia.org/wiki/Lock-in_amplifier) that
+times 85 cm of cable to a twentieth of a nanosecond and so measures the
+speed of light in it ([1.08](1_08_lockin.md#108-a-lock-in-amplifier)), and
+an AM transmitter and receiver that play a tune ([1.10](1_10_am_radio.md#110-an-am-radio)). No processor is involved: just gates, flip-flops and a
+50 MHz clock. This is the hardware:
 
 <img src="img/photo_stack.png" alt="The Icepi Zero, the adapter and the ADC/DAC module, stacked, with a short coax cable from the DAC to the ADC" width="320">
 
@@ -67,7 +78,7 @@ of the three tested here differ by up to 0.7%.
 | Chapter 5 | a second complete set of boards, and a second cable |
 
 <!-- nav -->
-[← Front page](../README.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [0.01 How to use this tutorial →](0_01_how_to_use_this_tutorial.md#001-how-to-use-this-tutorial)
+[← Front page](../README.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [0.01 How to use this tutorial →](0_01_how_to_use_this_tutorial.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 7.04 The filter as a LiteX peripheral](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.06 Control at the speed of the cable →](7_06_control.md#706-control-at-the-speed-of-the-cable)
+[← 7.04 The filter as a LiteX peripheral](7_04_the_filter_as_a_litex_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.06 Control at the speed of the cable →](7_06_control.md)
 
 # 7.05 Trading speed for bits
 
@@ -1245,6 +1245,9 @@ PASS
 | a PCM5102A I<sup>2</sup>S DAC module, or a PCM1808 ADC module | a true 16-bit reference at audio rates to compare with | $5 each |
 | an LM311 comparator, 10 kΩ and 1 nF | the analog first-order delta-sigma *ADC* with one FPGA pin, the side this module cannot show (Lattice and Xilinx both have an application note) | $2 |
 
+The RC and jack, an LC reconstruction filter and the comparator are three
+tiles of the accessory board sketched in [Appendix D](D_coming_soon.md#an-amod-a-board-of-analog-blocks).
+
 Wikipedia's [delta-sigma modulation](https://en.wikipedia.org/wiki/Delta-sigma_modulation),
 [oversampling](https://en.wikipedia.org/wiki/Oversampling),
 [noise shaping](https://en.wikipedia.org/wiki/Noise_shaping) and
@@ -1268,3 +1271,9 @@ Vanderkooy's 1992 survey of dither is where fact 1 comes from.
 - The dithered DC sweep over all 256 DAC codes: the DAC's DNL, measured.
 - With the loopback cable: `sigma_delta.py PORT --table` with the ADC as
   the instrument, and `sigma_delta_live.py` on the gateware.
+
+<!-- nav -->
+[← 7.04 The filter as a LiteX peripheral](7_04_the_filter_as_a_litex_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.06 Control at the speed of the cable →](7_06_control.md)
+
+<!-- author -->
+<sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

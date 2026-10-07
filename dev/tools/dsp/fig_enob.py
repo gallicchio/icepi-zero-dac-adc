@@ -44,7 +44,7 @@ a.annotate("thick: a 1-bit converter; thin: 8 bits", (9.9, -1.5), fontsize=8, co
 a.set_xlim(0, 10); a.set_ylim(-2, 28)
 a.set_xticks(range(0, 11, 2)); a.set_xticklabels([str(2**k) for k in range(0, 11, 2)])
 a.set_xlabel("oversampling ratio OSR = fs / (2 x bandwidth)"); a.set_ylabel("effective bits (ENOB)")
-a.set_title("Bits bought with speed")
+a.set_title("Effective bits gained by going slower")
 a.annotate("ENOB = log2(2^N - 1) + (n + 1/2) log2 OSR - c_n", (9.9, 1.0), fontsize=8, color=INK2, ha="right")
 a.legend(loc="upper left", fontsize=7.5)
 

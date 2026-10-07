@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.02 A sawtooth from the DAC](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.04 The ADC on the LEDs →](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds)
+[← 1.02 A sawtooth from the DAC](1_02_dac_sawtooth.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.04 The ADC on the LEDs →](1_04_adc_on_the_leds.md)
 
 # 1.03 A sine: direct digital synthesis
 
@@ -107,7 +107,7 @@ The DAC can run twice as fast as this, from a faster clock that the FPGA
 makes itself. That's [4.01](4_01_a_faster_dac.md#401-a-faster-dac-plls), for later.
 
 <!-- nav -->
-[← 1.02 A sawtooth from the DAC](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.04 The ADC on the LEDs →](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds)
+[← 1.02 A sawtooth from the DAC](1_02_dac_sawtooth.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.04 The ADC on the LEDs →](1_04_adc_on_the_leds.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

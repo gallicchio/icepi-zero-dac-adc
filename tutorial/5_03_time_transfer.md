@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.02 Warming a crystal](5_02_warming_a_crystal.md#502-warming-a-crystal) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.04 Oscillators that listen to each other →](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other)
+[← 5.02 Warming a crystal](5_02_warming_a_crystal.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.04 Oscillators that listen to each other →](5_04_coupled_oscillators.md)
 
 # 5.03 What time is it over there?
 
@@ -462,7 +462,7 @@ There are other ways, and each needs one more thing you trust:
   cables' share of the asymmetry. The electronics' share stays hidden.
 
 <!-- nav -->
-[← 5.02 Warming a crystal](5_02_warming_a_crystal.md#502-warming-a-crystal) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.04 Oscillators that listen to each other →](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other)
+[← 5.02 Warming a crystal](5_02_warming_a_crystal.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.04 Oscillators that listen to each other →](5_04_coupled_oscillators.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

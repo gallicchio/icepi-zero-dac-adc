@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 2.04 A capture peripheral](2_04_capture_peripheral.md#204-a-capture-peripheral) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.06 The registers from the laptop →](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop)
+[← 2.04 A capture peripheral](2_04_capture_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.06 The registers from the laptop →](2_06_registers_from_the_laptop.md)
 
 # 2.05 A lock-in peripheral
 
@@ -598,7 +598,7 @@ smallest step.
   distortion of a diode clipper driven at *f* ([4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper)).
 
 <!-- nav -->
-[← 2.04 A capture peripheral](2_04_capture_peripheral.md#204-a-capture-peripheral) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.06 The registers from the laptop →](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop)
+[← 2.04 A capture peripheral](2_04_capture_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.06 The registers from the laptop →](2_06_registers_from_the_laptop.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.10 An AM radio](1_10_am_radio.md#110-an-am-radio) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.01 A CPU and its BIOS →](2_01_a_cpu_and_its_bios.md#201-a-cpu-and-its-bios)
+[← 1.10 An AM radio](1_10_am_radio.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.01 A CPU and its BIOS →](2_01_a_cpu_and_its_bios.md)
 
 # 2.00 A processor on the FPGA
 
@@ -17,8 +17,9 @@ Chapter 1, and let software set them.
 ## Processors, and RISC-V
 
 Every design in Chapter 1 was a circuit that does one job. A *processor* (a
-CPU) is a circuit that can do any job, one small step at a time. It's a state
-machine, like [1.06](1_06_fast_capture.md#106-fast-captures)'s capture: on each step it fetches an *instruction*, which is
+CPU) is a circuit that can do any job, one small step at a time.
+
+It's a state machine, like [1.06](1_06_fast_capture.md#106-fast-captures)'s capture: on each step it fetches an *instruction*, which is
 just a number, from memory, and does what it says: add two numbers, read a word
 from memory, write one, or, if some condition holds, *jump* somewhere else in
 the program. Then it fetches the next instruction, or the one it jumped to. A
@@ -95,7 +96,7 @@ python3 -m litex_boards.targets.icepi_zero --help | head -3
 Next: build the SoC LiteX already knows for this board, and talk to its CPU.
 
 <!-- nav -->
-[← 1.10 An AM radio](1_10_am_radio.md#110-an-am-radio) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.01 A CPU and its BIOS →](2_01_a_cpu_and_its_bios.md#201-a-cpu-and-its-bios)
+[← 1.10 An AM radio](1_10_am_radio.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.01 A CPU and its BIOS →](2_01_a_cpu_and_its_bios.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

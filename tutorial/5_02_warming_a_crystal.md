@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.01 Two clocks](5_01_two_clocks.md#501-two-clocks) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.03 What time is it over there? →](5_03_time_transfer.md#503-what-time-is-it-over-there)
+[← 5.01 Two clocks](5_01_two_clocks.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.03 What time is it over there? →](5_03_time_transfer.md)
 
 # 5.02 Warming a crystal
 
@@ -287,7 +287,7 @@ temperature and correcting for it (a TCXO).
   becomes.
 
 <!-- nav -->
-[← 5.01 Two clocks](5_01_two_clocks.md#501-two-clocks) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.03 What time is it over there? →](5_03_time_transfer.md#503-what-time-is-it-over-there)
+[← 5.01 Two clocks](5_01_two_clocks.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.03 What time is it over there? →](5_03_time_transfer.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

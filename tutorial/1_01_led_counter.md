@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.00 Circuits from code](1_00_circuits_from_code.md#100-circuits-from-code) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.02 A sawtooth from the DAC →](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac)
+[← 1.00 Circuits from code](1_00_circuits_from_code.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.02 A sawtooth from the DAC →](1_02_dac_sawtooth.md)
 
 # 1.01 A counter on the LEDs
 
@@ -325,7 +325,7 @@ it. The commands are shown here in full so you know what `make` is doing.
   counter while it's pressed.
 
 <!-- nav -->
-[← 1.00 Circuits from code](1_00_circuits_from_code.md#100-circuits-from-code) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.02 A sawtooth from the DAC →](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac)
+[← 1.00 Circuits from code](1_00_circuits_from_code.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.02 A sawtooth from the DAC →](1_02_dac_sawtooth.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>
