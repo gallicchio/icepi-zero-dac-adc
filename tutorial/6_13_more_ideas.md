@@ -50,7 +50,10 @@ Synthetic Aperture Radar Imaging*](https://ocw.mit.edu/courses/res-ll-003-build-
 parts, two coffee cans and a laptop's sound card as the digitizer. This
 board would replace the sound card with a 25 MS/s one and the laptop's
 MATLAB with the FFT in logic, and the RF parts of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio) are most of its
-bill of materials.
+bill of materials. [Appendix D](D_coming_soon.md#the-four-boards-together-the-coffee-can-radar-and-more)
+works through what the next board and the AMOD's RF board would add:
+stepped-frequency and FMCW ranging, SAR at 2.4 and 5.8 GHz, direction
+finding and MIMO.
 
 <!-- nav -->
 [← 6.12 On the air: whispers, and how far they carry](6_12_on_the_air.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.00 Signal processing in gateware →](7_00_signal_processing_in_gateware.md)

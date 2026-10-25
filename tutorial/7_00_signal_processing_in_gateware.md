@@ -34,8 +34,9 @@ signal into ADC IN and look at DAC OUT. There are three:
 - **A second board.** Load [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
   lock-in into board B, cable B's DAC OUT to A's ADC IN and A's DAC OUT to
   B's ADC IN, and B sweeps A: a vector [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)) made of two $40
-  boards. Untested here (only one board has a converter module), but it
-  is the same `lockin.py --sweep` that measured the cable.
+  boards. It is the same `lockin.py --sweep` that measured the cable, and
+  it works: B swept [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s 2 MHz low-pass in A to within 0.33 dB rms of
+  the design (the M2k: 0.25).
 - **One board, looped back.** The filter's input can come from a
   stimulus made inside the FPGA, an impulse, a step, white noise or a
   tone, instead of the ADC; the DAC plays the output, the cable brings it

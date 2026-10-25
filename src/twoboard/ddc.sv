@@ -1,4 +1,4 @@
-// ddc.sv -- the narrowband radio for an FT8-style weak-signal text link (6.11).  The
+// ddc.sv -- the narrowband radio for an FT8-style weak-signal text link (6.12).  The
 // laptop picks the tones and their timing; this board plays them, phase-continuous,
 // and mixes what its ADC hears down to baseband and streams I/Q back to the laptop,
 // whose Python does the decoding.

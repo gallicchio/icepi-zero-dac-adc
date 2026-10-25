@@ -304,7 +304,7 @@ Later still:
   symmetrically;
   [6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)'s five waveforms held and filtered, every number in its four
   console blocks and six figures, and the ghost's lag (−194 samples
-  recorded, −192 predicted); [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s slow frame with the transmitter
+  recorded, −192 predicted; re-recorded on 2026-10-07, below); [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s slow frame with the transmitter
   pretending to be 3, 10 and 20 ppm off and drifting 1 ppm per frame (and
   5 ppm drifting 2), with `ft8.py --ppm` and `dev/tools/comms/ft8_crystal.py`,
   and its three console runs again with the wider search; the Linux SoC
@@ -318,6 +318,41 @@ Later still:
   first try at the card timed out. The figures of [7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product) and [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line) were split
   between the two pages from the same data; [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s line counts were
   counted from the files.
+
+Then, on 2026-10-07, Chapter 6 with two boards for real: DP0525BU (A)
+and DP0525LR (B), each with a converter module, cross-cabled with about
+2 m of coax each way, crystals 0.2 ppm apart, A playing and B recording.
+`twoway.py` measured the cables (a 443.76 ns round trip, 4.1 m of coax
+in all; [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)). With 0 bit errors: `psk.py` (MER 38.2 dB),
+`qam.py` (34.9 dB), `msk.py` (20.8 dB), `cdma.py` (both users, their
+delay difference to a hundredth of a chip), `lora.py` (four symbols), and
+[6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga)'s modem in the FPGA, 200,000 bytes each way. `eye.py` and `chirp.py`
+ran clean, and `ber_curve.py` followed the theory for QAM-4, 16 and 64.
+[6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s slow frame went from A to B at 100, 4 and 1 DAC codes, every
+symbol right. B, running [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in, swept [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s 2 MHz low-pass in
+A to 0.33 dB rms of the design. Two scripts were wrong across two boards,
+and are fixed: `sound.py` averaged its four records before lining them
+up, and the clocks drift a sample apart in that time (|H| came out 0.12
+instead of 0.77); `ft8.py --listen` on a board that hadn't sent compared
+the tones with an empty message. And `find_port()` everywhere took the
+first FT231X it saw, which on this bench was a CircuitGear oscilloscope;
+it now skips devices that name themselves something else.
+
+Then each board looped back through one of those cables. Its one-way delay
+gave each cable's length (2.017 m of RG-316 on DP0525BU and 2.115 m on
+DP0525LR, after the converters'
+212.13 ns from [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)), and the two loops' sum, 444.09 ns, is the
+cross-connected round trip (443.76 ns) to 0.33 ns: the same four converters
+and two cables, added up two ways. [6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable) was re-recorded on DP0525BU
+looped back, all six figures and all four console blocks, so that the
+chirp is filtered at the DAC like the others (4.4 dB down, 4.30 computed)
+and every trace comes from one board and one cable; the numbers on the
+page moved by a dB or two (the ghosts are now at +191 and −195 samples,
+192 predicted), and the converters' harmonics are 13 dB stronger than
+on the first board, on both new boards alike. And with DP0525BU's SD
+slot empty, [3.03](3_03_building_linux.md#303-building-linux-yourself)'s BIOS gave up on the card in 23.3 s per try,
+two tries, and reached `litex>` 48.1 s after the FPGA loaded: the
+"about 45 s" that had only been computed.
 
 ## Not tested
 
@@ -345,9 +380,7 @@ Later still:
   the start. The tools used here were installed earlier, in another folder.
 - **`stream.py`'s `--bits`, `--keep` and `--reverse`** ([1.05](1_05_adc_to_python.md#105-adc-samples-to-python)) were checked on a
   computed test tone (the aliased tone lands where it should), not yet by ear.
-- **Chapter 6 with two boards** ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s OFDM was run board to board, above), and
-  the RF parts of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio). For every other script, two boards were only simulated
-  (`--sim --ppm`).
+- **The RF parts of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio).**
 - **HDMI and the USB host** ([3.04](3_04_booting_from_sd.md#a-computer-of-its-own)): described from linux-on-litex-vexriscv's
   configurations for other boards, not built for this one.
 - **[5.07](5_07_radio_link.md#507-a-radio-link)'s antennas.** The loops, the range and the field-strength estimates
@@ -357,12 +390,10 @@ Later still:
   step and noise modes return zeros; the alignment code is wrong and the
   `--m2k` sweeps are the measurements the pages use.
 - **[7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s firmware loader** (built, not run).
-- **The BIOS with an empty SD slot.** [3.03](3_03_building_linux.md#303-building-linux-yourself)'s "about 45 s" is computed
-  from the BIOS's code and the new 20 ms timeout: both boards had cards in
-  them, and the cards could not be taken out remotely. The register's value
-  was read back (0x000F4240), and cards still work with it.
 - **[7.07](7_07_bigger_ideas.md#707-bigger-ideas-nmr-mri-and-qubits)'s Earth's-field and permanent-magnet sections, and
-  [Appendix D](D_coming_soon.md)**: researched and priced (prices as of 2026-10-05), not built.
+  [Appendix D](D_coming_soon.md)**: researched and priced (2026-10-05; the chips read again at
+  JLCPCB on 2026-10-24), not built. Its next board was ordered in October 2026 and had not
+  arrived when this was written.
 - **[7.07](7_07_bigger_ideas.md#707-bigger-ideas-nmr-mri-and-qubits)**: nothing on it has been built; the TeachSpin connections are
   read from its manual.
 - **[6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s air.** Every rung of the antenna ladder is a calculation
@@ -372,8 +403,11 @@ Later still:
 - **[6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)'s radar.** The stub's echo is modelled (there is no T); the
   [chirp](https://en.wikipedia.org/wiki/Chirp), Zadoff–Chu and ranging figures are measured through the plain cable.
 - **The experiments of [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)–[4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference).** Their numbers are calculations, not
-  measurements, except the crystal-against-NTP timing of [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) and the baseline
-  of [4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) (the loop's own harmonics).
+  measurements, except the crystal-against-NTP timing of [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference), the baseline
+  of [4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) (the loop's own harmonics), and [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)'s pair, which was swept and
+  used as a modem link twice, lying on the bench and on a cardboard box, but
+  never moved along a ruler: its ruler and hair-dryer measurements are still
+  untried, and the card between the transducers is a suggestion.
 
 <!-- nav -->
 [← Appendix B. Troubleshooting](B_troubleshooting.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [Appendix D. Coming soon… hopefully →](D_coming_soon.md)

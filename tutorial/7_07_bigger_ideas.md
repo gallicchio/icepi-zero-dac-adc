@@ -76,6 +76,12 @@ Ramsey delay, and measuring it is the first experiment.
 
 </details>
 
+The same pulse programmer, moved from 21 MHz protons to 2.87 GHz
+electrons, runs Rabi, Ramsey and echoes on NV centres in diamond, read out
+with light: [Appendix D](D_coming_soon.md#pulsed-odmr-rabi-oscillations-of-nv-centres-in-diamond) works it out for the next board, with the
+rubidium clock that coherent population trapping makes of an optical
+pumping cell.
+
 ## The cheapest MRI that shows you a thing
 
 An MRI is NMR plus a magnetic field gradient: make the field vary

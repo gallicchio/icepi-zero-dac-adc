@@ -19,7 +19,7 @@ when the SoC starts. About a second after the bitstream loads, the [BIOS](https:
 to boot from the serial port, and it waits only a quarter of a second for an
 answer. `litex_term --images` answers by itself and starts sending the files.
 Start it any later and the offer has gone; the BIOS moves on to the micro-SD
-card. (With no card in the slot it should give up after about 45 s and show
+card. (With no card in the slot it gives up after 48 s, measured, and shows
 the `litex>` prompt: [3.03](3_03_building_linux.md#waiting-and-what-the-build-can-change) says why it waits at all. Just run the command again.)
 
 The files go over the serial port at about 44 kB/s: **4 minutes**. Then

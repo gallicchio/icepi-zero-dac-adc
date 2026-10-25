@@ -250,13 +250,14 @@ def receive(z, sps, nu_max=1.0, period=None, nu_step=0.125):
 
 
 def report(r, tones, esn0=None, sps=SPS, df=DF):
-    serr = int(np.sum(r["heard"][DATA_AT] != tones[DATA_AT]))
     cerr = int(np.sum(r["heard"][[p + j for p in COSTAS_AT for j in range(7)]]
                       != np.tile(COSTAS, 3)))
+    serr = None if tones is None else int(np.sum(r["heard"][DATA_AT] != tones[DATA_AT]))
     snr = "" if esn0 is None else " at Es/N0 %.1f dB (FT8's scale: %.0f dB in 2.5 kHz)" % (esn0, esn0 - 10 * np.log10(400))
     print("sync: frame starts at sample %d, carrier off by %+.3f tone spacings (%+.1f Hz)%s"
           % (r["t0"], r["nu"], r["nu"] * df, snr))
-    print("tones heard: %d of 58 data symbols wrong, %d of 21 Costas symbols wrong" % (serr, cerr))
+    print("tones heard: %s of 58 data symbols wrong, %d of 21 Costas symbols wrong"
+          % ("?" if serr is None else serr, cerr))
     print("decoded: %r  CRC %s" % (r["text"], "ok" if r["ok"] else "FAILED"))
     return serr
 
@@ -383,7 +384,9 @@ def main():
             slow_send(port, args.send, args.amp, args.ppm)
         if args.listen:
             r, z = slow_listen(port, args.seconds, args.search)
-            report(r, encode(args.send or ""), sps=SLOW_SPS, df=SLOW_DF)
+            # the tones sent: known if this board sent them; otherwise, only if they decoded
+            text = args.send if args.send else (r["text"] if r["ok"] else None)
+            report(r, None if text is None else encode(text), sps=SLOW_SPS, df=SLOW_DF)
             if args.out:
                 np.savez(args.out, z=z, M=r["M"], heard=r["heard"], t0=r["t0"], nu=r["nu"], text=r["text"], ok=r["ok"])
         return

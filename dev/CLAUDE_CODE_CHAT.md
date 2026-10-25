@@ -2748,3 +2748,289 @@ That roughly doubles the tile count, so the passive and active boards each keep 
 **Renumbering.** Tiles are numbered in board order, and Appendix D's other references are updated: the antenna section, "Long cables" and the other-platforms table. `dev/tools/fig_amod.py` draws both sketches.
 
 **Unconfirmed:** these came from search summaries, not datasheets, and should be checked before anyone draws the board: the LTC5510's 4.5 GHz output limit, the RFX2401C's +22 dBm, and the GALI-84+'s 7 V bias.
+
+## Prompt 20
+
+If a PCB antenna can be added to the RF board (maybe moving things around so it can be at the corner),  this might make it much easier for people to use. Make sure it works with the LNAs and filters. Otherwise, a whip antenna can be good, but that often needs a good ground plane to be really effective.
+
+In other news, you have two icepi zero units attached to USB. Each unit has the ADC+DAC board. They are connected to each other by longer SMA cables. I haven't measured their lengths (but you could with timing!) Run all of the tests you  put off because you didn't have to boards.
+
+## Response 20 2026-10-07 Claude Opus 5.5
+
+Measured on DP0525BU (A) and DP0525LR (B), cross-cabled, crystals 0.203 ppm apart. `make check`: 0 errors, 0 warnings.
+
+**The cables, by two-way timing (5.03's `twoway.py`):** a 443.76 ns round trip (0.16 ns rms, 631 exchanges), 18.13 ns more than 5.03's pair of 16.5 cm cables: 4.1 m of coax in all. Two-way timing measures only the sum.
+
+**Two boards, at last:**
+
+| test | result |
+| --- | --- |
+| psk, qam, msk | 0 bit errors; MER 38.2, 34.9, 20.8 dB |
+| cdma, lora, eye, chirp | clean; cdma's delay difference to a hundredth of a chip |
+| OFDM BER curve | on the theory for QAM-4, 16, 64 |
+| 6.11's FPGA modem | 0 errors in 1.6 Mbit each way |
+| 6.12's slow frame, A sends, B listens | decodes at 100, 4 and 1 DAC codes; B finds A 1.5 Hz off |
+| 7.03's filter swept by B's lock-in | 0.33 dB rms from the design (M2k: 0.25), 6° rms |
+| 6.10's filtered chirp | 4.35 dB down in band (4.30 computed) |
+
+**Fixed, because two boards exposed them:** `sound.py` averaged records before aligning them (|H| 0.12 instead of 0.77); `ft8.py --listen` without `--send` counted tones against an empty message; `find_port()` (13 copies) took the first FT231X, here a CircuitGear scope; it now skips devices with another product name.
+
+**The RF board's antennas:** TI's AN043 meandered inverted-F (15.2 × 5.7 mm) in the top-right corner for 2.4 GHz, TI's DN023 inverted-F (43 × 20 mm) along the top-left edge for 915 MHz, bare board under both, each with its own SMA and π-match pads. The calibration standards and the stub became "maybe"s. Noise figures computed for LNA-first (1.8 / 1.2 dB) against filter-first (5.3 / 3.1 dB); P5 after the mixer; about 80 dB of gain to reach the ADC's step. Whips: λ/4 needs λ/4 of ground (fine at 2.4 GHz, not at 915 MHz: use a half-wave).
+
+## Prompt 21
+
+Yes, always add prompts and responses to the CHAT document.
+
+Each board is in loopback. You can run that test. Also measure the length of the cables this way and check that it's consistent with what you found for the total. (They are RG-316.)
+
+I've also taken out one of the boards' SD cards, because that was also a test from before that you hand't run (I think you shortened a timeout).
+
+## Response 21 2026-10-07 16:54:01 Claude Opus 5.5
+
+Measured. `make check`: 0 errors, 0 warnings. Saved as a standing rule: every prompt and response goes in this file.
+
+**Each cable, looped back** (100 records per board, `twoway.delay`): DP0525BU 221.811 ns one way, DP0525LR 222.280 ns. Less 5.03's 212.13 ns of converters: **2.017 m and 2.115 m** of RG-316, 4.13 m in all, against 4.11 m from the two-way timing. The check that needs no assumption: the two loops use the same four converters and the same two cables as the round trip, and their sum (444.09 ns) matches it (443.76 ns) to 0.33 ns. Added to 5.03.
+
+**6.10, re-recorded on one board looped back** (DP0525BU through its 2.017 m cable): all six figures and all four console blocks, so that every trace is one board and one cable, and the chirp is filtered at the DAC like the rest. Filtered, it is **4.4 dB** down (4.30 computed), and the figure's stand-in is gone. The numbers moved by a dB or two: held sidelobes ZC −40, m −44, pulse −30 dB; delay 5.62 samples (225 ns); ghosts at +191 and −195 samples (±192 predicted), −40 and −43 dB; Hamming −42.8 dB. Every number on the page that came from the old run is updated, and the ghost arrows now read their heights from the data.
+
+**Something new:** the held chirp's out-of-band floor is 13 dB higher than on the old board: a shelf at −32.7 dB around 2 MHz and −29 dB at 10–12 MHz, the second and third harmonics folded back. Both new boards are identical, there is no clipping, and half the swing takes it 10 dB lower, as distortion does. My guess, not tested: the DAC's driver into 2 m of unterminated coax (−j97 Ω at 7.8 MHz, against −j206 Ω for the 1 m cable), which also explains the chirp's envelope rising 8% across the band (1/cos βl). A short cable on the same board would settle it. 6.10 now says so.
+
+**The empty SD slot** (DP0525BU): the BIOS spent 23.3 s on `boot.json`, 23.3 s on `boot.bin`, and reached `litex>` **48.1 s** after the FPGA loaded (computed before: "about 45 s"). DP0525LR, with its card, booted Linux and copied the 9.1 MB kernel in 13.6 s. 3.01, 3.03, B and C now give the measured numbers.
+
+**Board state:** both boards run `awgcap.bit` (loaded last, for the distortion check), each looped back through its own cable; DP0525BU has no SD card.
+
+## Prompt 22
+
+How well can the new 2ADC + 2DAC board, along with the 3 new boards,  do with the CANtenna material? Up to making an SAR. MIMO? Directing finding? Can it do  othernew physics, electronics, or RF experiments that we should make a list of? Would tweaks to any of the boards unlock anything interesting?
+
+**Added mid-way (verbatim):** Keep going, but would the PLL be put into FMCW mode, or would everything go though the DACs and ADCs? Or both, with certain mixing topologies?
+
+## Response 22 2026-10-07 17:04:11 Claude Opus 5.5
+
+Researched and computed, nothing built. `make check`: 0 errors, 0 warnings. A new section in Appendix D, "The four boards together: the coffee-can radar, and more", and a pointer to it from 6.13.
+
+**The coffee-can radar** (from a WPI report on it: 80 MHz swept near 2.44 GHz in a 20 ms ramp, a sound card at 44.1 kHz): every step is in reach. Doppler gains its sign (TX at *f*, RX LO at *f* − IF, one reference). Ranging by stepped frequency: 80 MHz in 1 MHz steps gives 1.9 m cells, unambiguous to 150 m, linear by construction. SAR on a stepper rail: 0.31 m cross-range at 10 m from a 2 m rail at 2.44 GHz. Radar needs no TX mixer (the MAX2870 is the transmitter), so 5.8 GHz is in reach: 150 MHz, 1.0 m cells, 0.13 m cross-range. FCC §15.245 (radars) allows about +19 dBm EIRP in 2435–2465 MHz only; §15.249 allows −1 dBm across the whole band. Link: a person at 20 m with −8 dBm and two 7 dBi cans is 54 dB clear in an 8 ms profile; leakage, not range, is the limit. Sound first: 40 kHz SAR on a desk at 8.6 mm.
+
+**The question asked mid-way, the sweep:** all three, for different jobs. (1) The synthesizer: the MAX2870 has no ramp, so it *steps*, and the converters see one IF tone through the lock-in (the Icepi would do). A ramp PLL (ADF4159, LMX2492: a tweak) makes true FMCW: one VCO's two outputs feed the antenna and the RX mixer's LO, which dechirps to a kHz–MHz beat. (2) The DACs: fixed LOs, the DAC makes the waveform at an IF as 6.10 does. About 25 MHz real, about 60 MHz with I/Q; any waveform, and two different ones at once from two DACs for MIMO radar. (3) Both: the synthesizer steps in strides of the DAC's bandwidth and the DAC sweeps each stride, stitched coherently (three strides of 50 MHz make 150 MHz).
+
+**Direction finding and MIMO:** the new board is coherent 2 × 2 at baseband; the RF board has one mixer each way. Two RF boards on one reference agree in frequency, not phase, so interferometric DF needs a calibration tone after each retune. MIMO comms needs no calibration: the channel matrix absorbs the phases. MIMO radar needs two mixers and a switch.
+
+**Experiments listed:** a 6 GHz VNA and TDR, microwave optics at 5.8 GHz, the can as a waveguide (TE11 cutoff 1.76 GHz), Friis and two-ray fading, a room's impulse response, a radiometer (the Sun is about 2 K in a can's beam), the 1420 MHz hydrogen line and the galaxy's rotation curve, real GPS for 6.06, ADS-B, ODMR of NV diamond at 2.87 GHz, ESR of DPPH, two-tone IP3, PLL phase noise, laser ranging by phase, acoustic arrays, near-field probing.
+
+**Tweaks, ranked by what they unlock:** two RX and two TX mixers on the RF board (coherent two-channel RF); RF switch tiles; a directional coupler; a switched noise source; a bias-T; 1090/1420/1575 MHz filters; a ramp synthesizer; the I/Q pair; a stepper driver on the active board; an antenna board of patches; a sample-sync pin on the new board (two boards, four coherent channels); an amplifier bypass for undersampling.
+
+## Prompt 23
+
+Make this info a table with price estimates and difficulty of design and use and in stock status at JLCPCB, digikey and mouser.
+
+## Response 23 2026-10-07 17:59:52 Claude Opus 5.5
+
+Researched on 2026-10-07; nothing ordered. `make check`: 0 errors, 0 warnings. Appendix D's "Tweaks that would unlock more" is now a table of fifteen tweaks: a part for each, its price, design and use difficulty (1–3, defined above the table), and stock at JLCPCB, DigiKey and Mouser.
+
+**How the stock was read:** JLCPCB from the jlcsearch mirror of its parts library (JLCPCB's own pages load stock by script); DigiKey from its search pages directly; Mouser refuses scripts (a captcha), so its numbers come from search results, and the table says "not checked" where none gave one.
+
+**What the checking changed:**
+- The directional coupler is not cheap: Mini-Circuits' BDCH-20-63+ is $55–63 and covers only 2–6 GHz. A printed coupled-line coupler is the free, one-band alternative.
+- The bias-T's obvious 220 nH 0603 choke self-resonates at 1.2 GHz, so it is useless at GPS. The table gives 18 nH, and a conical inductor for a choke good to 6 GHz.
+- The 1420 MHz filter that is in stock (BFCN-1445+) passes 1420–1470 MHz, with the hydrogen line on its lower edge.
+- The ramp synthesizers (ADF4159, LMX2492) both need an external VCO, such as the coffee-can radar's own ROS-2536C-119+.
+- The LTC5510 (the RF board's mixer), the LMX2492 and the 1090/1420 MHz filters are not in JLCPCB's library: an assembly there would have to source them.
+- The I/Q pair is in stock at DigiKey (5,836 and 4,543) but nearly gone at JLCPCB (29 and 9).
+- The BFP420 noise-source transistor is at last-time buy (2027).
+
+## Prompt 24
+
+Are those switches faster enough for what we'd use them for? Are all of the other specs (power, frequency, bias) all appropriate?
+
+## Response 24 2026-10-07 18:08:40 Claude Opus 5.5
+
+Checked against datasheets, nothing built. `make check`: 0 errors, 0 warnings. A new subsection in Appendix D, "Do the parts fit the jobs?", and three table rows fixed.
+
+**The switches: fast enough by far.** SKY13351: 100 ns, linear to +30 dBm, 0/1.8–5 V control, 20 MHz–6 GHz, no DC blocks needed if no DC is on the RF ports. SKY13322 SP4T: P1dB +30 dBm at 3.3 V, four control lines. The jobs need microseconds at the fastest (pseudo-Doppler dwells, MIMO radar per step), milliseconds for a Dicke radiometer. +22 dBm is the loudest signal on the board: 8 dB of margin at 3.3 V control. But a switch cannot share one antenna in an FMCW or stepped radar, which transmits and receives at once: it needs two antennas, as the cans are.
+
+**Wrong, and fixed:** the noise source's BFP420 has a 1.5 V base–emitter breakdown (tunnelling, not avalanche): now a 6–12 V junction plus a GALI-84+, or hot/cold 50 Ω loads (ice water and boiling water) for a Y-factor with no unknowns. The A4988 needs 8–35 V for its motor: only the TMC2209 (4.75 V and up) runs from 5 V, and a rail wants 12 V anyway. The 1090 MHz part was a marketplace listing with a 1,000 minimum and no datasheet: no good surface-mount part found.
+
+**Found by the check:** power: the RF board with everything on draws about 0.85 A at 5 V (MAX2870 144 mA each, LTC5510 105 mA each), 1.5 A with the extra mixers and I/Q pair: over USB's default 0.5 A, so R9 needs USB-C current detection or a barrel jack. Pins: two synthesizers, R6 and two switches need more than a Pmod's eight; use a 74HC595 on the SPI bus. The ADF4159's charge pump (0.5–2.8 V) with the coffee-can VCO reaches about 2465 MHz: enough for §15.245's 2435–2465, not the full 80 MHz without an active loop filter. The MAX2870 below 3 GHz is a divided square wave: it needs R2 or R4 for §15.245's −50 dB harmonics. The 1420 MHz filter goes after the LNA, where its band-edge loss hardly matters and it rejects the image. The bias-T (18 nH, 178 Ω at 1575 MHz) and the LTC5510/MAX2870 LO levels fit; the LTC5510's output network must be chosen for a few-MHz IF.
+
+## Prompt 25
+
+ADS-B? Other things that almost made the cut and didn't? (Along with a justification. )
+
+## Response 25 2026-10-07 18:19:54 Claude Opus 5.5
+
+Researched, nothing built. `make check`: 0 errors, 0 warnings.
+
+**ADS-B stays in, and the filter is optional.** 112-bit messages, pulse-position modulation at 1 Mbit/s, an 8 µs preamble, a 24-bit CRC: all of Chapter 6 in one receiver (pulses 6.01, a preamble correlator in the FPGA, the CRC of 6.09, then compact position decoding). 2 MHz of bandwidth is enough, so even the Icepi would do. A 69 mm quarter-wave whip is the antenna. Most hobby receivers run without a filter; one matters near strong transmitters, and none of the surface-mount ones found was good (Appendix D's tweak row now says "optional").
+
+**Promoted while sorting the near misses, now in the experiments table:** Bluetooth LE advertisements (GFSK BT = 0.5, 6.04's modulation), Wi-Fi beacons (802.11b's Barker-spread DBPSK, 6.06), the cell towers around you (LTE's PSS is a length-63 Zadoff–Chu sequence, 6.10; the SSS is built from m-sequences, 1.07), and breathing and heartbeats by coherent CW radar (5 mm of chest is 30° of phase at 2.44 GHz).
+
+**Near misses, with reasons, now a table in Appendix D:**
+- NOAA APT: all three retired in 2025 (June 6, Aug 13, Aug 19). Meteor M2-3's LRPT remains, but the antenna and tracking are the project.
+- FM/RDS: a $30 RTL-SDR already does it.
+- Pulsed ODMR: Rabi oscillations need nanosecond switching; the 100 ns switch is too slow. The most tempting, one tweak away.
+- A rubidium CPT clock: the MAX2870 reaches 3.417 GHz, but the cell and laser cost hundreds.
+- GPR and through-wall radar: the wide sweep crosses restricted bands, and Part 15 allows about −41 dBm outside ISM; on a cable it is TDR, already listed.
+- 10 and 24 GHz: buy the modules.
+- FPV video: analog TV decoding, off-thread.
+- Wireless power: nanowatts at the legal level.
+- Iridium and Inmarsat: other people's messages.
+- GPS transmit: illegal at any power.
+- Amateur satellites: tracking is the work, and a licence to transmit.
+
+## Prompt 26
+
+Go into more details about Pulsed ODMR (Rabi oscillations in NV diamond) and Rubidium atomic clock. We might already have some of the hardware, but spell out the setup steps, the external equipment, the AMOD things, and what the FPGA would do for each of these.
+
+## Response 26 2026-10-07 19:16:26 Claude Opus 5.5
+
+Researched, nothing built. `make check`: 0 errors, 0 warnings. A new subsection in Appendix D, "Two near misses, worked out", linked from the near-miss table and from 7.07.
+
+**Pulsed ODMR.** The 100 ns switch is too slow for 50–300 ns π pulses; the I/Q-modulator tweak (ADL5375, about $17) driven by the new board's 125 MS/s DACs is the gate: 8 ns steps, shaped edges, x and y phases. The switch still does CW ODMR's kilohertz chopping.
+- **Equipment:** an NV-ensemble diamond, the dominant cost (Element Six DNV-B1/B14, about $2,000 per a recent outreach paper, whose CW setup totalled about $4,500); a 520 nm direct-diode laser switched by a MOSFET tile (goggles OD 4+); a ≥650 nm long-pass filter; A10's photodiode and TIA built for ≥10 MHz; R10 + ADL5375 + R12; a printed split-ring resonator (a bare loop at 100 mW gives about 1.5 MHz Rabi, the resonator a few MHz); a magnet; a metal box (2.7–2.9 GHz is aircraft radar).
+- **FPGA:** the pulse sequencer (7.07's NMR programmer at 5–10 ns ticks), I/Q envelope playback, gated integration of the ADC over signal and reference windows, accumulated 10^4–10^6 shots with microwave-on/off interleaving, and the sweeps (Rabi, Ramsey, Hahn, T1, pulsed ODMR).
+- **Steps:** fluorescence; CW ODMR and the magnet's splitting; the pumping time; Rabi; T2*, T2, T1; composite pulses; AC magnetometry.
+
+**Rubidium CPT clock.** Modulate a 795 nm VCSEL at half the hyperfine splitting (1.517866 GHz for Rb-85, 72% of natural Rb; 3.417341 GHz for Rb-87). The dark resonance is a few hundred Hz to kHz wide.
+- **Already owned, perhaps:** TeachSpin's Optical Pumping apparatus has the cell (natural Rb, 30 torr neon, the right kind for CPT), oven, D1 filter, polarizer, quarter-wave plate, lenses, detector and coils. Replace the lamp with the VCSEL.
+- **Equipment:** VCSEL (hundreds of dollars; a 2018 time-nuts thread quoted $500–800), TEC mount and driver, a low-noise 1–3 mA current source, the bias-T (18 nH: 172 Ω at 1.52 GHz), a 25 MHz VCTCXO, a GPS PPS module.
+- **The catch:** the MAX2870's fractional step is 6.1 kHz, wider than the line. So the loop steers the 25 MHz reference (±10 ppm over 16 bits is about 1 Hz at 3.4 GHz), as real clocks do, and that reference also clocks the FPGA board: the board keeps atomic time.
+- **FPGA:** laser lock (current dither, lock-in, PI), clock lock (reference dither, lock-in, PI), temperature loops, and the meter (vs GPS PPS or a second board; Allan deviation).
+- **Steps:** find the four D1 dips; the sidebands as a ruler; lock the laser; sweep through the dark resonance with a C-field (Zeeman neighbours 0.93 MHz/G per m for Rb-85); close the loop; about 3e-10 at 1 s estimated for Rb-85; then the light shift, buffer-gas shift, C-field and temperature systematics.
+
+## Prompt 27
+
+You've got the 40 kHz piezo pair in section 4.06 connected and pointing toward each other, roughly 10 cm away from each other. Test that things work as expected. I will not move the detectors, but you should sweep the frequency. Make plots and add them to that section. From your measurements, try to get a very simple FSK modem to work and then maybe try to get a faster modulatoin scheme within the limits of the channel. Write that up in 4.06 with plots and pointers to the code that you ran.
+
+**Added mid-way (verbatim):** Keep going. Add photo_ultrasound.jpg to show on section 4.06's md. Take a look at it yourself to see the setup.
+
+**Added mid-way (verbatim):** Keep going, but one reason for the stronger-than-expected signal might be that they are both touching the same table 10 cm away from each other.
+
+## Response 27 2026-10-17 13:50:14 - 14:39:03 Claude Opus 5.5
+
+Measured on DP051TLX, nothing moved. `make check`: 0 errors, 0 warnings. 4.06 now has the photo, six figures and five printed files; the new code is in `src/ultrasound/`, the measurement and figure scripts in `dev/tools/ultrasound/`, the data in `dev/data/ultra_*.npz`.
+
+**What the page predicted, and what the pair did:**
+
+| | predicted | measured |
+| --- | --- | --- |
+| signal at the ADC | tens of mV | 1.27 V at 40.29 kHz |
+| resonance | Q ≈ 20–30 | two resonators, 39.91 kHz (Q 39) and 40.61 kHz (Q 41); 970 Hz wide at 3 dB |
+| distance | about 10 cm | 353 µs of pure delay from the fit = 12.2 cm at 22 °C |
+
+Also: a second mode at 57.98 kHz (−22 dB), skirts far steeper than two resonators (63 dB down at 36 kHz), a −89 dB floor, and the phase steady to ±0.7° over two minutes (17 µm of path).
+
+**The table:** a path through the bench would arrive within ~100 µs. In the burst records where the ADC was toggling between codes, the 40.3 kHz before the air's arrival is 0.05 codes, against 6.1 codes for the air's own signal at the same stage of ring-up: the bench carries at least 42 dB less than the air. The card test is suggested on the page, not done.
+
+**New gateware, `awgcap_slow.sv`:** `awgcap.sv` with a clock divider (one DAC sample per 2^k clocks, 195 kS/s at k = 8; each recorded value the mean of 2^k ADC samples, sent as 16 bits), with a testbench. A 3 ms burst through the air matches what the sweep's fit predicts sample by sample (22.8 codes measured, 21.9 predicted).
+
+**FSK (`fsk.py` on 6.12's `ddc.sv`, unchanged):** two tones 1/T apart around 40.3 kHz, non-coherent detection, Barker-13 sync. 0 errors in 4840 bits at every rate from 254 to 2441 baud; 30% at 3052. Two sync bugs made it look slower at first (sync on the normalized soft value matched noise in the silence; then random data matched the Barker word): now it searches only where the sound starts.
+
+**OFDM (`ofdm_air.py` on `awgcap_slow.sv`):** 1024-point FFT at 97.7 kS/s (95.37 Hz subcarriers), 2.62 ms prefix, a QPSK probe, then bit loading from BPSK to 1024-QAM. 25.7 kbit/s with 0 errors in 67,400 (gap 13 dB), 32.0 kbit/s at 1.7e-4, 37.6 kbit/s at 9.0e-4 (gap 7 dB); Shannon from the probe's SNRs, less the prefix, is 60 kbit/s. The FFT window's best start (a plateau from 2.0 to 2.95 ms into the symbol) measures the impulse response a third way.
+
+**Found along the way:** after a frequency change the pair rings, so `sweep.py` keeps the second of two averages; for ~1.7 s after `lockin.bit` loads, this board read 1.7 mV at 30 kHz that isn't there (cause not found; `measure.py` now waits 3 s); with no signal the ADC can sit on one code with no noise, so small signals vanish (the burst, not a click, is used for timing); `ddc.sv` and `ddc.py` called themselves 6.11's, but 6.12 prints them: their first lines now say so.
+
+**Also changed:** 4.00's table row and note, 4.10's chirp-sonar row (now `awgcap_slow.sv`), Appendix C's untested list, `dev/README.md`, the top `Makefile`, `.gitignore`.
+
+**Board state:** DP051TLX runs `lockin.bit` (the last sweep); the pair is where it was.
+
+## Prompt 28
+
+I put a cardboard box under the transmitter and receiver. Coupling to the table should be less. Measure again. Mark everything after the initial scan as an advanced topic.
+
+## Response 28 2026-10-17 15:50:00 - 16:11:46 Claude Opus 5.5
+
+Measured everything again with the pair on the box (`measure.py all`, 10 minutes); the bench data are kept as `dev/data/ultra_bench_*.npz` and drawn beside the box's. `make check`: 0 errors, 0 warnings.
+
+**4.06 restructured:** the setup and "The scan" (the lock-in sweep, a new two-panel figure with box and bench overlaid, and a short "Try this") are the basic part. Everything after it sits under "## Advanced topics", opened by a note saying so: the fit and delay (a new figure, `ultra_delay.png`), the burst with `awgcap_slow.sv`, the bench question, and the two modems. The page's numbers are now the box's, with the bench's beside them.
+
+**Box against bench:**
+
+| | bench | box |
+| --- | --- | --- |
+| peak | 1.27 V at 40.29 kHz | 1.49 V at 40.31 kHz |
+| fit | 39.91 kHz Q 39, 40.61 kHz Q 41 | 39.96 kHz Q 42, 40.65 kHz Q 42 |
+| delay | 353 µs, 12.2 cm | 318 µs, 10.9 cm (moved closer) |
+| 36 kHz, re the peak | −63 dB | −46 dB |
+| phase over 2 min | ±0.7° | one 7.4° slip (0.18 mm), then 0.27° rms |
+| FSK | clean to 2441 baud, 30% at 3052 | clean to 2441 baud, 26% at 3052 |
+| OFDM, gap 13/10/7 dB | 25.7/32.0/37.6 kbit/s | 22.5/28.8/33.9 kbit/s |
+| Shannon (probe) | 61 kbit/s | 56 kbit/s |
+
+**What the box says about the table:** at the peak, almost nothing: +1.4 dB, of which 0.9 dB is the 1.2 cm the pair moved closer, and the same two resonances. The impulse responses (inverse FFT of each sweep) have nothing before the air's arrival above about −40 dB either way. Away from the peak the mounting does matter: on the box 5–12 times more gets through, 30–50 dB down, delayed like sound (150–300 µs of phase slope), so it may be the cardboard (bending waves in thin board are about as slow as air) or the air around it; and the moved leads now pick up ~0.15 mV of the DAC directly at 30–32 kHz (no delay). The box's SNRs are 1–2 dB lower than the bench's although the signal is stronger: not noise, then; not found. None of the box's 32 burst records caught the ADC toggling, so the burst's timing bound exists only for the bench.
+
+**Changed:** `fig_ultrasound.py` (box and bench, `ultra_scan.png` and `ultra_delay.png` replace `ultra_sweep.png`), `measure.py` (16 burst records), 4.00's row (the modems marked advanced), Appendix C, `dev/README.md`.
+
+**Not done:** the card between the transducers. The photo still shows the pair on the bench; a photo on the box would match the page.
+
+**Board state:** DP051TLX runs `ddc.bit` (the last step); the pair is on its box.
+
+## Prompt 29
+
+I was thinking about rearanging the tutorial a bit, but I'll hold off on that. A student looked over it and had some comments for improvements:
+
+```
+The line "xattr -d com.apple.quarantine oss-cad-suite-*.tgz 2>/dev/null" breaks things on Linux, so maybe move it out of the code block. There should be a different code block for Mac, Windows, and Linux where the three are really different.
+
+I also think it's slightly confusing that the first thing you read explains the whole system, this could be a little intimidating. Maybe relegate the details of the whole system to later. Hint at the ADC and DAC, but dive right away into counting on the LEDs.
+
+Where it says "Then, with the board plugged in:" it should re-mention which USB port to plug into: the left one when the ports are pointing down at you.
+
+In section 0, tell people not to plug in the converter board (with the ADC+DAC module attached) until it's needed, since it makes it harder to see the LEDs.
+
+Where it says "Make it count twice as fast", add something about the LEDs to make it clear that we aren't trying to change the clock speed/counting in the counter, but to show different bits.
+
+Add a hint to google the SystemVerilog if-statement syntax when you suggest "Add a second input, "
+```
+
+After fixing these things, I want you to focus on `tutorial/D_coming_soon.md`. Two things have happened. I've submitted the `~/OpticsPCBs/ECP5-2ADC-2DAC` board for production at JLCPCB. I've also submitted `~/OpticsPCBs/CostasLink-PYNQ-Z2` for production at JLCPCB, which does IQ modulation and demodulation along with a hardware costas loop for very low-latency communication. I want you to look at the so-called AMOD and RF-MOD boards described in `tutorial/D_coming_soon.md` and make improvements or suggestions based on what was learned in `ECP5-2ADC-2DAC` and `CostasLink-PYNQ-Z2`. This should leave `tutorial/D_coming_soon.md` updated with the latest information from `ECP5-2ADC-2DAC`. If it's not much more expensive, some of the chips from `CostasLink-PYNQ-Z2` or other, chepar IQ modulation/demodulation chips should be incorporated into the RF-MOD board or a 2nd-level "advanced" RF-MOD board.
+
+Is there a 2nd level "advanced" AMOD board that could be used in more physicsy experiments or senior-level demonstrations like PDH locking or piezo feedback or non-trivial NMR or NV-center types of experiments? If so, describe that 2nd-level "advanced" AMOD board.
+
+When you are done, `tutorial/D_coming_soon.md` should serve as the starting point for an agent that will design these PCBs.
+
+**Added mid-way (verbatim):** Add this as additional smaller things to that prompt, and also do them:
+
+The "Recorded spectra" plot in 6.10 does not seem to be apples-to-apples in terms of signal level and band-pass filtering.
+
+Maybe take some inspiration about what to include on the AMOD board (or boards) from theADALP2000 Analog Parts Kit that Analog Devices put together to use with their ADALM2000. I don't want to use this device to learn discrete transistor and op-amp circuits, so many of the parts and labs might not be relevant, but some might be. The students in my particular junior-level electronics class will have done chapters 1-10 and 14-15 of `~/mudd/pcbs/op-amp-pcb/datasheets_not_in_git/Tom_Hayes_Paul_Horowitz_Learning_the_Art_of_Electronics.pdf`, which you can read, but not include here in git. Chapters 16 and onward would be covered more by this series of tutorials with the ECP5 FPGA and the boards discussed here, probably as a second-semester class, though some might do some of this tutorial as their final project.
+
+Note that our AMOD and RF-MOD boards that contain only one  PMOD connector need to have their PMOD off to the side, not in the middle. This is so that a speaker, microphone, or higher-bit audio ADC/DAC PMOD board can connect to the other slot. Make sure that the PMOD connector is off to the side (left side when it's pointing down on the expansion board) so that a 2nd PMOD can be slid in next to it.
+
+**Added mid-way (verbatim):** keep going. I expect you to take most of the night, so access whatever files you think you'll need permission to access now so that you don't get stuck asking me for permission after I've gone to sleep.
+
+## Response 29 2026-10-24 22:27:00 - 23:30:00 Claude Fable 5.1
+
+Nothing measured; the board still has the ultrasound pair on it. Written, drawn, re-plotted and checked. `make check`: 0 errors, 0 warnings. (The session's shell was refused by a permission check for the last half hour, so the final edits went through the editor tool and the check and commit waited for your next message.)
+
+**The student's six fixes**, in 0.00, 1.00, 1.01 and 1.02:
+
+| comment | what changed |
+| --- | --- |
+| the `xattr` line breaks Linux; one block per laptop where they differ | 1.00's OSS CAD Suite step is three blocks (Linux; macOS with `xattr` and `~/.zshrc`; Windows/WSL with `/mnt/c`), the `$ADDA` step two, and the Python step has its `apt` line in a Linux/WSL block of its own |
+| the first page explains the whole system; dive into the LEDs | 0.00 is the hook, a three-line board table, and "Start with the FPGA board alone"; the two warnings, "Which SMA is which" and the converter table moved to a last section, "The converters, for when you get to them", which 1.02 links when the module first goes on |
+| say which USB port, again | 0.00 and 1.00 both say: the port marked Flash, the left one of the three when they point down, toward you |
+| don't plug the converter board in until it is needed | 0.00: leave the adapter and module in their bags until 1.02; they sit over the LEDs |
+| "twice as fast" is about which bits, not the clock | 1.01 says so |
+| hint at the `if` syntax | 1.01: search for "SystemVerilog if statement always_ff", inside the `always_ff` block |
+
+**6.10's recorded spectra.** The two panels mixed two things: every waveform at the same peak swing, so the codes' 8 dB higher PAPR showed as an 8 dB lower band, and a chirp that is smooth by construction beside codes chipped at *B*. Each spectrum is now drawn relative to its own in-band level, the offsets at equal peak swing are printed in each panel's corner (held: within 0.7 dB; filtered: chirp −4.4, ZC −2.6, m-sequence −7.8, Gold −8.0, the pulse −30 either way), the titles say which row is chipped, and the "Same spectrum, same peak" panel does the same. The data are unchanged (`fig_compression.py --replot`); the prose and alt texts were brought into line.
+
+**Appendix D**, rewritten in place with every heading other pages link to kept:
+
+- *The next board*, as ordered: 158 × 119 mm, six layers, 5 boards with 2 assembled for $728 before about $255 of duty and $31 of shipping; a table of what its jacks present to the tiles (±1 V and the ×1/×10/×100 gains, the clamps, the DAC's ±1 V into 50 Ω, CLK IN and CLK OUT levels, the Pmods 0.9 inch apart, the noise source and photodiode on the board); the PLL-jitter caveat from the reviews; the rev B list; the final renders (`ecp5_2adc_2dac_top/bottom.png` replaced).
+- *Two boards that went to the fab, and what they teach the boards below*: CostasLink described, its render added (`costaslink_top.png`), and eleven lessons: the shelf by API with dates, the feeder fee, the SMA launch above 2.4 GHz, solid RF grounds, wire-wound ESD shunts, monitor jacks, the input power chain, levels on every wire, a detector for an unlocked receiver, hand-traced paths, preview rotations.
+- *The AMOD intro* names the ADALP2000 (the system parts borrowed: Hall sensor, in-amp, current monitor, slow I<sup>2</sup>C converters, transformer) and maps LAoE chapters 1–10 and 14–15 (done) and 16–18 (this tutorial) onto tiles. Conventions: the Pmod plug at the left end of the bottom edge with the host's second socket free (dotted in every sketch), RH-5019 test loops, fitted DIP switches, five boards.
+- *AMOD-A*: A7 is a 74HC4046 PLL (LAoE Lab 18L); A12 takes the one-bit DAC jack; the fan and the NMR front end moved to AMOD-2. *RF-MOD*: MAX2871 for MAX2870 (3,120 in stock, $8.63), in-stock filters (B39921B2672P810 at 915 MHz, Murata LFB212G45 at 2.4 GHz; the Abracon and Johanson parts are gone from the shelf), the LTC5510 now listed (35, thin: AD8342 as R8's fallback), prices re-read 2026-10-24.
+- *The second level* (new; sketch `amod_adv.png`): **AMOD-2**, Y1–Y12: ±15 V, ±5 V and a 0–60 V rail; an OPA454 piezo driver; a bimorph cantilever with a shadow sensor as a plant; a laser diode driver with a bias-T and a TTL shunt switch; DRV8876 bridges for a TEC and for a coil or motor, with INA240 monitors; an OPA858 PIN receiver to 20 MHz; a THS3491 NMR pulse amplifier; an OPA847 preamplifier with a PIN T/R switch and tune/match; ADS1115 and MCP4728 slow I/O; an INA849 and a DRV5055; a varactor-pulled crystal as an electronic cavity. An experiment-by-tile table: PDH electronic and with light, a piezo on a fringe, damping a resonator, NMR in a built magnet, gradients, Earth's field, ESR, ODMR, the Rb clock, LAoE 10L's motor loop. About $85 of parts, roughly $300 per assembled board. **RF-MOD-2**, X1–X11: the ADL5375-05 and ADL5380, a MAX2871 on a VCXO, CostasLink's hardware Costas loop with window comparators and monitors, the QPL9547, PE43711 and ADL5611 receive chain, a SKY13351 T/R switch, AD8318 and AD8310 detectors, power, slow I/O, and a 2.87 GHz split-ring resonator in a bare corner for NV centres. About $130 of parts, roughly $380 per assembled board.
+- *For the agent that will design these boards* (new): where the rules are (`OpticsPCBs/CLAUDE_PCB.md`), the two generators and which files to copy, the interface table (DAC, ADC, CLK, Pmod, power, mechanical, silkscreen), the order of work, what is decided, the open questions for you, the deliverables.
+- The near misses and the two worked-out experiments now name the tiles (Y4, Y5, Y6, X1, X11); the tweaks table's I/Q row is RF-MOD-2's and four JLCPCB cells were re-read.
+
+**The I/Q decision.** The pair is $35.50 on JLCPCB's shelf today (ADL5375-05: 652 in stock at $14.52; ADL5380: 14 at $20.98), about 60% of RF-MOD's parts, and it needs a receive chain, baseband amplifiers and a loop around it to be worth having: so it is RF-MOD-2's. The cheap quadrature transmitter for RF-MOD itself is a TRF3722 (PLL, VCO and I/Q modulator in one package to 4.2 GHz, $7.50, 2,218 in stock), left as a question for you.
+
+**Stock.** About 120 part numbers were queried through CostasLink's `tools/jlc_api.py` (a copy in my scratchpad, so its cache did not touch the OpticsPCBs tree); every chip the appendix names carries its 2026-10-24 stock and price. The ADALP2000 list came from Analog's wiki page as a PDF (the live page refuses scripts) and the LAoE table of contents from the PDF you named; neither is in git.
+
+**Also changed:** `dev/tools/fig_amod.py` (the Pmod at the left end, A7 and A12, MAX2871, the two new boards), `dev/tools/comms/fig_compression.py`, Appendix A ("drawn and, since October 2026, ordered"), Appendix C's status line, `dev/README.md`.
+
+**Not done:** no bench measurement; the 60 V "touch-safe" claim is the DC limit and yours to review before a student meets it; the Pmod rule is stated for the new board's two sockets, and a rev-B Icepi adapter with one Pmod needs nothing more.
+
+**Board state:** DP051TLX runs `ddc.bit` (unchanged since Prompt 28); the ultrasound pair is on its box.

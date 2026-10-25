@@ -388,6 +388,18 @@ Over two minutes, 571 exchanges:
 > loop (212.92 ns, measured through a 16.5 cm cable), with no clock offset at all, since both ends
 > share one clock. That's the number the round trip above was compared with.
 
+**Measuring a cable.** The round trip is the converters plus the cables,
+so a change of cables shows up in it directly. With two longer cables of
+unknown length in place of the 16.5 cm ones, 631 exchanges gave
+443.76 ns (0.16 ns rms): 18.13 ns more, 4.1 m more of RG-316 at its
+0.695 velocity factor. If the two cables are the same, each is about
+2.05 m (1.96 m if they are RG-58). Which one is longer, this cannot say,
+for the reason in the next section. Looped back, each board can: one board
+through one cable measured 221.81 ns one way, the other through the other
+222.28 ns, so after 212.13 ns of converters the cables are 2.017 m and
+2.115 m of RG-316. Their sum, 444.09 ns, is the same four converters and
+the same two cables as the round trip, and agrees with it to 0.33 ns.
+
 ## One-way delays?
 
 Neither board ever learns the one-way delay. Only the round trip is measured,

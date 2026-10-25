@@ -189,6 +189,23 @@ def delay_in_band(f, H, lo=5.3e6, hi=7.2e6):
     return -np.polyfit(f[sel], np.unwrap(np.angle(H[sel])), 1)[0] / (2 * np.pi)
 
 
+def align_to(rec, x):
+    """Two boards: nothing ties B's sample 0 to A's loop, and the two clocks drift apart by
+    about a sample a second.  Shift the record (circularly, by a fraction of a sample) so
+    that the probe x sits at lag 0: the coarse lag from the correlation peak, the fine one
+    from the cross-spectrum's phase slope (as twoway.py).  The delay is lost with it."""
+    r = rec - rec.mean()
+    n = len(r)
+    R, X = np.fft.rfft(r), np.fft.rfft(np.tile(x, n // len(x)))
+    C = R * np.conj(X)
+    lag0 = int(np.argmax(np.fft.irfft(C, n)))
+    f = np.fft.rfftfreq(n)                                     # cycles per sample
+    band = np.abs(X) > 0.05 * np.abs(X).max()
+    ph = np.unwrap(np.angle(C[band] * np.exp(2j * np.pi * f[band] * lag0)))
+    lag = lag0 - np.polyfit(f[band], ph, 1)[0] / (2 * np.pi)
+    return np.fft.irfft(R * np.exp(2j * np.pi * f * lag), n) + rec.mean()
+
+
 def sound(play, record, probes=PROBES, records=4, align=False):
     """Play each probe, record it `records` times, and measure.  Returns a dict:
     h_mseq, h_step (impulse responses, ADC codes per DAC code, one per 40 ns sample),
@@ -197,10 +214,10 @@ def sound(play, record, probes=PROBES, records=4, align=False):
     for name in probes:
         wave, x = globals()["probe_" + name]()
         play(wave)
-        rec = np.mean([record() for _ in range(records)], axis=0).astype(float)
-        if align:                                                # two boards: find the loop's start
-            c = np.fft.irfft(np.fft.rfft(rec[:L] - rec.mean()) * np.conj(np.fft.rfft(x)), L)
-            rec = np.roll(rec, -int(np.argmax(c)))
+        recs = [record().astype(float) for _ in range(records)]
+        if align:                                     # two boards: line up each record first, then
+            recs = [align_to(r, x) for r in recs]     # average (the clocks drift a sample a second)
+        rec = np.mean(recs, axis=0)
         out["rec_" + name] = rec
         if name == "mseq":
             out["h_mseq"] = by_mseq(rec)

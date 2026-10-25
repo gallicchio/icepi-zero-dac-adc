@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The laptop side of ddc.sv (6.11): tones out of the DAC, and I/Q frames in from the DDC.
+"""The laptop side of ddc.sv (6.12): tones out of the DAC, and I/Q frames in from the DDC.
 
     python3 ddc.py --tone 6.78e6              # a continuous 6.78 MHz tone (finds the port)
     python3 ddc.py /dev/ttyUSB0 --tone 6.78e6 --amp 50
@@ -48,7 +48,7 @@ def find_port():
     """The first FTDI FT231X serial port (USB ID 0403:6015): the Icepi Zero's."""
     from serial.tools import list_ports
     for p in list_ports.comports():
-        if (p.vid, p.pid) == (0x0403, 0x6015):
+        if (p.vid, p.pid) == (0x0403, 0x6015) and p.product in (None, "FT231X USB UART"):
             return p.device
     raise SystemExit("No Icepi Zero found. Is it plugged in? (Or give its port.)")
 

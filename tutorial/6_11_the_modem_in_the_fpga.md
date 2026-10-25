@@ -1547,10 +1547,11 @@ a real receiver's loop gains depend on the signal level.
   and count dropped bytes against wrong ones as the noise rises.
 - Swap Catmull-Rom for the parabolic interpolator in the model (one
   function) and plot MER against `mu`: the 13 dB dip is the band edge.
-- Two boards: `qpsk_modem_test.py PORT_A PORT_B`, A's DAC to B's ADC. The
-  loops' integrators should settle at the real +0.76 ppm and +4.75 Hz,
-  which the board cannot report but `awgcap.bit` on a third board and the
-  model can.
+- Two boards: `qpsk_modem_test.py PORT_A PORT_B`, A's DAC to B's ADC.
+  Done, across about 2 m of coax and two crystals 0.2 ppm apart: 200,000
+  bytes each way, 0 bit errors in 1.6 million. The loops' integrators
+  should settle at the real offset, which the board cannot report but
+  `awgcap.bit` on a third board and the model can.
 - Drive it from Linux: swap `modem.sv` for `qpsk_modem.sv` in
   [5.05](5_05_fsk_modem.md#505-a-modem)'s `make_modem_linux.py` and run
   `ping` across the cable at 3 Mbit/s instead of 115 kbaud.

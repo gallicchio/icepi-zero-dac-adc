@@ -31,7 +31,7 @@ if "--replot" not in sys.argv:
     port = sys.argv[sys.argv.index("--port") + 1] if "--port" in sys.argv else None
     if port is None:
         from serial.tools import list_ports
-        port = next(p.device for p in list_ports.comports() if (p.vid, p.pid) == (0x0403, 0x6015))
+        port = next(p.device for p in list_ports.comports() if (p.vid, p.pid) == (0x0403, 0x6015) and p.product in (None, "FT231X USB UART"))
     waves = {
         "big":   128 + 127 * np.sin(2 * np.pi * K_SIG * n / N),
         "small": 128 + 16 * np.sin(2 * np.pi * K_SIG * n / N),

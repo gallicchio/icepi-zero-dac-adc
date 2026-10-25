@@ -412,7 +412,7 @@ def find_port():
     """The first FTDI FT231X serial port (USB ID 0403:6015): the Icepi Zero's."""
     from serial.tools import list_ports
     for p in list_ports.comports():
-        if (p.vid, p.pid) == (0x0403, 0x6015):
+        if (p.vid, p.pid) == (0x0403, 0x6015) and p.product in (None, "FT231X USB UART"):
             return p.device
     raise SystemExit("No Icepi Zero found. Is it plugged in? (Or give --port.)")
 
@@ -944,8 +944,23 @@ moving average, and the sixteen taps come out as a 640 ns pulse of
 64 × 30.7 mV/16, held 40 ns per tap, which is the [impulse response](https://en.wikipedia.org/wiki/Impulse_response) seen
 rather than inferred.
 
-**With a second board** as the [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)): untested here, see
-[7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware).
+**With a second board** as the [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)) ([7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)): A runs this
+filter, B runs [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in, and the two are cross-cabled. The
+reference sweep is A playing its input straight through (`--out 1`, the
+same delay as the filter); then the filter goes in and the second sweep
+is divided by the first:
+
+```console
+A$ python3 filter.py $A --lowpass 2e6 --out 1
+B$ python3 ../verilog/lockin.py --port $B --sweep 1e5 12e6 -n 40 -o thru.csv
+A$ python3 filter.py $A --lowpass 2e6 --out 0
+B$ python3 ../verilog/lockin.py --port $B --sweep 1e5 12e6 -n 40 -o lp.csv --ref thru.csv
+```
+
+Where the design is above −20 dB, the 30 points are 0.33 dB rms from it
+(1.4 dB at worst, at 3.1 MHz) and 6° rms in phase; the stopband reads
+−40 dB at its highest, the lock-in's floor. Two $40 boards, and no
+instrument.
 
 **With one board, looped back** (`--measure impulse|step|noise`): the
 stimulus is made inside the FPGA, the DAC plays the filter's output, the

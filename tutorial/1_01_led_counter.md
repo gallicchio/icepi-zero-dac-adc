@@ -317,12 +317,17 @@ it. The commands are shown here in full so you know what `make` is doing.
 
 **Try this:**
 
-- Make it count twice as fast. Then make it count down.
+- Make the LEDs count twice as fast. The clock is a crystal, so you can't
+  speed that up, and the counter already adds one every 20 ns: what
+  changes is *which five bits* of `count` the LEDs show. Then make it
+  count down.
 - Show `count[22:18]` instead. Why does `led[0]` now look steadily lit, a
   little dimmer, rather than blinking?
 - Add a second input, `input logic btn` (it's already in the `.lpf`: it reads
   0 while the button nearest the USB connectors is pressed), and freeze the
-  counter while it's pressed.
+  counter while it's pressed. If you haven't met SystemVerilog's `if`
+  statement yet, search for "SystemVerilog if statement always_ff": it goes
+  inside the `always_ff` block, around the `count <= count + 1`.
 
 <!-- nav -->
 [← 1.00 Circuits from code](1_00_circuits_from_code.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.02 A sawtooth from the DAC →](1_02_dac_sawtooth.md)

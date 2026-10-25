@@ -1,7 +1,7 @@
 # Build outputs.  The sources are what's committed; everything below is made
 # by yosys, nextpnr, ecppack, iverilog, LiteX, gcc or kbuild.
 
-# Chapters 1, 4 and 5: yosys / nextpnr / ecppack / iverilog
+# Chapters 1, 4 and 5 (and 4.06's src/ultrasound): yosys / nextpnr / ecppack / iverilog
 src/verilog/*.json
 src/verilog/*.config
 src/verilog/*.bit
@@ -12,6 +12,11 @@ src/twoboard/*.json
 src/twoboard/*.config
 src/twoboard/*.bit
 src/twoboard/*.pnr.log
+src/ultrasound/*.json
+src/ultrasound/*.config
+src/ultrasound/*.bit
+src/ultrasound/*.pnr.log
+src/ultrasound/*.vvp
 dev/tools/boardtest/*.json
 dev/tools/boardtest/*.config
 dev/tools/boardtest/*.bit

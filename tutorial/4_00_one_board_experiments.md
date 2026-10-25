@@ -27,7 +27,8 @@ high-impedance input.
 
 > [!NOTE]
 > The experiments of [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) to [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) are designed but **not yet tried**, apart
-> from timing the crystal against the laptop's clock in [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference): their numbers are
+> from timing the crystal against the laptop's clock in [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) and one transducer pair in
+> [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz), swept and used as a modem link without being moved: their numbers are
 > predictions, not measurements. If you do one, you're the first.
 
 | experiment | what you learn | parts | uses |
@@ -39,7 +40,7 @@ high-impedance input.
 | [4.03 A quartz crystal](4_03_quartz_crystal.md#403-the-q-of-a-quartz-crystal) | a [Q](https://en.wikipedia.org/wiki/Q_factor) of 10<sup>4</sup>, loaded down to 2,000 so the crystal stays cool; series and parallel resonance; a clock is a crystal too | 4 MHz crystal, 1 kΩ, 50 Ω | `lockin.py` |
 | [4.04 A diode clipper](4_04_harmonics.md#404-harmonics-a-diode-clipper) | harmonics; why symmetry kills the even ones | 1 kΩ, two 1N4148 | Chapter 2's SoC |
 | [4.05 A quarter-wave stub](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub) | [standing waves](https://en.wikipedia.org/wiki/Standing_wave); a cable's length from a notch | SMA T, 5 m RG-58 | `lockin.py` |
-| [4.06 The speed of sound](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz) | phase vs distance; *c* to 0.3%; temperature | 40 kHz transducer pair | `lockin.py -f` |
+| [4.06 The speed of sound](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz) | phase vs distance; *c* to 0.3%; temperature; the pair's resonance; and, as advanced topics, its delay and a modem through the air, FSK then OFDM | 40 kHz transducer pair | `lockin.py -f`; advanced: `ddc.sv`, `awgcap_slow.sv` |
 | [4.07 An optical link](4_07_optical_link.md#407-an-optical-link) | [photodiode](https://en.wikipedia.org/wiki/Photodiode) bandwidth; lock-in detection under room light | red LED, BPW34, 9 V | `lockin.py`, `capture.py` |
 | [4.08 Feedback control](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant) | a PI loop, and what 6 samples of latency cost | 1 kΩ, 1 µF | new gateware |
 | [4.09 Your crystal](4_09_your_crystal.md#409-your-crystal-against-a-reference) | parts per billion from a phase drift | 10 MHz reference (or none) | `lockin.sv` |

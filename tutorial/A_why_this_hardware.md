@@ -56,7 +56,8 @@ fast, and easy to drive from an FPGA: a parallel bus and a clock. They are only
 
 The next step up would be two 12-bit 65 MS/s ADC channels (a dual AD9238)
 and two 14-bit 125 MS/s DAC channels (a dual AD9767, the DAC of the Red
-Pitaya below), on one PCB with the FPGA. That board is drawn: [Appendix D](D_coming_soon.md).
+Pitaya below), on one PCB with the FPGA. That board is drawn and, since
+October 2026, ordered: [Appendix D](D_coming_soon.md).
 
 Fancier alternatives to this whole system, open source but relying on
 proprietary Xilinx tools:

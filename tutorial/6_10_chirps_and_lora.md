@@ -3,7 +3,7 @@
 
 # 6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable
 
-![The chirp through the cable for one whole loop: the recording mixed down with the band's lower edge, oscillating slowly at first and faster and faster for 327.68 microseconds; and its spectrogram, a straight line rising from 4.69 to 7.81 MHz, with an aliased third harmonic faint beneath it](img/comms_chirp.png)
+![The chirp through the cable for one whole loop: the recording mixed down with the band's lower edge, oscillating slowly at first and faster and faster for 327.68 microseconds; and its spectrogram, a straight line rising from 4.69 to 7.81 MHz, with the converters' second and third harmonics, aliased, as fainter lines crossing it](img/comms_chirp.png)
 
 A radar, a GPS receiver and a LoRa radio all do one thing: send a long
 waveform the receiver knows, and correlate what comes back with it at every
@@ -38,7 +38,7 @@ record with what it sent at every lag:
   [6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way), the same
   chip rate.
 
-![Ten chips of each waveform, held as played (rectangles) and filtered as a digital up-converter would make them (smooth, dashed); and the recorded spectra of all five, held and filtered, on one scale with every waveform at the same peak swing: held, the chirp is a flat band with skirts and the chipped waveforms a sinc with tails out to the band's edge, all within a dB of each other in the band and the single pulse 30 dB down; filtered, all five are flat and B wide, but the m-sequence and Gold code sit 7 dB lower, the chirp 4.3 and Zadoff–Chu 1.7](img/comms_waves.png)
+![Ten chips of each waveform, held as played (rectangles) and filtered as a digital up-converter would make them (smooth, dashed); and the recorded spectra of all five, held and filtered, each drawn relative to its own in-band level so that the shapes compare: held, the four chipped waveforms are the same sinc with tails out to the band's edge, and the chirp, computed smooth rather than chipped, a flat band with skirts; filtered at the DAC, all five are one flat band B wide. Each panel's corner prints what the same peak swing at the DAC leaves of each waveform's power, relative to the held chirp: within 0.7 dB of it held, and 2.6 to 8 dB below it filtered, the single pulse 30 dB down either way](img/comms_waves.png)
 
 "Play a waveform" hides two choices, and this page says which it made
 every time:
@@ -50,7 +50,12 @@ every time:
   computed sample by sample at the DAC's 50 MS/s, so it is smooth and
   nearly *B* wide already. Its only out-of-band energy is skirts, −30 dB
   and below, from the jump where it wraps from +*B*/2 back to −*B*/2 once a
-  loop. `--shape filtered` passes every waveform, the chirp included,
+  loop. (The recording adds the converters' own second and third
+  harmonics, folded back by the ADC: the shelves at −30 dB around 2 and
+  11 MHz in the top right panel, and the fainter lines in the first
+  figure's spectrogram. They are 10 dB lower at half the swing, as
+  distortion is; this module through 2 m of cable shows 13 dB more of them
+  than the 1 m cable of the first edition did.) `--shape filtered` passes every waveform, the chirp included,
   through an ideal low-pass exactly *B* wide, as a digital up-converter with
   a good interpolation filter would (the dashed lines): no tails, no skirts,
   and one flat spectrum for all five (the bottom right panel).
@@ -61,15 +66,22 @@ every time:
   waveform through that same wall.
 - **How loud each one is.** Every waveform is scaled to the same peak
   swing, ±100 DAC codes, because the DAC's range is what limits a
-  transmitter. That is why the two spectrum panels share one scale (0 dB is
-  the held chirp's level in the band). Held, all four long waveforms fill
-  the band within a dB of each other, and the single pulse, one chip of
-  energy instead of 1023, sits 30 dB (10 log 1023) down. Filtered, the
-  levels part: filtering makes peaks (the dashed lines' overshoots), and
-  the same peak swing then leaves less power. The m-sequence and Gold code
-  lose 7 dB, the chirp 4.3, and Zadoff–Chu 1.7. The chirp's overshoot is
-  all at its wrap, where the filter's edge meets the jump: 1.76 times the
-  swing. The `PAPR` column in the tables below is the same effect.
+  transmitter. The spectrum panels keep that question separate from the
+  shapes: each recording is drawn relative to its *own* level in the band,
+  so that a sinc and a flat band compare like with like, and the corner of
+  each panel prints what the same peak swing leaves of each waveform's
+  power, relative to the held chirp. Held, the four long waveforms are
+  within 0.7 dB of each other, and the single pulse, one chip of energy
+  instead of 1023, is 30 dB (10 log 1023) down. Filtered, the levels part:
+  filtering makes peaks (the dashed lines' overshoots), and the same peak
+  swing then leaves less power. The m-sequence and Gold code lose about
+  7.3 and 7.4 dB, the chirp 4.4 (4.30 computed), and Zadoff–Chu 1.9.
+  The chirp's overshoot is all at its wrap, where the filter's edge meets
+  the jump: 1.76 times the swing. The `PAPR` column in the tables below is
+  the same effect. (The top panel compares like with like in one more
+  way: the codes are chipped at *B* and the chirp is not, so the chirp
+  alone has no tails. It is the one waveform whose "held" and "filtered"
+  shapes are nearly the same.)
 
 <details>
 <summary>The whole file: <code>chirp.py</code></summary>
@@ -518,11 +530,11 @@ zc(1021, 1): the phase's second difference is -0.006154 rad at every chip (sprea
 B = 3.122 MHz (all), T = 327.68 us, BT = 1023, chips held;  SNR none added, carrier +0 Hz
           -3 dB width   sidelobes (dB)    B_rms   PAPR    delay     Doppler at 1 step:
           ns   x(1/B)   highest  on chips   MHz    (dB)   samples       peak, slide
-pulse   211.3   0.66     -33.0     -24.8     1.37   29.8     5.443       1.00   -0.00
-chirp   284.0   0.89     -13.2     -36.3     0.90    0.0     5.465       1.00   -8.01
-zc      206.6   0.64     -35.9     -31.5     1.43    0.1     5.446       1.00   +8.02
-m       206.1   0.64     -40.7     -31.0     1.43    0.1     5.458       0.04    lost
-gold    206.2   0.64     -23.1     -23.6     1.43    0.1     5.456       0.08    lost
+pulse   225.7   0.70     -30.4     -20.6     1.37   29.8     5.606       1.00   +0.00
+chirp   284.0   0.89     -13.2     -35.1     0.90    0.0     5.639       1.00   -8.01
+zc      208.5   0.65     -39.7     -29.9     1.43    0.1     5.598       1.00   +8.02
+m       209.2   0.65     -43.7     -29.5     1.43    0.1     5.637       0.04    lost
+gold    209.3   0.65     -23.2     -23.6     1.43    0.1     5.637       0.08    lost
 ```
 
 Read the columns left to right and you have the page. The **width** of the
@@ -531,7 +543,7 @@ are what is left beside the peak, the highest anywhere and the highest at
 whole chips of delay.
 
 Held, they differ wildly: the chirp's −13 dB, the
-[m-sequence](https://en.wikipedia.org/wiki/Maximum_length_sequence)'s −41, Zadoff–Chu's −36, the Gold code's −23. Do not read
+[m-sequence](https://en.wikipedia.org/wiki/Maximum_length_sequence)'s −44, Zadoff–Chu's −40, the Gold code's −23. Do not read
 those as properties of the sequences yet. The chirp's *spectrum* is a flat
 band with sharp edges, and the other four's are sincs with tails, and
 [Same spectrum, same peak](#same-spectrum-same-peak) below gives all five
@@ -542,10 +554,13 @@ rms width, which sets how well the peak can be timed. **PAPR** is the
 peak-to-average power ratio of what the DAC plays: what an amplifier sees.
 
 The **delay** is the cable's, to a hundredth of a sample,
-and every waveform finds the same 5.45 samples, 218 ns. (The step of
-[1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)
-crossed half-way 6 samples after the DAC moved, and `channel.py`, tuned
-to that step, puts the matched-filter peak at 6.0: the real chain delays
+and every waveform finds the same 5.62 samples, 225 ns, to within
+0.02 sample, through 2.02 m of RG-316 (9.7 ns of it; the rest is the
+converters). (The step of
+[1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc),
+through a 1 m cable, crossed half-way 6 samples after the DAC moved, and
+`channel.py`, tuned to that step, puts the matched-filter peak at 6.0.
+Through that same 1 m cable the chirps found 5.45: the real chain delays
 6.25 MHz by half a sample less than it delays a step's edge, which the
 model's two-pole filter does not know.) The last
 two columns are **Doppler**: what one step of carrier offset does to the
@@ -553,7 +568,7 @@ peak's height and position, and that column splits the five into two kinds.
 
 ## Pulse compression
 
-![Each of the five held waveforms through the cable, compressed: the matched filter over the whole loop with its highest sidelobe (pulse −33, chirp −13, Zadoff–Chu −36, m-sequence −41, Gold −23 dB); and all five with noise 15 dB above the signal's peak power, where the long waveforms show the cable's delay as a peak and the single pulse shows nothing](img/comms_compression.png)
+![Each of the five held waveforms through the cable, compressed: the matched filter over the whole loop with its highest sidelobe (pulse −30, chirp −13, Zadoff–Chu −40, m-sequence −44, Gold −23 dB); and all five with noise 15 dB above the signal's peak power, where the long waveforms show the cable's delay as a peak and the single pulse shows nothing](img/comms_compression.png)
 
 Why a long waveform at all? The matched filter's output for a delayed copy
 of *s*(*t*) is the waveform's own autocorrelation *R*(τ), centred on the
@@ -588,16 +603,16 @@ $ python3 chirp.py --no-plot --snr -20
 B = 3.122 MHz (all), T = 327.68 us, BT = 1023, chips held;  SNR -20 dB, carrier +0 Hz
           -3 dB width   sidelobes (dB)    B_rms   PAPR    delay     Doppler at 1 step:
           ns   x(1/B)   highest  on chips   MHz    (dB)   samples       peak, slide
-pulse   271.0   0.85      -0.2      -2.1     1.37   29.8     5.185       1.00   -0.00
-chirp   297.1   0.93      -2.6      -2.9     0.90    0.0     5.131       0.99   -8.15
-zc      265.2   0.83      -3.2      -3.7     1.43    0.1     4.804       1.00   +8.02
-m       255.7   0.80      -0.5      -0.6     1.43    0.1     6.217       0.94  -382.82
-gold    291.5   0.91      -3.0      -4.1     1.43    0.1     5.764       0.77  +3334.99
+pulse   258.4   0.81      -0.5      -2.5     1.37   29.8     5.132       1.00   -0.00
+chirp   298.7   0.93      -2.5      -2.8     0.90    0.0     5.254       0.99   -8.15
+zc      264.7   0.82      -3.2      -3.7     1.43    0.1     4.916       1.00   +8.02
+m       253.2   0.79      -0.5      -0.6     1.43    0.1     6.326       0.93  +960.49
+gold    291.1   0.91      -3.1      -4.1     1.43    0.1     5.884       0.76  +3334.97
 ```
 
 At −20 dB the "sidelobe" column has become the noise floor's height
 relative to the peak: a few dB, so the long waveforms are still finding the
-cable (within a sample of 5.5), while the pulse's −0.2 dB means its peak is
+cable (within a sample of 5.6), while the pulse's −0.5 dB means its peak is
 a coin toss against the noise (the figure's run lost it entirely). Twenty decibels under the noise with a 30 dB
 gain leaves 10 dB, and 10 dB is what you see.
 
@@ -660,7 +675,7 @@ proof is a Gauss sum.
 
 ## Same spectrum, same peak
 
-![Held against filtered, through the cable: the recorded spectra of Zadoff–Chu and the m-sequence on one scale, held (a sinc with tails) and filtered (a flat band B wide with sharp edges, 1.7 and 7 dB lower at the same peak swing); the five filtered waveforms' peaks lying on one sinc, with the whole-chip lags marked at its zeros; and the held Zadoff–Chu over ±60 µs, whose worst sidelobe is a ghost 7.7 µs from the peak, beside the held m-sequence's even floor](img/comms_shape.png)
+![Held against filtered, through the cable: the recorded spectra of Zadoff–Chu and the m-sequence, each relative to its own in-band level, held (a sinc with tails) and filtered (a flat band B wide with sharp edges; the legend notes that at the same peak swing the filtered waveforms carry 1.9 and 7.3 dB less power); the five filtered waveforms' peaks lying on one sinc, with the whole-chip lags marked at its zeros; and the held Zadoff–Chu over ±60 µs, whose worst sidelobe is a ghost 7.7 µs from the peak, beside the held m-sequence's even floor](img/comms_shape.png)
 
 Is the chirp's −13 dB sidelobe a property of chirps, and Zadoff–Chu's
 perfect autocorrelation a property of ZC? Only partly. Fact 1 of
@@ -676,11 +691,11 @@ $ python3 chirp.py --no-plot --shape filtered
 B = 3.122 MHz (all), T = 327.68 us, BT = 1023, chips filtered;  SNR none added, carrier +0 Hz
           -3 dB width   sidelobes (dB)    B_rms   PAPR    delay     Doppler at 1 step:
           ns   x(1/B)   highest  on chips   MHz    (dB)   samples       peak, slide
-pulse   285.0   0.89     -13.2     -37.6     0.90   30.1     5.481       1.00   -0.00
-chirp   284.0   0.89     -13.2     -36.3     0.90    0.0     5.464       1.00   -8.01
-zc      284.4   0.89     -13.2     -39.6     0.90    2.6     5.465       1.00   +8.02
-m       283.6   0.89     -13.2     -38.8     0.90    7.7     5.461       0.07    lost
-gold    283.9   0.89     -13.1     -23.8     0.90    8.0     5.461       0.09    lost
+pulse   284.5   0.89     -13.1     -37.0     0.90   30.1     5.616       1.00   -0.00
+chirp   286.1   0.89     -13.2     -35.1     0.89    5.0     5.579       1.00   -8.02
+zc      284.2   0.89     -13.2     -38.1     0.90    2.6     5.587       1.00   +8.02
+m       283.5   0.89     -13.2     -40.4     0.90    7.7     5.576       0.07    lost
+gold    283.8   0.89     -13.1     -23.8     0.90    8.0     5.577       0.09    lost
 ```
 
 Every peak is now the same sinc: 0.89/*B* wide, first sidelobes at
@@ -690,8 +705,8 @@ down instead of up and starting mid-band.
 
 What ZC's algebra promises is
 still there, in the "on chips" column. At whole chips of delay its
-correlation is −40 dB, where the sinc has its zeros, and so is the chirp's
-(−36) and the m-sequence's (−39). The Gold code's spectrum is not quite
+correlation is −38 dB, where the sinc has its zeros, and the chirp's
+is −35 and the m-sequence's −40. The Gold code's spectrum is not quite
 flat, and it has −24 dB there. A receiver that already knows the chip
 timing, as LTE's does after synchronization, samples on those zeros. A
 radar looking for a target at an unknown range sees the sinc between
@@ -701,24 +716,24 @@ So what made the held waveforms so different? Their spectra (top left). A
 held chip's spectrum is a sinc, −3.9 dB at the band's edges, with tails
 beyond, and a held chip's autocorrelation is a triangle two chips wide.
 The sequence's algebra makes every other whole-chip lag zero, so that
-triangle is the whole peak: 0.64/*B* wide, narrower than the sinc because
+triangle is the whole peak: 0.65/*B* wide, narrower than the sinc because
 the spectrum is wider, and with no −13 dB lobes (the next figure).
 
 The tails reach
 12.5 MHz and beyond, and the ADC, with no anti-alias filter
 ([1.06](1_06_fast_capture.md#106-fast-captures)), folds them back into the
 band. For the m-sequence the folded part is noise-like and spreads into a
-floor at −41 dB.
+floor at −44 dB.
 
 For held ZC it makes a *ghost* (bottom panel). The chips'
 eighth spectral image sits 8 × 3.116 = 24.93 MHz from the carrier, the
 25 MS/s ADC folds it to 73 kHz from the carrier, and to a chirp a frequency
 offset is a delay ([Doppler](#doppler-a-bug-and-a-feature), below):
-73 kHz × *T*/*B* = 7.7 µs. The held ZC sees a target 7.7 µs early, at
-−36 dB, that isn't there.
+73 kHz × *T*/*B* = 7.7 µs. The held ZC sees targets 7.6 µs late and
+7.8 µs early, at −40 and −43 dB, that aren't there.
 
 That, and not a weakness of its algebra, is why
-held ZC came out 5 dB worse than the held m-sequence: both have the same
+held ZC came out 4 dB worse than the held m-sequence: both have the same
 tails, but the m-sequence's fold spreads out and ZC's compresses.
 
 The comparison that matters for a transmitter is the filtered one. A
@@ -743,7 +758,7 @@ as the last section showed, every waveform has it. Radar people kill it
 with a window on the *receiver's* reference, not the transmitted signal,
 which stays constant-envelope (a "mismatched filter").
 `fig_compression.py` tries a Hamming window (one argument to
-`chirp.compress`), the dashed line: sidelobes at −42.5 dB, a main lobe
+`chirp.compress`), the dashed line: sidelobes at −42.8 dB, a main lobe
 1.30/*B* wide instead of 0.89/*B*, and a 1.34 dB loss in SNR, which is
 exactly the Hamming window's processing loss from
 [1.06](1_06_fast_capture.md#106-fast-captures)'s spectra. Nothing is free:
@@ -764,11 +779,11 @@ $ python3 chirp.py --no-plot --cfo 1
 B = 3.122 MHz (all), T = 327.68 us, BT = 1023, chips held;  SNR none added, carrier +3052 Hz
           -3 dB width   sidelobes (dB)    B_rms   PAPR    delay     Doppler at 1 step:
           ns   x(1/B)   highest  on chips   MHz    (dB)   samples       peak, slide
-pulse   210.9   0.66     -33.0     -24.8     1.37   29.8     5.445       1.00   -0.00
-chirp   284.2   0.89     -13.2     -36.0     0.90    0.0    -2.544       1.00   -8.01
-zc      206.7   0.64     -35.9     -31.1     1.43    0.1    13.468       1.00   +8.02
-m       759.7   2.37      -0.2      -0.3     1.43    0.1  -2867.603       0.97  -707.55
-gold    207.9   0.65      -0.3      -0.5     1.43    0.1  3135.961       0.88  +257.14
+pulse   225.7   0.70     -30.3     -20.6     1.37   29.8     5.603       1.00   +0.00
+chirp   284.2   0.89     -13.2     -35.3     0.90    0.0    -2.368       1.00   -8.01
+zc      208.5   0.65     -39.2     -29.5     1.43    0.1    13.621       1.00   +8.02
+m      1049.2   3.28      -0.1      -0.1     1.43    0.1  -617.248       0.95  -608.95
+gold    215.9   0.67      -0.0      -0.2     1.43    0.1  3136.300       0.89  -5837.36
 ```
 
 For a **code**, a frequency offset is a slow rotation of the chips through
@@ -784,7 +799,7 @@ ramps at *B*/*T*, so a signal Δ*f* high looks like the same chirp arrived
 Δ*f T*/*B* early: the peak keeps its full height and slides, one chip per
 step here, −8.01 samples for the up-chirp and +8.02 for Zadoff–Chu (a
 down-chirp: the sign of the exponent). The delay found by the up-chirp is now
-−2.5 samples instead of 5.5, and ZC's 13.5. This *delay–Doppler coupling* is a
+−2.4 samples instead of 5.6, and ZC's 13.6. This *delay–Doppler coupling* is a
 bug for a radar that wants range (a 300 m/s target at 10 GHz is 20 kHz, 6.5
 chips at this *B*/*T*), and it is the feature that lets LoRa run on a 20 ppm
 crystal. The cure is the triangle: an up-chirp and a down-chirp slide
@@ -1365,12 +1380,12 @@ codes. The measurements say he is right, with the fine print:
 
 | | binary code (m-sequence, Gold) | chirp | Zadoff–Chu |
 | --- | --- | --- | --- |
-| peak width: held chips / filtered to *B* | 0.64/*B* / 0.89/*B* | 0.89/*B* | 0.64/*B* / 0.89/*B* |
+| peak width: held chips / filtered to *B* | 0.65/*B* / 0.89/*B* | 0.89/*B* | 0.65/*B* / 0.89/*B* |
 | spectrum, held | sinc tails to ±2*B* | flat, sharp edges | sinc tails to ±2*B* |
 | *B*<sub>rms</sub>, so the ranging bound: held / filtered | 1.43 / 0.90 MHz | 0.90 MHz | 1.43 / 0.90 MHz |
 | sidelobes at whole chips, exact | −60 dB (m), −24 dB (Gold) | small (the sinc's zeros) | zero |
-| sidelobes recorded, held | −41 dB, −23 dB | −13.2 dB (−43 with a Hamming) | −36 dB, a ghost |
-| sidelobes recorded, filtered: highest / at whole chips | −13.2 / −39 dB (m), −13.1 / −24 dB (Gold) | −13.2 / −36 dB | −13.2 / −40 dB |
+| sidelobes recorded, held | −44 dB, −23 dB | −13.2 dB (−43 with a Hamming) | −40 dB, a ghost |
+| sidelobes recorded, filtered: highest / at whole chips | −13.2 / −40 dB (m), −13.1 / −24 dB (Gold) | −13.2 / −35 dB | −13.2 / −38 dB |
 | PAPR, filtered to *B* | 7.7–8.0 dB | 5.0 dB (0 unfiltered) | 2.6 dB |
 | Doppler | peak dies at 1/*T*; 2-D search | slides by Δ*f T*/*B*; up/down fixes it | the same, once filtered |
 | family of *N* ≈ 1000 | 32 Gold codes at −24 dB | one | 1020 roots at −30 dB, every lag |

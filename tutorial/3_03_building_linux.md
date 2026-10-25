@@ -469,7 +469,7 @@ wait, and they are set in four different places:
 | what waits | where it is set | what it costs | here |
 | --- | --- | --- | --- |
 | the BIOS's offer of a serial boot | a `#define` in LiteX's `bios/boot.c` | 0.25 s | left alone: a patch to LiteX, for a quarter of a second |
-| the BIOS waking an SD card | the reset value of a register: `add_sdcard()` gives each command 1 s, and the BIOS tries 1000 times, for `boot.json` and again for `boot.bin` | with the slot empty, half an hour | `make_linux.py` makes it 20 ms, the limit Linux's own driver uses: about 45 s, then the `litex>` prompt |
+| the BIOS waking an SD card | the reset value of a register: `add_sdcard()` gives each command 1 s, and the BIOS tries 1000 times, for `boot.json` and again for `boot.bin` | with the slot empty, half an hour | `make_linux.py` makes it 20 ms, the limit Linux's own driver uses: 23 s a try, measured, and the `litex>` prompt 48 s after the FPGA loads |
 | the kernel waiting for its root file system | `rootwait`, on the kernel's command line in the device tree | nothing: it waits only until the card answers | left alone |
 | the start-up scripts | configure-time options: Buildroot's `BR2_PACKAGE_URANDOM_SCRIPTS` and `BR2_PACKAGE_IFUPDOWN_SCRIPTS`, BusyBox's `CONFIG_SYSLOGD`, `CONFIG_KLOGD`, `CONFIG_BB_SYSCTL` and `CONFIG_CROND` | 25 s of an 86 s boot from the card | left in, because [3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card) switches them off by hand, which teaches more |
 

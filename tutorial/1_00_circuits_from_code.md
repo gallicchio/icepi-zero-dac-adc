@@ -80,12 +80,21 @@ called `tools/` that git ignores, so nothing lands anywhere else on your
 laptop, and deleting the repository deletes it all. If you haven't got the
 repository yet, clone it now as in [0.01](0_01_how_to_use_this_tutorial.md#001-how-to-use-this-tutorial) (on
 Windows, in WSL's Ubuntu window). Then, from its top folder, tell your shell
-where it is, once:
+where it is, once. On **Linux and WSL**:
 
 ```bash
 cd icepi-zero-dac-adc                  # wherever you cloned it
-echo "export ADDA=$PWD" >> ~/.bashrc   # macOS: ~/.zshrc, here and below
-source ~/.bashrc                       # macOS: source ~/.zshrc
+echo "export ADDA=$PWD" >> ~/.bashrc
+source ~/.bashrc
+mkdir -p $ADDA/tools
+```
+
+On **macOS**, whose shell is zsh and reads `~/.zshrc` instead:
+
+```bash
+cd icepi-zero-dac-adc                  # wherever you cloned it
+echo "export ADDA=$PWD" >> ~/.zshrc
+source ~/.zshrc
 mkdir -p $ADDA/tools
 ```
 
@@ -105,13 +114,34 @@ and download the newest file for your laptop:
 | Mac with an Apple chip (M1, M2, ...) | `oss-cad-suite-darwin-arm64-YYYYMMDD.tgz` |
 | Mac with an Intel chip | `oss-cad-suite-darwin-x64-YYYYMMDD.tgz` |
 
-Then, in a terminal (in WSL's Ubuntu window, on Windows), with your file's
-name in place of the date:
+Then unpack it into the tools folder and put its `bin` on your `PATH`. The
+three laptops differ here, so pick your block. On **Linux**:
 
 ```bash
 cd $ADDA/tools
-mv ~/Downloads/oss-cad-suite-*.tgz .         # WSL: cp /mnt/c/Users/<you>/Downloads/oss-cad-suite-*.tgz .
-xattr -d com.apple.quarantine oss-cad-suite-*.tgz 2>/dev/null   # macOS only: let it run
+mv ~/Downloads/oss-cad-suite-*.tgz .
+tar xzf oss-cad-suite-*.tgz && rm oss-cad-suite-*.tgz
+echo 'export PATH="$ADDA/tools/oss-cad-suite/bin:$PATH"' >> ~/.bashrc
+```
+
+On **macOS**, the `xattr` line removes the quarantine mark macOS puts on
+every download, so the tools are allowed to run (the command exists only
+on a Mac; on Linux it would fail):
+
+```bash
+cd $ADDA/tools
+mv ~/Downloads/oss-cad-suite-*.tgz .
+xattr -d com.apple.quarantine oss-cad-suite-*.tgz
+tar xzf oss-cad-suite-*.tgz && rm oss-cad-suite-*.tgz
+echo 'export PATH="$ADDA/tools/oss-cad-suite/bin:$PATH"' >> ~/.zshrc
+```
+
+On **Windows**, in WSL's Ubuntu window, the download is in Windows's
+Downloads folder, which Ubuntu sees under `/mnt/c`:
+
+```bash
+cd $ADDA/tools
+cp /mnt/c/Users/<you>/Downloads/oss-cad-suite-*.tgz .
 tar xzf oss-cad-suite-*.tgz && rm oss-cad-suite-*.tgz
 echo 'export PATH="$ADDA/tools/oss-cad-suite/bin:$PATH"' >> ~/.bashrc
 ```
@@ -137,18 +167,26 @@ and unplug and replug the board (on Windows: `usbipd attach` it again).
 
 The laptop-side scripts need Python 3 with `pyserial`, `numpy` and
 `matplotlib`. Give them their own *virtual environment*, so they can't fight
-with anything else on your laptop:
+with anything else on your laptop. On **Linux and WSL**, where Ubuntu's
+Python needs one package first:
 
 ```bash
-sudo apt install python3-venv          # Linux and WSL only
+sudo apt install python3-venv
 python3 -m venv $ADDA/tools/venv
 echo 'source $ADDA/tools/venv/bin/activate' >> ~/.bashrc
 source $ADDA/tools/venv/bin/activate
 pip install pyserial numpy matplotlib
 ```
 
-(On a Mac, `python3` comes with Apple's command-line developer tools; the Mac
-offers to install them the first time you type `python3`.)
+On **macOS**, where `python3` comes with Apple's command-line developer
+tools (the Mac offers to install them the first time you type `python3`):
+
+```bash
+python3 -m venv $ADDA/tools/venv
+echo 'source $ADDA/tools/venv/bin/activate' >> ~/.zshrc
+source $ADDA/tools/venv/bin/activate
+pip install pyserial numpy matplotlib
+```
 
 ## Check it all
 
@@ -162,7 +200,8 @@ $ python3 -c "import serial, numpy, matplotlib"
 
 The first two print a version, and the third prints nothing at all when all
 is well (an error names the package that is missing). Then, with the board
-plugged in:
+plugged in (the USB-C cable in the Icepi Zero's port marked **Flash**, the
+left one of its three USB-C ports when they point down, toward you):
 
 ```console
 $ openFPGALoader -b icepi-zero --detect

@@ -273,7 +273,7 @@ def find_port():
     """The first FTDI FT231X serial port (USB ID 0403:6015): the Icepi Zero's."""
     from serial.tools import list_ports
     for p in list_ports.comports():
-        if (p.vid, p.pid) == (0x0403, 0x6015):
+        if (p.vid, p.pid) == (0x0403, 0x6015) and p.product in (None, "FT231X USB UART"):
             return p.device
     raise SystemExit("No Icepi Zero found. Is it plugged in? (Or give --port.)")
 

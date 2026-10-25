@@ -5,8 +5,12 @@
 
 ![sawtooth.sv measured with a scope: one ramp every 256 × 20 ns = 5.12 µs](img/sawtooth_top.png)
 
-Put a scope on the DAC's output connector for this one: DAC OUT, the
-right-hand SMA with the USB connectors toward you.
+Now the converter module goes on. Unplug the board, push the adapter onto
+the Icepi Zero's 40-pin header and the module onto the adapter, the right
+way round ([0.00](0_00_the_hardware.md#the-converters-for-when-you-get-to-them)
+has the two warnings and the picture), and plug the USB cable back into
+the **Flash** port. Then put a scope on the DAC's output connector for
+this one: DAC OUT, the right-hand SMA with the USB connectors toward you.
 
 <img src="img/stack_scope.png" alt="Seen from above: an oscilloscope on DAC OUT, the right SMA" width="400">
 

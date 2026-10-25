@@ -323,13 +323,14 @@ def receive(z, sps, nu_max=1.0, period=None, nu_step=0.125):
 
 
 def report(r, tones, esn0=None, sps=SPS, df=DF):
-    serr = int(np.sum(r["heard"][DATA_AT] != tones[DATA_AT]))
     cerr = int(np.sum(r["heard"][[p + j for p in COSTAS_AT for j in range(7)]]
                       != np.tile(COSTAS, 3)))
+    serr = None if tones is None else int(np.sum(r["heard"][DATA_AT] != tones[DATA_AT]))
     snr = "" if esn0 is None else " at Es/N0 %.1f dB (FT8's scale: %.0f dB in 2.5 kHz)" % (esn0, esn0 - 10 * np.log10(400))
     print("sync: frame starts at sample %d, carrier off by %+.3f tone spacings (%+.1f Hz)%s"
           % (r["t0"], r["nu"], r["nu"] * df, snr))
-    print("tones heard: %d of 58 data symbols wrong, %d of 21 Costas symbols wrong" % (serr, cerr))
+    print("tones heard: %s of 58 data symbols wrong, %d of 21 Costas symbols wrong"
+          % ("?" if serr is None else serr, cerr))
     print("decoded: %r  CRC %s" % (r["text"], "ok" if r["ok"] else "FAILED"))
     return serr
 
@@ -456,7 +457,9 @@ def main():
             slow_send(port, args.send, args.amp, args.ppm)
         if args.listen:
             r, z = slow_listen(port, args.seconds, args.search)
-            report(r, encode(args.send or ""), sps=SLOW_SPS, df=SLOW_DF)
+            # the tones sent: known if this board sent them; otherwise, only if they decoded
+            text = args.send if args.send else (r["text"] if r["ok"] else None)
+            report(r, None if text is None else encode(text), sps=SLOW_SPS, df=SLOW_DF)
             if args.out:
                 np.savez(args.out, z=z, M=r["M"], heard=r["heard"], t0=r["t0"], nu=r["nu"], text=r["text"], ok=r["ok"])
         return
@@ -579,7 +582,7 @@ those samples; the laptop's receiver is the same code as above.
 
 <!-- file: src/twoboard/ddc.sv -->
 ```systemverilog
-// ddc.sv -- the narrowband radio for an FT8-style weak-signal text link (6.11).  The
+// ddc.sv -- the narrowband radio for an FT8-style weak-signal text link (6.12).  The
 // laptop picks the tones and their timing; this board plays them, phase-continuous,
 // and mixes what its ADC hears down to baseband and streams I/Q back to the laptop,
 // whose Python does the decoding.
@@ -865,7 +868,7 @@ endmodule
 <!-- file: src/twoboard/ddc.py -->
 ```python
 #!/usr/bin/env python3
-"""The laptop side of ddc.sv (6.11): tones out of the DAC, and I/Q frames in from the DDC.
+"""The laptop side of ddc.sv (6.12): tones out of the DAC, and I/Q frames in from the DDC.
 
     python3 ddc.py --tone 6.78e6              # a continuous 6.78 MHz tone (finds the port)
     python3 ddc.py /dev/ttyUSB0 --tone 6.78e6 --amp 50
@@ -914,7 +917,7 @@ def find_port():
     """The first FTDI FT231X serial port (USB ID 0403:6015): the Icepi Zero's."""
     from serial.tools import list_ports
     for p in list_ports.comports():
-        if (p.vid, p.pid) == (0x0403, 0x6015):
+        if (p.vid, p.pid) == (0x0403, 0x6015) and p.product in (None, "FT231X USB UART"):
             return p.device
     raise SystemExit("No Icepi Zero found. Is it plugged in? (Or give its port.)")
 
@@ -1242,6 +1245,25 @@ sync: frame starts at sample -98, carrier off by +11.250 tone spacings (+67.1 Hz
 tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
 decoded: 'CQ HMC JASON'  CRC ok
 ```
+
+And with two real boards, A's DAC cabled to B's ADC (about 2 m of coax),
+`ddc.sv` in both, A sending and B listening. B finds A's carrier 1.5 Hz
+off, a quarter of a tone spacing: these two crystals are 0.2 ppm apart.
+Every symbol is right at 100, 4 and 1 DAC codes, as on one board:
+
+```console
+A$ python3 ft8.py --slow $A --send "CQ HMC JASON" --amp 1
+sending 'CQ HMC JASON': 79 tones, 13.25 s, 5.96 Hz apart at 6.7800 MHz
+B$ python3 ft8.py --slow $B --listen --seconds 20
+listening at 6.7800 MHz for 20 s (61035 I/Q samples)...
+signal: 0.83 codes rms over the record; the frame's tones peak at 1.0 codes
+sync: frame starts at sample -332, carrier off by +0.250 tone spacings (+1.5 Hz)
+tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
+decoded: 'CQ HMC JASON'  CRC ok
+```
+
+(A listener that sent nothing doesn't know the tones, so it counts the
+wrong ones against the text it decoded, when the CRC passes.)
 
 A crystal that drifts *during* a frame smears it across tones.
 `dev/tools/comms/ft8_crystal.py` plays that too, by rewriting the tone words

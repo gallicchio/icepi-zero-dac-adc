@@ -81,14 +81,29 @@ def db(r, peak=None):
     return 20 * np.log10(np.abs(r) / (np.abs(r).max() if peak is None else peak) + 1e-9)
 
 
-def spectrum(rec):
-    """A recording's spectrum (one loop, so no window), smoothed over 8 bins, in dB re
-    REF: the chirp's mean level 5 to 7.5 MHz.  Not each trace re its own peak: every
-    waveform is played at the same peak swing, so the levels compare."""
+def spectrum(rec, own=True):
+    """A recording's spectrum (one loop, so no window), smoothed over 8 bins, in dB.
+    own=True: re the trace's OWN mean level 5 to 7.5 MHz, so that the shapes of waveforms
+    played at different powers compare like with like (every waveform is played at the
+    same PEAK swing, and their PAPRs differ by up to 8 dB, so their in-band powers do too:
+    level() gives that offset, re the held chirp).  own=False: re REF, the held chirp's."""
     rec = rec.astype(float)[:L]
     X = np.abs(np.fft.rfft(rec - rec.mean()))
     X = np.sqrt(np.convolve(X**2, np.ones(8) / 8, "same"))
-    return np.fft.rfftfreq(L, 1 / FS) / 1e6, 20 * np.log10(X + 1e-6) - REF
+    f, s = np.fft.rfftfreq(L, 1 / FS) / 1e6, 20 * np.log10(X + 1e-6)
+    return f, s - (inband(f, s) if own else REF)
+
+
+def inband(f, s):
+    """The mean power of a spectrum (dB) between 5 and 7.5 MHz, in dB."""
+    return 10 * np.log10(np.mean(10**(s[(f > 5) & (f < 7.5)] / 10)))
+
+
+def level(rec):
+    """A recording's in-band level re the held chirp's, in dB: what the same peak swing
+    at the DAC leaves of each waveform's power."""
+    f, s = spectrum(rec, own=False)
+    return inband(f, s)
 
 
 def brickwall(rec, bw=chirp.B0):
@@ -107,8 +122,7 @@ _g = lambda shape: (chirp.transmit(chirp.envelope("chirp", shape=shape)) - 128).
 CHIRP_LOSS = 20 * np.log10(_g("held") / _g("filtered"))
 f_chirp_rec = d["f_chirp_rec"] if F_CHIRP_AT_DAC else brickwall(d["chirp_rec"]) * 10**(-CHIRP_LOSS / 20)
 REF = 0.0
-_f, _s = spectrum(d["chirp_rec"])
-REF = 10 * np.log10(np.mean(10**(_s[(_f > 5) & (_f < 7.5)] / 10)))
+REF = level(d["chirp_rec"])
 
 
 def fine(r, up=16):
@@ -171,30 +185,43 @@ ax.set_yticks([]); ax.set_xlim(-1.5, t_us[win][-1])
 ax.set_xlabel("time from the window's start (µs)")
 ax.set_title("Ten chips of each (I): held —, filtered - -")
 lo, hi = (chirp.F_C - chirp.B0 / 2) / 1e6, (chirp.F_C + chirp.B0 / 2) / 1e6
-for row, (pre, name) in enumerate((("", "Held, as played"), ("f_", "Filtered to B"))):
+# Each trace re its OWN in-band level, so that the shapes compare (the same peak swing at the
+# DAC leaves the high-PAPR waveforms up to 8 dB less power: that offset is printed instead).
+LEVELS = {}
+for row, (pre, name) in enumerate((("", "Held, as played: chips at B; the chirp is smooth"),
+                                   ("f_", "Filtered to B at the DAC, all five"))):
     ax = fig.add_subplot(gs[row, 1])
     ax.axvspan(lo, hi, color=MUTED, alpha=0.12, lw=0)
     for kind in KINDS[::-1]:
         rec = f_chirp_rec if pre + kind == "f_chirp" else d[pre + kind + "_rec"]
         f, s = spectrum(rec)
+        LEVELS[pre + kind] = level(rec)
         ax.plot(f, s, color=COL[kind], lw=0.6, label=LABEL[kind].split(",")[0])
     ax.set_xlim(0, 12.5); ax.set_ylim(-62, 8)
-    ax.set_ylabel("dB re the chirp's band")
+    ax.set_ylabel("dB re each one's in-band level")
     ax.text(6.25, 4, "B", ha="center", fontsize=8, color=INK2)
+    ax.text(12.3, -58, "at the same peak swing, re the held chirp:\n" + ", ".join(
+        "%s %+.1f" % (LABEL[k].split(",")[0].replace("m-sequence G1", "m-seq.").replace("Gold code PRN 1", "Gold"),
+                      LEVELS[pre + k]) for k in KINDS) + " dB",
+        ha="right", va="bottom", fontsize=6.5, color=INK2, bbox=dict(facecolor=SURFACE, edgecolor="none", pad=1))
     if row == 0:
-        ax.set_title("Recorded spectra, one scale, the same peak swing\n" + name, fontsize=10)
+        ax.set_title("Recorded spectra, each re its own in-band level\n" + name, fontsize=9)
         h, lab = ax.get_legend_handles_labels()
         for line in ax.legend(h[::-1], lab[::-1], loc="upper right", fontsize=7, ncol=1,
                               framealpha=0.95, bbox_to_anchor=(1.42, 1.02)).get_lines():
             line.set_linewidth(2)
     else:
-        ax.set_title(name, fontsize=10)
+        ax.set_title(name, fontsize=9)
         ax.set_xlabel("frequency (MHz)")
         if not F_CHIRP_AT_DAC:
-            ax.text(8.1, -40, "chirp: the held recording,\nfiltered after the ADC and\n%.1f dB down, as the DAC\nwould play it"
+            ax.text(8.1, -40, "chirp: the held recording,\nfiltered after the ADC and\n%.1f dB down, as the DAC\nwould play it (filtered at\nthe DAC, board to board:\n4.35 dB down)"
                     % CHIRP_LOSS, fontsize=7, color=C1, va="bottom")
 fig.suptitle(src, x=0.99, ha="right", fontsize=8, color=MUTED)
 save(fig, link.img_path("waves"))
+print("in-band levels at the same peak swing, re the held chirp (dB):",
+      ", ".join("%s %+.2f" % (k, v) for k, v in LEVELS.items()))
+print("filtering's cost at the same peak swing (dB):",
+      ", ".join("%s %+.2f" % (k, LEVELS["f_" + k] - LEVELS[k]) for k in KINDS))
 
 # ---- comms_compression.png: the whole loop, and under noise -----------------------------
 fig = plt.figure(figsize=(10, 6.6))
@@ -239,14 +266,14 @@ for i, kind in enumerate(("zc", "m")):
     ax = fig.add_subplot(sub[i])
     for pre, lw, c, lab in (("", 0.5, MUTED, "held"), ("f_", 0.8, COL[kind], "filtered")):
         f, s = spectrum(d[pre + kind + "_rec"])
-        ax.plot(f, s, color=c, lw=lw, label=lab)
+        ax.plot(f, s, color=c, lw=lw, label="%s (%+.1f dB at the same peak)" % (lab, level(d[pre + kind + "_rec"]) - level(d[kind + "_rec"])))
     ax.text(0.3, -2, LABEL[kind].split(",")[0], fontsize=8, color=INK2, va="top")
     ax.set_xlim(0, 12.5); ax.set_ylim(-60, 6); ax.set_yticks([0, -20, -40])
     ax.tick_params(labelsize=8)
-    ax.legend(loc="upper right", fontsize=7)
+    ax.legend(loc="upper right", fontsize=6.5)
     if i == 0:
         ax.set_xticklabels([])
-        ax.set_title("Recorded spectra (dB re the chirp's band)")
+        ax.set_title("Recorded spectra, each re its own in-band level")
     else:
         ax.set_xlabel("frequency (MHz)")
 ax = fig.add_subplot(gs[0, 1])
@@ -266,10 +293,12 @@ for kind in ("m", "zc"):
     sh = d[kind + "_delay"] / FS * 1e6
     ax.plot(lag_us[order] - sh, r[order], color=COL[kind], lw=0.5, label=LABEL[kind].split(",")[0] + ", held")
 ghost = -chirp.T * (FS - 8 * chirp.N_ZC * chirp.F_LOOP) / (chirp.N_ZC * chirp.F_LOOP) * 1e6
+r = db(d["zc_r"]); lz = lag_us - d["zc_delay"] / FS * 1e6
+gh = [r[np.abs(lz - g) < 0.15].max() for g in (ghost, -ghost)]   # each ghost's height, from the record
 ax.annotate("ghosts %.1f µs either side: the chips' 8th images land %.0f kHz\nfrom the carrier after the 25 MS/s ADC, and a chirp\nturns a frequency offset into a delay"
-            % (-ghost, (FS - 8 * chirp.N_ZC * chirp.F_LOOP) / 1e3), xy=(ghost, -36.5), xytext=(-58, -16),
+            % (-ghost, (FS - 8 * chirp.N_ZC * chirp.F_LOOP) / 1e3), xy=(ghost, gh[0] + 0.5), xytext=(-58, -16),
             fontsize=8, color=INK2, arrowprops=dict(arrowstyle="->", color=INK2, lw=0.8))
-ax.annotate("", xy=(-ghost, -39), xytext=(-20, -18), arrowprops=dict(arrowstyle="->", color=INK2, lw=0.8))
+ax.annotate("", xy=(-ghost, gh[1] + 0.5), xytext=(-20, -18), arrowprops=dict(arrowstyle="->", color=INK2, lw=0.8))
 ax.set_xlim(-60, 60); ax.set_ylim(-75, 3)
 ax.set_xlabel("delay from the peak (µs)"); ax.set_ylabel("matched filter (dB)")
 ax.set_title("Held chips, ±60 µs of the loop: Zadoff–Chu's worst sidelobe is a ghost")
