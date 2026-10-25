@@ -174,11 +174,11 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 | board | tiles | jacks | layers | parts per board |
 | --- | --- | --- | --- | --- |
 | AMOD-P, passive | 13 | 27 | 2 | $16.97 |
-| AMOD-A, active, USB-C powered | 12 | 19 | 4 | $45.97 |
+| AMOD-A, active, USB-C powered | 12 | 19 | 4 | $50.90 |
 | RF-MOD, 915 MHz and 2.4 GHz | 10 | 22 | 4 | $55.78 |
 | Icepi Zero 2x12 adapter with a Pmod | | | 4 | three hand-soldered headers |
 
-![The passive board as built: thirteen tiles on a 4 x 4 grid of 20 mm cells, two SMA jacks to a tile, each tile's wiring drawn on the silkscreen](img/amod_p_render.png)
+![The passive board as built: thirteen tiles on a 4 x 4 grid of 20 mm cells, each tile's IN jack at its top-left corner and OUT at its bottom-right, its wiring drawn on the silkscreen between them](img/amod_p_render.png)
 
 ![The active board as built: twelve powered tiles, each with its own slide switch, a USB-C power tile on the right edge and the Pmod plug at the left end of the bottom edge](img/amod_a_render.png)
 
@@ -192,7 +192,12 @@ What changed from the plan below, and why:
   Two GALI-84+ gain blocks and two ADL5350 mixers (LF to 4 GHz, passive, either direction) took their places.  When
   Jason asked for the board to be filled with tiles that work together, the RFX2401C front end, the TRF3722 and
   the printed antennas made way for a second gain block, the second mixer and a splitter.  SMA whips replace the
-  antennas.  RF-MOD's tiles take OUT at the bottom-right jack, so its closest jacks are 14.4 mm apart, not 10.5.
+  antennas.
+- **Every jack in a checkerboard.**  Each tile takes IN at a cell's top-left corner and OUT at its bottom-right, so
+  no two jacks on any board are closer than 14.85 mm (10.5 mm in the first layout, too close for two cables and
+  fingers).  The circuit fills the other two quarters of the cell.  Two parts changed package to fit: the OPA847
+  went to its SOT-23-6 and the 74HC4046 to Nexperia's TSSOP-16.  The crystal and the ceramic resonator stand at
+  45 degrees between their jacks.
 - **No mounting holes on AMOD-A and RF-MOD.**  Four stick-on rubber feet replace them.  The Pmod plug moved into
   the corner when its pinout was found mirrored before the order and fixed.  AMOD-P keeps its M3 holes.
 - **The Icepi Zero adapter with a Pmod** is the 2x12 adapter grown to 80 x 30 mm, the socket on the extra 15 mm
