@@ -163,6 +163,49 @@ What the two boards settled, for everything below:
 
 ![A sketch, to scale, of the two lower-frequency AMOD boards: 100 mm squares of 20 mm tiles, one circuit to a tile and every circuit with its own SMA jacks. The passive one holds a 20 dB pad, RC low- and high-passes, a series RLC, two LC low-passes, an LC band-pass, a crystal, a ceramic filter, a diode clipper, a tapped delay line, LEDs and an AM loopstick. The active one holds power, ×10 and ×100 gain blocks, an HF low-noise amplifier, a Johnson-noise amplifier, a one-pin delta-sigma ADC, a 74HC4046 phase-locked loop, a heater, a mixer, a light link, 40 kHz ultrasound, and a speaker, microphone and one-bit DAC jack, with each powered tile framed by its supply, a Pmod plug at the left end of its bottom edge, and the host's second Pmod socket drawn dotted beside it, free](img/amod_sketch.png)
 
+### Built: rev A, 2026-10-25
+
+Claude designed the three first-level boards and the Icepi Zero adapter overnight from the plan below and Jason's
+answers at the end of this appendix.  Every board passed its electrical rules, its design rules and a fabrication
+check of the files JLCPCB is sent, including every part code checked against JLCPCB's own description and stock on
+the day.  The boards, their generator, the handbooks and the night's record are in
+[github.com/gallicchio/AMOD-and-RFMOD](https://github.com/gallicchio/AMOD-and-RFMOD) (`~/mudd/pcbs/AMOD-and-RFMOD`).
+
+| board | tiles | jacks | layers | parts per board |
+| --- | --- | --- | --- | --- |
+| AMOD-P, passive | 13 | 27 | 2 | $16.97 |
+| AMOD-A, active, USB-C powered | 12 | 19 | 4 | $45.97 |
+| RF-MOD, 915 MHz and 2.4 GHz | 10 | 22 | 4 | $55.78 |
+| Icepi Zero 2x12 adapter with a Pmod | | | 4 | three hand-soldered headers |
+
+![The passive board as built: thirteen tiles on a 4 x 4 grid of 20 mm cells, two SMA jacks to a tile, each tile's wiring drawn on the silkscreen](img/amod_p_render.png)
+
+![The active board as built: twelve powered tiles, each with its own slide switch, a USB-C power tile on the right edge and the Pmod plug at the left end of the bottom edge](img/amod_a_render.png)
+
+![The RF board as built: a splitter, two filters, two gain blocks, the power and reference tile, two mixers and two synthesizers, every 50 ohm line a coplanar waveguide with a via fence](img/rf_mod_render.png)
+
+What changed from the plan below, and why:
+
+- **Fitting 20 mm cells.**  Several AMOD-A tiles lost a variant, a DIP switch or a test loop to the cell's room
+  beside the power switch and its FET.  The handbook lists what each tile kept.
+- **RF-MOD is one complete link on one reference.**  The QPL9547 LNA had no stock and the LTC5510 mixers had 35.
+  Two GALI-84+ gain blocks and two ADL5350 mixers (LF to 4 GHz, passive, either direction) took their places.  When
+  Jason asked for the board to be filled with tiles that work together, the RFX2401C front end, the TRF3722 and
+  the printed antennas made way for a second gain block, the second mixer and a splitter.  SMA whips replace the
+  antennas.  RF-MOD's tiles take OUT at the bottom-right jack, so its closest jacks are 14.4 mm apart, not 10.5.
+- **No mounting holes on AMOD-A and RF-MOD.**  Four stick-on rubber feet replace them.  The Pmod plug moved into
+  the corner when its pinout was found mirrored before the order and fixed.  AMOD-P keeps its M3 holes.
+- **The Icepi Zero adapter with a Pmod** is the 2x12 adapter grown to 80 x 30 mm, the socket on the extra 15 mm
+  past the Icepi's end, its eight lines on an inner layer.  The free header pins 8, 10, 22, 27, 28, 36, 38 and 40
+  are the Pmod's IO1-8, and the generated `.lpf` names them `pmod[0..7]`.
+
+![The Icepi Zero adapter with a Pmod: the original 2x12 adapter with a right-angle Pmod socket on a 15 mm extension of its right-hand end](img/icepi_pmod_adapter.png)
+
+What a bench needs beside the boards (USB-C supplies, SMA cables and adapters, SMA whips, the transducers, the
+speaker, the electret, the ferrite rod and the rubber feet) is listed in the repository's `docs/KIT.md`.
+
+The rest of this section is the plan as it stood before the boards were drawn.
+
 The [NanoVNA](https://nanovna.com/)'s "RF demo kit" is a $13 board,
 10 × 10 cm, of eighteen numbered circuits: calibration standards,
 attenuators, filters, resonators. Each circuit is soldered in and has its
@@ -644,6 +687,28 @@ bleeds off in under a second, but a solder jumper takes it to 85 V for
 stacks rated 100 or 150 V, and then it is not. And a 50–100 mW laser is
 class 3B: Y4's enable jumper, its interlock input and a pair of goggles
 for the wavelength are part of the tile.
+
+**After Jason's answers (2026-10-25).**  Most of the lab's piezo stacks are Thorlabs' 150 V parts, so Y2 needs a
+150 V range behind a jumper next to the 60 V default.  The OPA454 stops at 100 V of supply.  The OPA462 (TI, 180 V
+single supply, 6.5 MHz, 30-45 mA, SOIC-8 with a pad; LCSC C1855811, 945 in stock at $19.03 on 2026-10-25) drives
+0-150 V from a 165 V rail and is the part for both ranges.  That rail is beyond the LT3482's 90 V; an LT8365
+(150 V switch, LCSC C673785, 87 in stock) with one charge-pump doubler stage on its switch node reaches it.  Either
+way the rail stays current-limited to 10 mA with a bleeder, and the 150 V position carries a warning on the
+silkscreen.
+
+**The bimorph for Y3** is a three-wire bender driven 0-150 V on its centre electrode with the outer ones at 0 V and
+150 V, exactly the range Y2's 150 V position gives.  Two that can be bought today:
+
+| part | size (mm) | free length | tip travel at 150 V | blocking force | first resonance | capacitance | price |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Thorlabs PB4NB2W (PB4NB2S with a holder) | 32.0 x 7.8 x 0.8 | 28 mm | ±450 µm ±15 % | 1.5 N | 370 Hz | not found | Thorlabs list |
+| PiezoDrive BA4010 | 40 x 10 x 0.8 | 33 mm | 1.1 mm p-p | 0.18 N | 250 Hz | 100 nF | $16.50 |
+
+The Thorlabs numbers are from its product table as cached by a search engine, and should be re-read on Thorlabs'
+page before buying.  PiezoDrive's are from its own bender page.  For steering a mirror, a 3-5 mm mirror glued at
+the tip of the Thorlabs part tilts about 1.5 x 0.45 / 28 = 24 mrad mechanically, and the beam turns twice that:
+about ±3 degrees, at a few hundred hertz before the resonance.  That resonance is the plant Y3 exists to find, damp
+and lock.  The added mirror lowers it, so measure it first.
 
 **What AMOD-2 makes possible, tile by tile:**
 
@@ -1282,21 +1347,51 @@ everything machine-placed.
 - Which boards first? The three first-level boards serve the tutorial
   as it is; the two advanced ones serve the senior lab. The passive
   board alone is a $5 order.
+  **Answer:** Yes, completely design the three first-level boards,
+  but be ready to modify the plan for those or for the advanced boards 
+  as things come up.
 - How many of each, and how many assembled? The fees favour five bare
   boards with two assembled; a class set is a different calculation.
+  **Answer:** Let's start with the usual 5+2 until we know this works and that
+  I want a class's worth of boards.
 - The piezo rail: 60 V by default with the 85 V solder jumper, or a rail
   chosen for one actuator the lab already owns?
+  **Answer:** I mostly have 150V piezo stacks from Thorlabs, so there
+  should be a switch or jumper option to go up to that.
 - Which laser diodes will be driven (wavelength, current, package), and
   does the lab own a Fabry–Pérot cavity and a TeachSpin optical pumping
   apparatus already?
+  **Answer:** We don't have a TeachSpin optical pumping apparatus,
+  but we have a Rubidium vapor cell, a Fabry–Pérot cavity, and we have
+  been working on our own cavities and grating-stabilized lasers for Rubidium.
 - Should RF-MOD, the first level, carry a TRF3722 (a PLL, a VCO and an
   I/Q modulator in one $7.50 package to 4.2 GHz, 2,218 in stock) as a
   cheap quadrature transmitter for 915 MHz and 2.4 GHz before RF-MOD-2
   exists? It would replace nothing and add one tile.
+  **Answer:** Yes. Add that tile. These boards will mostly be used with the
+  ECP5-2ADC-2DAC board, not with the IcepiZero board.
+  If there is room on the Raspbery Pi connector, though, I would like
+  a converter board that hosts the existing ADC+DAC along with a single
+  PMOD to plug one fo these boards into the Icepi Zero. If there aren't
+  enough free FPGA pins, exclusively focus on the ECP5-2ADC-2DAC board
 - Whether the bimorph for Y3, the only hand-fitted part on AMOD-2, is
   worth a tile, or whether
   [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)'s
   40 kHz transducers, which the lab has, should be the mechanical plant.
+  **Answer:** I don't know. I've never used a bimorph cantilever.
+  If this would be interesting for steering a mirror, let's go with that.
+  The 40 kHz transducers that I have don't seem that useful beyond 
+  sonar and communication. The students have already suspended foam particles
+  or drops using arrays of these 40 kHz transducers, so unless the
+  DAC+ADC adds more to something like that than a bimorph cantilever would add,
+  stick with the bimorph cantilever. You do need to find specific ones 
+  to buy and record their dimensions and mechanical and electrical specs.
+
+**What came of the answers (2026-10-25):** the three first-level boards and the Icepi Zero adapter with a Pmod are
+designed and their order files pass every check ("Built: rev A" above).  The TRF3722 tile did not make rev A.
+Jason asked for RF-MOD to be filled with tiles that work together, and a second chain on one reference took the
+cells it needed; it is the first candidate for rev B.  The 150 V piezo option and two buyable bimorphs are recorded
+under AMOD-2 above.
 
 **Deliverables:** the five directories under `OpticsPCBs/`, each with its
 plan, generator, release and chat log; a stock table dated the day of the
