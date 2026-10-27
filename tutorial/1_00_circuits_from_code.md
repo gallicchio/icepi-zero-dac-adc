@@ -115,7 +115,9 @@ and download the newest file for your laptop:
 | Mac with an Intel chip | `oss-cad-suite-darwin-x64-YYYYMMDD.tgz` |
 
 Then unpack it into the tools folder and put its `bin` on your `PATH`. The
-three laptops differ here, so pick your block. On **Linux**:
+three laptops differ here, so pick your block.
+
+On **Linux**:
 
 ```bash
 cd $ADDA/tools
@@ -151,7 +153,7 @@ should print a version.
 
 ## Linux and WSL only: permission to use the board
 
-By default only root may talk to the board's USB chip. Once per laptop:
+By default only root may talk to the board's USB chip. The `.rules` file that you'll copy just lists USB identification numbers that should be available to all users. Once per laptop:
 
 ```bash
 cd $ADDA/tools

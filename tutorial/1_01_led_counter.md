@@ -31,8 +31,10 @@ it runs **at the same time**, on every clock edge.
 You describe that circuit in a *hardware description language*. We use
 **[SystemVerilog](https://en.wikipedia.org/wiki/SystemVerilog)**, the language your engineering classmates learn. It looks
 like a programming language, but it's closer to a schematic written as text:
-each line describes some hardware that exists all the time, not a step that
+each line describes some hardware that exists **all the time**, not a step that
 happens once.
+
+You'll need to get out of the habit of thinking line-by-line and into the habit of asking, "When the positive edge of the clock comes, signals will get a new value. Let's write code to calculate those new values from the current values."
 
 ## The design
 
@@ -83,12 +85,10 @@ What each piece means:
 ## The constraints file
 
 SystemVerilog says nothing about which pin of the chip a port is on. That's
-the job of the **constraints file**, `icepi_adda.lpf` (*adda*, as in [1.00](1_00_circuits_from_code.md#100-circuits-from-code)'s `$ADDA`: *analog to digital* and
-*digital to analog*, the ADC and the DAC). One file serves every
+the job of the **constraints file**, `icepi_adda.lpf` (*adda*, as in *analog to digital* and *digital to analog*, the ADC and the DAC). One file serves *every*
 design in this folder, and a design uses only the lines for the ports it
 has. Getting it right meant reading the Icepi Zero's
-[schematic](https://github.com/cheyao/icepi-zero/tree/main/hardware). The
-part this design uses:
+[schematic](https://github.com/cheyao/icepi-zero/tree/main/hardware).
 
 ```
 LOCATE COMP "clk" SITE "M1";
@@ -111,8 +111,10 @@ IOBUF  PORT "led[0]" IO_TYPE=LVCMOS33;
   on the left and a binary number reads the normal way. (Number them the
   other way round and the counter runs "backwards".)
 * `IO_TYPE=LVCMOS33` says the pin uses 3.3 V logic.
-* `FREQUENCY` tells the tools how fast the clock is, so they can check that
-  every signal gets through its logic within one 20 ns period.
+* `FREQUENCY` tells the *tools* how fast the clock is, so they can check that
+  every signal gets through its logic within one 20 ns period. This line
+  *does not set the frequency*. That is set by a physical, external clock chip
+  on the Icepi Zero's board, not in the FPGA.
 * The converters' output pins carry two more settings, `DRIVE=4
   SLEWRATE=SLOW`: how much current the pin is guaranteed to source or sink
   (4, 8, 12 or 16 mA) and whether its edges are fast or deliberately gentle.
@@ -270,7 +272,7 @@ Info: Max frequency for clock '$glbnet$clk$TRELLIS_IO_IN': 305.06 MHz (PASS at 5
 ```
 
 It says the counter's *slowest* path would still work with a 305 MHz clock,
-so 50 MHz is comfortably safe. A design that fails this check may still
+so 50 MHz hardware clock is comfortably safe. A design that fails this check may still
 appear to work, but not reliably.
 
 The LEDs now count in binary. `led[0]`, the rightmost, toggles every 0.17 s
@@ -283,7 +285,7 @@ unplugging the board erases it. That's what you want while experimenting.
 loads by itself at power-up; [3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card) does that.)
 
 <details>
-<summary><b>Detail:</b> how the bits get into the FPGA, and how your design "starts"</summary>
+<summary><b>Detail:</b> how the configuration bits get into the FPGA, and how your design "starts"</summary>
 
 The FPGA's configuration is held in memory cells (SRAM) spread across the
 chip: one bit for each entry of each look-up table, each routing switch, each
@@ -319,15 +321,14 @@ it. The commands are shown here in full so you know what `make` is doing.
 
 - Make the LEDs count twice as fast. The clock is a crystal, so you can't
   speed that up, and the counter already adds one every 20 ns: what
-  changes is *which five bits* of `count` the LEDs show. Then make it
-  count down.
-- Show `count[22:18]` instead. Why does `led[0]` now look steadily lit, a
-  little dimmer, rather than blinking?
+  changes is *which five bits* of `count` the LEDs show. 
+- Make it   count down.
+- Show `count[22:18]` instead. Why does `led[0]` (the least significant bit) 
+  now look steadily lit, a little dimmer, rather than blinking?
 - Add a second input, `input logic btn` (it's already in the `.lpf`: it reads
-  0 while the button nearest the USB connectors is pressed), and freeze the
-  counter while it's pressed. If you haven't met SystemVerilog's `if`
-  statement yet, search for "SystemVerilog if statement always_ff": it goes
-  inside the `always_ff` block, around the `count <= count + 1`.
+  0 while the button nearest the USB connectors is pressed). Make it freeze the
+  counter while it's pressed. Search for "SystemVerilog if statement always_ff". 
+  The `if` statement goes inside the `always_ff` block, around the `count <= count + 1`.
 
 <!-- nav -->
 [← 1.00 Circuits from code](1_00_circuits_from_code.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.02 A sawtooth from the DAC →](1_02_dac_sawtooth.md)
