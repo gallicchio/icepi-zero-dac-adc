@@ -175,13 +175,15 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 | --- | --- | --- | --- | --- |
 | AMOD-P, passive | 13 | 27 | 2 | $17.07 |
 | AMOD-A, active, USB-C powered | 12 | 21 | 4 | $50.40 |
-| AMOD-P2, the second passive board (Prompt 17) | 12 | 30 | 4 | $43.91 |
+| AMOD-P2, the second passive board (Prompt 17) | 11 | 28 | 4 | $43.82 |
 | RF-MOD, 915 MHz and 2.4 GHz | 10 | 24 | 4 | $66.51 |
 | Icepi Zero 2x12 adapter with a Pmod | | | 4 | three hand-soldered headers |
 
 ![The passive board as built: thirteen tiles on a 4 x 4 grid of 20 mm cells, each tile's IN jack at its top-left corner and OUT at its bottom-right, its wiring drawn on the silkscreen between them](img/amod_p_render.png)
 
-![The second passive board, AMOD-P2, as built: calibration standards (SHORT, OPEN, LOAD, a 25 ohm check and a THRU) along the top beside two Smith-chart loads; a resistive and a transformer splitter; a quarter-wave stub, a low-pass, a diode detector and a bias-T; along the bottom a step attenuator carrying the Pmod plug, a one-transistor oscillator with its switch, a 1:1 balun whose OUT jack floats in a clear circle, and a 1:4 transformer with its load switch](img/amod_p2_render.png)
+![The second passive board, AMOD-P2, as built: calibration standards (SHORT, OPEN, LOAD, a 25 ohm check and a THRU) along the top beside a one-transistor oscillator with its switch; a resistive and a transformer splitter; a quarter-wave stub, a low-pass, a diode detector and a bias-T; along the bottom a step attenuator on two cells with its eight-way switch and the Pmod plug, a 1:1 balun whose OUT jack floats in a clear circle, and a 1:4 transformer with its load switch](img/amod_p2_render.png)
+
+![The back of AMOD-P2: under each tile a panel with its number and name, its limits, loads and supply, and for the splitter, the low-pass, the stub and the oscillator a small plot of the response to expect](img/amod_p2_back.png)
 
 ![The active board as built: twelve powered tiles, each with its own slide switch, a USB-C power tile on the right edge and the Pmod plug at the left end of the bottom edge](img/amod_a_render.png)
 
@@ -192,13 +194,21 @@ What changed from the plan below, and why:
 - **A second passive board, AMOD-P2** (Prompt 17: "We should really call this the 2nd board because it's so much
   simpler than even the active board").  It holds the blocks the other boards lacked or had dropped: calibration
   standards for a network analyzer at the jacks' pins (a short, an open, a load, a 25 ohm check and a thru), a
-  resistive and a transformer splitter, two loads for the Smith chart, a quarter-wave stub with its notch near
+  resistive and a transformer splitter, a quarter-wave stub with its notch near
   2.45 GHz, a low-pass for a synthesizer's harmonics, a zero-bias diode detector, a bias-T, a 1:1 balun whose output
   floats (for the dipole of [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)) and a 1:4
   transformer.  Two tiles need power and take it from the Pmod's own 3.3 V, with no USB: a PE43711 step attenuator
-  (9 kHz-6 GHz, 31.75 dB in 0.25 dB steps, set over the Pmod's SPI lines) and a one-transistor oscillator near 10 MHz
+  (9 kHz-6 GHz, 31.75 dB in 0.25 dB steps, set by hand on an eight-way switch or over the Pmod's SPI lines; it needs
+  the Pmod's 3.3 V either way) and a one-transistor oscillator near 10 MHz
   that a DAC tunes and a tone locks.  The board AMOD-2 below became **PhMOD**, the physics board; an optics board
   would be OMOD.
+- **The back of every board is its manual** (Prompt 18: "When someone is screwing things into the board, it's far
+  easier to read the silkscreen in front of them than it is to look up stuff on github").  Under each tile, on the
+  back, a panel gives its number and name, its input limit, its load, its supply and switch, and the one thing that
+  breaks it; where there is room, a small plot of the response to expect (a filter's curve, an amplifier's gain against
+  frequency, the oscillator's frequency against TUNE, the clipper's OUT against IN).  The warnings that prevent damage
+  are on the front as well: PULSES ONLY on PhMOD's pulse amplifier, the LNAs' input limit, "start at mV" on the laser
+  driver.
 - **The silkscreen says what each tile is, and whose jack is whose** (Prompt 14).  The tutorial's section numbers are
   gone from the boards (they change as the tutorial grows).  Each jack's name now sits on its own tile's frame, beside
   the jack, the frame broken round it; in the gutter between tiles it read as the neighbour's.  A tile's title in
