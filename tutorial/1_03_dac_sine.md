@@ -6,7 +6,9 @@
 ![sine.sv measured with a scope: a 1.0000 MHz sine, 3.85 V in amplitude](img/sine_top.png)
 
 To make a sine, keep a *phase*, advance it by a fixed amount every clock, and
-look up the sine of it in a table. This is **[direct digital synthesis](https://en.wikipedia.org/wiki/Direct_digital_synthesis) (DDS)**,
+look up the sine of it in a table.
+
+This is **[direct digital synthesis](https://en.wikipedia.org/wiki/Direct_digital_synthesis) (DDS)**,
 and it's how almost every modern function generator works.
 
 <!-- file: src/verilog/sine.sv -->

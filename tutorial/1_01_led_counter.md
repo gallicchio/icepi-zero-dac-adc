@@ -5,36 +5,39 @@
 
 ![The Icepi Zero running counter.sv: the five LEDs count in binary, one step every 0.168 s. A simulation of the design, in real time](img/anim_counter.gif)
 
-By the end of this page, your board will do this. (The animation is a
-simulation of this page's design, [`counter.sv`](../src/verilog/counter.sv),
-shown on a 3D render of the Icepi Zero, in real time: one step every 0.168 s.
-The render is of [cheyao's Icepi Zero design](https://github.com/cheyao/icepi-zero), under the
-Solderpad Hardware License 2.1.)
+By the end of this page, your board will do this.
 
 ## What an FPGA is
 
-A microcontroller runs one instruction after another. An FPGA doesn't run
-instructions at all: it is a large grid of small logic blocks. The one on the
-Icepi Zero has
+It is *not* a microcontroller --- a microcontroller runs one instruction after another.
 
-* about 24,000 four-input *look-up tables*, each of which can be any Boolean
+An FPGA doesn't run instructions at all: it is a large grid of small logic blocks. 
+The FPGA on the Icepi Zero has around
+
+* 24,000 four-input *look-up tables*, each of which can be any Boolean
   function of 4 inputs,
 * 24,000 *flip-flops*, one-bit memories that update on a clock edge,
 * 56 blocks of RAM and 28 hardware multipliers,
-* about 200 I/O pins,
+* 200 I/O pins,
 * and a programmable wiring network between all of these.
 
 A *bitstream* says what each block computes and how the wires connect.
-Loading one turns the chip into the circuit you described, and everything in
-it runs **at the same time**, on every clock edge.
 
-You describe that circuit in a *hardware description language*. We use
-**[SystemVerilog](https://en.wikipedia.org/wiki/SystemVerilog)**, the language your engineering classmates learn. It looks
-like a programming language, but it's closer to a schematic written as text:
+Loading a bitstream turns the FPGA into the circuit you described.
+
+Everything in the FPGA runs **at the same time**, on every clock edge.
+
+You describe the circuit that you want in a *hardware description language*.
+
+We use **[SystemVerilog](https://en.wikipedia.org/wiki/SystemVerilog)**, a modern version of Verilog.
+
+Verilog looks like a programming language, but it's closer to a schematic written as text:
 each line describes some hardware that exists **all the time**, not a step that
 happens once.
 
-You'll need to get out of the habit of thinking line-by-line and into the habit of asking, "When the positive edge of the clock comes, signals will get a new value. Let's write code to calculate those new values from the current values."
+You'll need to get out of the habit of thinking line-by-line.
+
+You'll need to get and *into* the habit of asking, "When the positive edge of the clock comes, which signals are going to get a new value? How will the new values be calculated from their old values?"
 
 ## The design
 
@@ -85,11 +88,13 @@ What each piece means:
 ## The constraints file
 
 SystemVerilog says nothing about which pin of the chip a port is on. That's
-the job of the **constraints file**, `icepi_adda.lpf` (*adda*, as in *analog to digital* and *digital to analog*, the ADC and the DAC). One file serves *every*
-design in this folder, and a design uses only the lines for the ports it
-has. Getting it right meant reading the Icepi Zero's
+the job of the **constraints file**, [`src/verilog/icepi_adda.lpf`](../src/verilog/icepi_adda.lpf)
+(*adda* is our name for *analog to digital* and *digital to analog*). One constraint file serves *every*
+design in this folder, and a design uses only the lines for the ports (signal names) that it mentions.
+Getting it right meant reading the Icepi Zero's
 [schematic](https://github.com/cheyao/icepi-zero/tree/main/hardware).
 
+The content of [`src/verilog/icepi_adda.lpf`](../src/verilog/icepi_adda.lpf) begins and ends:
 ```
 LOCATE COMP "clk" SITE "M1";
 IOBUF  PORT "clk" IO_TYPE=LVCMOS33;
@@ -102,6 +107,10 @@ LOCATE COMP "led[1]" SITE "C13";
 LOCATE COMP "led[0]" SITE "D13";
 IOBUF  PORT "led[0]" IO_TYPE=LVCMOS33;
 ...
+IOBUF  PORT "dac_d[5]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[6]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[7]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_clk"  IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
 ```
 
 * `LOCATE COMP "led[4]" SITE "E13"` puts bit 4 of the port `led` on the
@@ -321,8 +330,9 @@ it. The commands are shown here in full so you know what `make` is doing.
 
 - Make the LEDs count twice as fast. The clock is a crystal, so you can't
   speed that up, and the counter already adds one every 20 ns: what
-  changes is *which five bits* of `count` the LEDs show. 
-- Make it   count down.
+  changes is *which five bits* of `count` the LEDs show.
+  (Edit `$ADDA/src/verilog/counter.sv` and `make load-counter`)
+- Make it count down.
 - Show `count[22:18]` instead. Why does `led[0]` (the least significant bit) 
   now look steadily lit, a little dimmer, rather than blinking?
 - Add a second input, `input logic btn` (it's already in the `.lpf`: it reads

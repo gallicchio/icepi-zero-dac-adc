@@ -11,7 +11,7 @@ chapter you describe circuits in [SystemVerilog](https://en.wikipedia.org/wiki/S
 code but describes hardware: every line becomes gates and wires that all run
 at once, 50 million times a second.
 
-You start with a counter on the LEDs
+We'll start with a counter on the LEDs
 ([1.01](1_01_led_counter.md#101-a-counter-on-the-leds)), make the DAC play a sawtooth and a sine ([1.02](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac), [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis)), read the ADC
 ([1.04](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds) to [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)), and end with three real instruments made of nothing but
 logic: a [lock-in amplifier](https://en.wikipedia.org/wiki/Lock-in_amplifier) ([1.08](1_08_lockin.md#108-a-lock-in-amplifier)), a [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer) ([1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)) and an AM radio
@@ -75,8 +75,8 @@ save them to a file instead (`plt.savefig("plot.png")`) and open that.
 
 ## Everyone: a folder for the tools
 
-Everything this tutorial installs goes inside this repository, in a folder
-called `tools/` that git ignores, so nothing lands anywhere else on your
+Everything that this tutorial installs goes inside this repository, in a folder
+called `tools/` that git ignores. Nothing lands anywhere else on your
 laptop, and deleting the repository deletes it all. If you haven't got the
 repository yet, clone it now as in [0.01](0_01_how_to_use_this_tutorial.md#001-how-to-use-this-tutorial) (on
 Windows, in WSL's Ubuntu window). Then, from its top folder, tell your shell
@@ -115,7 +115,7 @@ and download the newest file for your laptop:
 | Mac with an Intel chip | `oss-cad-suite-darwin-x64-YYYYMMDD.tgz` |
 
 Then unpack it into the tools folder and put its `bin` on your `PATH`. The
-three laptops differ here, so pick your block.
+three laptops differ here:
 
 On **Linux**:
 
@@ -158,6 +158,7 @@ By default only root may talk to the board's USB chip. The `.rules` file that yo
 ```bash
 cd $ADDA/tools
 wget https://raw.githubusercontent.com/trabucayre/openFPGALoader/master/99-openfpgaloader.rules
+# you can look at this .rules file now if you're curious or suspicious
 sudo cp 99-openfpgaloader.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 sudo usermod -a -G plugdev,dialout $USER     # then log out and back in
@@ -168,16 +169,18 @@ and unplug and replug the board (on Windows: `usbipd attach` it again).
 ## Everyone: Python
 
 The laptop-side scripts need Python 3 with `pyserial`, `numpy` and
-`matplotlib`. Give them their own *virtual environment*, so they can't fight
+`matplotlib`. You can give them their own *virtual environment*, so they can't fight
 with anything else on your laptop. On **Linux and WSL**, where Ubuntu's
 Python needs one package first:
 
 ```bash
 sudo apt install python3-venv
 python3 -m venv $ADDA/tools/venv
-echo 'source $ADDA/tools/venv/bin/activate' >> ~/.bashrc
 source $ADDA/tools/venv/bin/activate
 pip install pyserial numpy matplotlib
+
+# If you want to activate this virtual environment every time you open a terminal...
+echo 'source $ADDA/tools/venv/bin/activate' >> ~/.bashrc
 ```
 
 On **macOS**, where `python3` comes with Apple's command-line developer
@@ -185,14 +188,16 @@ tools (the Mac offers to install them the first time you type `python3`):
 
 ```bash
 python3 -m venv $ADDA/tools/venv
-echo 'source $ADDA/tools/venv/bin/activate' >> ~/.zshrc
 source $ADDA/tools/venv/bin/activate
 pip install pyserial numpy matplotlib
+
+# If you want to activate this virtual environment every time you open a terminal...
+echo 'source $ADDA/tools/venv/bin/activate' >> ~/.zshrc
 ```
 
-## Check it all
+## Check that the FPGA and python tools work
 
-Three commands, in a new terminal:
+In a new terminal:
 
 ```console
 $ yosys -V
@@ -201,19 +206,27 @@ $ python3 -c "import serial, numpy, matplotlib"
 ```
 
 The first two print a version, and the third prints nothing at all when all
-is well (an error names the package that is missing). Then, with the board
-plugged in (the USB-C cable in the Icepi Zero's port marked **Flash**, the
+is well (an error names the package that is missing).
+
+Then, with the board plugged in (the USB-C cable in the Icepi Zero's port marked **Flash**, the
 left one of its three USB-C ports when they point down, toward you):
 
 ```console
 $ openFPGALoader -b icepi-zero --detect
-...
+Jtag probe limited to 3MHz
+Jtag frequency : requested 6000000Hz -> real 3000000Hz
+ret 0
+index 0:
+	idcode 0x41111043
 	manufacturer lattice
 	family ECP5
 	model  LFE5U-25
+	irlength 8
 ```
 
 If that works, you're ready for [1.01](1_01_led_counter.md#101-a-counter-on-the-leds).
+
+
 [Appendix B](B_troubleshooting.md) has the usual problems.
 
 <details>

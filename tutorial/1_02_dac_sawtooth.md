@@ -6,13 +6,16 @@
 ![sawtooth.sv measured with a scope: one ramp every 256 × 20 ns = 5.12 µs](img/sawtooth_top.png)
 
 Now the converter module goes on. Unplug the board, push the adapter onto
-the Icepi Zero's 40-pin header and the module onto the adapter, the right
-way round ([0.00](0_00_the_hardware.md#the-converters-for-when-you-get-to-them)
-has the two warnings and the picture), and plug the USB cable back into
-the **Flash** port. Then put a scope on the DAC's output connector for
-this one: DAC OUT, the right-hand SMA with the USB connectors toward you.
+the Icepi Zero's 40-pin header and the module onto the adapter.
 
-<img src="img/stack_scope.png" alt="Seen from above: an oscilloscope on DAC OUT, the right SMA" width="400">
+**If you plug it in backwards (or you're off-by-one pin), the 5V will fry the board.**
+
+<img src="img/photo_stack.png" alt="The Icepi Zero, the adapter and the ADC/DAC module, stacked, with a short coax cable from the DAC to the ADC" width="320">
+
+Plug the USB cable back into the **Flash** port.
+
+Put a scope on the DAC's output connector for
+this one: DAC OUT, the right-hand SMA with the USB connectors toward you.
 
 
 ## The converters
@@ -26,13 +29,8 @@ potentiometer that you can leave alone. The adapter board's silkscreen names eve
 pin: the Icepi Zero's 40-pin header plugs into its bottom, the module into
 its top.
 
-> [!WARNING]
-> **Plug the module in the right way round.** The adapter is the same shape as
-> the Icepi Zero, and their mounting holes line up. The wrong way round puts
-> 5 V on FPGA pins, which they do not survive. The
-> [adapter's page](../adapter_board/) shows how the module goes in.
 
-<img src="img/photo_stack.png" alt="The Icepi Zero, the adapter and the ADC/DAC module, stacked, with a short coax cable from the DAC to the ADC" width="320">
+<img src="img/stack_scope.png" alt="Seen from above: an oscilloscope on DAC OUT, the right SMA" width="400">
 
 > [!WARNING]
 > **Keep the ADC's input between −5 V and +5 V.**
@@ -56,7 +54,8 @@ Measured on these boards ([Appendix C](C_how_it_was_tested.md) says how):
 | --- | --- | --- |
 | bits | 8 (codes 0–255) | 8 (codes 0–255) |
 | sample rate used here | 50 MS/s (100 MS/s in [4.01](4_01_a_faster_dac.md#401-a-faster-dac-plls)) | 25 MS/s |
-| range | code 0 → −3.95 V, code 255 → +3.88 V | −5.0 V → code 0, +5.06 V → code 255 |
+| range min | code 0   → −3.95 V | −5.0 V  → code 0 |
+| range max | code 255 → +3.88 V | +5.06 V → code 255 |
 | one code (LSB) | 30.7 mV | 39.5 mV |
 | conversion | V = 0.0307 × code − 3.95 | code = 126.7 + 25.35 × V |
 | quality | harmonics at least 46 dB below a 1 MHz tone | 7.1 effective bits at 1–3 MHz |
@@ -64,8 +63,7 @@ Measured on these boards ([Appendix C](C_how_it_was_tested.md) says how):
 The DAC was measured into a 1 MΩ oscilloscope input. With a cable straight
 from the DAC to the ADC, ADC code = 0.776 × DAC code + 27.5, and a change at
 the DAC shows up at the ADC 6 samples (240 ns) later (you'll measure both in
-[1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)). Each module is a little different: the gains
-of the three tested here differ by up to 0.7%.
+[1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)). Each module is a little different: the gains of the three tested here differ by up to 0.7%. Turning the knob on the blue potentiometer probably changes something.
 
 ## DAC Output
 
@@ -109,7 +107,7 @@ The only new idea is the DAC's clock. The AD9708 needs its data steady for
 2.0 ns before and 1.5 ns after its clock's rising edge (the *setup* and
 *hold* times, from its datasheet). Our data changes just after each rising
 edge of `clk`, so we give the DAC the inverted clock. Its rising edge then
-falls in the middle of each 20 ns period, 10 ns from any change.
+happens in the middle of each 20 ns period, 10 ns from any change.
 
 `make load-sawtooth`, and on the scope:
 
