@@ -186,6 +186,13 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 
 What changed from the plan below, and why:
 
+- **The silkscreen says what each tile is, and whose jack is whose** (Prompt 14).  The tutorial's section numbers are
+  gone from the boards (they change as the tutorial grows).  Each jack's name now sits on its own tile's frame, beside
+  the jack, the frame broken round it; in the gutter between tiles it read as the neighbour's.  A tile's title in
+  words ("LNA QPL9547", "POWER METER", "SYNTHESIZER") is on its top frame where it fits, and its ranges and levels
+  inside it.  The README in the boards' repository has a table of every tile on every board (what it does, the chip,
+  its numbers and limits, its experiments, how to cable it and what to buy), and each handbook entry has its own
+  picture of the tile.
 - **Fitting 20 mm cells.**  Several AMOD-A tiles lost a variant, a DIP switch or a test loop to the cell's room
   beside the power switch and its FET.  The handbook lists what each tile kept.
 - **RF-MOD is one complete link on one reference.**  The LTC5510 mixers had 35 in stock; two ADL5350 mixers (LF to
@@ -1374,7 +1381,7 @@ Start each board as its own directory with a `PLAN.md`, a `budget.py`, a
 | the Pmod | 3.3 V, ground and eight FPGA pins through 33 Ω (LVCMOS33); Pmod pins 1–4 and 7–10 are the I/Os, 5 and 11 ground, 6 and 12 power; the plug a right-angle 2 × 6 header at the left end of the board's bottom edge |
 | power | USB-C 5 V with CC pull-downs (5.1 kΩ) that ask for 1.5 or 3 A where a board needs more than 0.5 A; never 5 V from the Pmod |
 | mechanical | 100 × 100 mm, M3 holes 4 mm in from the corners, a 20 mm tile grid with 1.5 mm gutters, two SMA jacks in opposite corners of a 20 × 20 tile (the BWSMA-KWE-Z001 right-angle through-hole jack, C496551, its barrel off the tile's edge), 11 mm between any two jack centres |
-| silkscreen | each tile's number, name, schematic, expected plot and the sections that use it; a white outline for a passive tile, a filled frame with the supply for a powered one; a legend; the revision and date from one place |
+| silkscreen | each tile's number, name, schematic and expected plot (not the tutorial's section numbers, which change); a white outline for a passive tile, a filled frame with the supply for a powered one; a legend; the revision and date from one place |
 
 **The order of work,** for each board:
 
