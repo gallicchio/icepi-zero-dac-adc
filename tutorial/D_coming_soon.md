@@ -173,16 +173,16 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 
 | board | tiles | jacks | layers | parts per board |
 | --- | --- | --- | --- | --- |
-| AMOD-P, passive | 13 | 27 | 2 | $16.97 |
-| AMOD-A, active, USB-C powered | 12 | 19 | 4 | $50.40 |
-| RF-MOD, 915 MHz and 2.4 GHz | 10 | 22 | 4 | $57.19 |
+| AMOD-P, passive | 13 | 27 | 2 | $17.07 |
+| AMOD-A, active, USB-C powered | 12 | 21 | 4 | $50.40 |
+| RF-MOD, 915 MHz and 2.4 GHz | 10 | 24 | 4 | $66.51 |
 | Icepi Zero 2x12 adapter with a Pmod | | | 4 | three hand-soldered headers |
 
 ![The passive board as built: thirteen tiles on a 4 x 4 grid of 20 mm cells, each tile's IN jack at its top-left corner and OUT at its bottom-right, its wiring drawn on the silkscreen between them](img/amod_p_render.png)
 
 ![The active board as built: twelve powered tiles, each with its own slide switch, a USB-C power tile on the right edge and the Pmod plug at the left end of the bottom edge](img/amod_a_render.png)
 
-![The RF board as built: a splitter, two filters, a QPL9547 low-noise amplifier and a gain block, the power and reference tile, two mixers, a synthesizer and a TRF3722 quadrature transmitter, every 50 ohm line a coplanar waveguide with a via fence](img/rf_mod_render.png)
+![The RF board as built: a diode-ring mixer with its diodes drawn on the silkscreen, two filters, a QPL9547 low-noise amplifier and a gain block, the power and reference tile, two ADL5350 mixers, a synthesizer with two outputs and a TRF3722 quadrature transmitter, every 50 ohm line a coplanar waveguide with a via fence](img/rf_mod_render.png)
 
 What changed from the plan below, and why:
 
@@ -193,11 +193,18 @@ What changed from the plan below, and why:
   inside it.  The README in the boards' repository has a table of every tile on every board (what it does, the chip,
   its numbers and limits, its experiments, how to cable it and what to buy), and each handbook entry has its own
   picture of the tile.
+- **No splitters; a diode-ring mixer and a directional coupler instead** (Prompt 15).  Each MAX2871's second output,
+  RFOUTA-, had been terminated while a two-cell resistive splitter shared the first.  It now has its own jack (OUT A+
+  and OUT A-, the same frequency 180 degrees apart), so RF-MOD's R1 became a double-balanced diode-ring mixer
+  (ADEX-10L+, 10-1000 MHz, its baluns and four diodes drawn on the silkscreen) to set against the ADL5350 and AMOD-A's
+  Gilbert cell, and RF-MOD-2's X5 a dual directional coupler (FWD and REFL, 0.6-3.5 GHz) that makes X1 and X2 a
+  network analyzer for reflection as well as transmission.  The AM loopstick (P13) gained a screw terminal for an
+  external tuning capacitor with a knob beside its switched ones, and AMOD-A's speaker channel input is SPEAKER IN.
 - **Fitting 20 mm cells.**  Several AMOD-A tiles lost a variant, a DIP switch or a test loop to the cell's room
   beside the power switch and its FET.  The handbook lists what each tile kept.
 - **RF-MOD is one complete link on one reference.**  The LTC5510 mixers had 35 in stock; two ADL5350 mixers (LF to
   4 GHz, passive, either direction) took their places.  When Jason asked for the board to be filled with tiles that
-  work together, the RFX2401C front end and the printed antennas made way for the second mixer and a splitter.  SMA
+  work together, the RFX2401C front end and the printed antennas made way for the second mixer and a splitter (since a diode-ring mixer).  SMA
   whips replace the antennas.
 - **Checked again against the ECP5-2ADC-2DAC board, before ordering.**  The host has its own Johnson-noise source,
   photodiode amplifier and LED driver, so two AMOD-A tiles changed: A5 is now a socket and x101 amplifier for an
@@ -678,7 +685,7 @@ their electrical rules, their design rules and every fabrication check.
 | board | tiles | layers | parts per board |
 | --- | --- | --- | --- |
 | AMOD-2: HF, magnetic resonance and the reflectometer | 10 | 4 | $78.19 |
-| RF-MOD-2: coherent I/Q and microwave physics, 0.4-6 GHz | 11 | 4 | $98.61 |
+| RF-MOD-2: coherent I/Q and microwave physics, 0.4-6 GHz | 11 | 4 | $99.65 |
 
 ![AMOD-2 as built: ten tiles for DC to 30 MHz. Along the top, the NMR duplexer with its OPA847 preamplifier, the THS3491 pulse amplifier and the switched noise source; then the reflection bridge and the power tile with its USB-C, -5 V and +-15 V; the coupled resonators with their DIP switch and the laser driver with its bias-T; along the bottom, the two-channel HF receiver with the Pmod plug, the VLF loop amplifier and the coil driver with its two screw terminals](img/amod_2_render.png)
 
@@ -700,20 +707,21 @@ AMOD-2 is a board for DC to 30 MHz, where the host samples directly:
   a laser driver whose bias-T puts a synthesizer's gigahertz on the current: coherent population trapping in rubidium
   and pulsed ODMR, with RF-MOD-2.
 
-![RF-MOD-2 as built: eleven tiles for 0.4 to 6 GHz. Along the top, the ODMR loop, the log detector, the low-noise amplifier and the GNSS front end; the splitter, the noise source and the power tile; the I/Q modulator and the I/Q demodulator; along the bottom, the synthesizer with the Pmod plug and the absorptive switch](img/rf_mod_2_render.png)
+![RF-MOD-2 as built: eleven tiles for 0.4 to 6 GHz. Along the top, the ODMR loop, the log detector, the low-noise amplifier and the GNSS front end; the dual directional coupler, the noise source and the power tile; the I/Q modulator and the I/Q demodulator; along the bottom, the synthesizer with the Pmod plug and the absorptive switch](img/rf_mod_2_render.png)
 
-RF-MOD-2 is a coherent transceiver: one MAX2871, locked to the host's CLK OUT and split, is the LO of an ADL5375 I/Q
+RF-MOD-2 is a coherent transceiver: one MAX2871, locked to the host's CLK OUT, drives from its two outputs the LO of an ADL5375 I/Q
 modulator (the host's DACs on I and Q) and an ADL5380 I/Q demodulator (the host's ADCs on I and Q), so the transmitter
-and the receiver share one phase and Chapter 6's modems run image-free on a real carrier.  Around it: the QPL9547
+and the receiver share one phase and Chapter 6's modems run image-free on a real carrier.  Around it: a dual directional coupler, the QPL9547
 LNA, an AD8318 log detector, a SKY13370 switch, a switched noise source, a GNSS front end for an active antenna, and a
 broadband loop for NV centres' microwave field.  With the host it is a radio link in any modulation, a vector network
 analyzer, a stepped-frequency radar, an ODMR setup, a GPS receiver and a Dicke radiometer.
 
 What changed from the plan below, and why:
 
-- **The hardware Costas loop and the VCXO receive synthesizer gave way to coherence.**  With one synthesizer split
-  to both mixers there is no carrier to recover in hardware; the gateware does what the loop would have done.
-- **The printed split-ring resonator became a through-line loop**, and the printed coupler a switch.  Printed RF
+- **The hardware Costas loop and the VCXO receive synthesizer gave way to coherence.**  With one synthesizer's two
+  outputs on both mixers there is no carrier to recover in hardware; the gateware does what the loop would have done.
+- **The printed split-ring resonator became a through-line loop**, and the printed coupler a switch and, since
+  Prompt 15, a pair of TDK couplers (FWD and REFL).  Printed RF
   structures need a field solver for the stack and tuning on the bench; the loop works at 2.87 GHz and every Zeeman
   line around it with no tuning.
 - **AMOD-2 kept the spins and lost the optics.**  The NMR tiles, the coil driver and the laser driver stayed; the
