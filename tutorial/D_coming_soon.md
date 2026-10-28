@@ -175,15 +175,15 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 | --- | --- | --- | --- | --- |
 | AMOD-P, passive | 13 | 27 | 2 | $17.07 |
 | AMOD-A, active, USB-C powered | 12 | 21 | 4 | $50.40 |
-| AMOD-P2, the second passive board (Prompt 17) | 11 | 28 | 4 | $43.82 |
+| AMOD-N, the second passive board (Prompt 17) | 11 | 28 | 4 | $43.82 |
 | RF-MOD, 915 MHz and 2.4 GHz | 10 | 24 | 4 | $66.51 |
 | Icepi Zero 2x12 adapter with a Pmod | | | 4 | three hand-soldered headers |
 
 ![The passive board as built: thirteen tiles on a 4 x 4 grid of 20 mm cells, each tile's IN jack at its top-left corner and OUT at its bottom-right, its wiring drawn on the silkscreen between them](img/amod_p_render.png)
 
-![The second passive board, AMOD-P2, as built: calibration standards (SHORT, OPEN, LOAD, a 25 ohm check and a THRU) along the top beside a one-transistor oscillator with its switch; a resistive and a transformer splitter; a quarter-wave stub, a low-pass, a diode detector and a bias-T; along the bottom a step attenuator on two cells with its eight-way switch and the Pmod plug, a 1:1 balun whose OUT jack floats in a clear circle, and a 1:4 transformer with its load switch](img/amod_p2_render.png)
+![The second passive board, AMOD-N, as built: calibration standards (SHORT, OPEN, LOAD, a 25 ohm check and a THRU) along the top beside a one-transistor oscillator with its switch; a resistive and a transformer splitter; a quarter-wave stub, a low-pass, a diode detector and a bias-T; along the bottom a step attenuator on two cells with its eight-way switch and the Pmod plug, a 1:1 balun whose OUT jack floats in a clear circle, and a 1:4 transformer with its load switch](img/amod_n_render.png)
 
-![The back of AMOD-P2: under each tile a panel with its number and name, its limits, loads and supply, and for the splitter, the low-pass, the stub and the oscillator a small plot of the response to expect](img/amod_p2_back.png)
+![The back of AMOD-N: under each tile a panel with its number and name, its limits, loads and supply, and for the splitter, the low-pass, the stub and the oscillator a small plot of the response to expect](img/amod_n_back.png)
 
 ![The active board as built: twelve powered tiles, each with its own slide switch, a USB-C power tile on the right edge and the Pmod plug at the left end of the bottom edge](img/amod_a_render.png)
 
@@ -191,7 +191,7 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 
 What changed from the plan below, and why:
 
-- **A second passive board, AMOD-P2** (Prompt 17: "We should really call this the 2nd board because it's so much
+- **A second passive board, AMOD-N** (Prompt 17: "We should really call this the 2nd board because it's so much
   simpler than even the active board").  It holds the blocks the other boards lacked or had dropped: calibration
   standards for a network analyzer at the jacks' pins (a short, an open, a load, a 25 ohm check and a thru), a
   resistive and a transformer splitter, a quarter-wave stub with its notch near
@@ -209,6 +209,14 @@ What changed from the plan below, and why:
   frequency, the oscillator's frequency against TUNE, the clipper's OUT against IN).  The warnings that prevent damage
   are on the front as well: PULSES ONLY on PhMOD's pulse amplifier, the LNAs' input limit, "start at mV" on the laser
   driver.
+- **One letter per board, and tiles in lower case** (Prompt 19: "If we can have a nice, well justified single-letter
+  designator for each board, it would make everything much more clear", and "d11, q11, and c11 don't look like
+  obvious electronics or PCB things").  A tile is its board's letter and a number: p for the passive board AMOD-P, n
+  for AMOD-N (the second passive board, the pieces of a network analyzer; AMOD-P2 until Prompt 19), a for the active
+  board, c, m and b for the conversion, motor and brushless boards, r for RF-MOD, h for PhMOD and q for IQ-MOD (the
+  coherent I/Q board, RF-MOD-2 until Prompt 19).  No letter ever moved to another board and no retired name is
+  reused, so an old reference points at nothing rather than at the wrong tile; the plan below keeps its own names and
+  numbers.
 - **The silkscreen says what each tile is, and whose jack is whose** (Prompt 14).  The tutorial's section numbers are
   gone from the boards (they change as the tutorial grows).  Each jack's name now sits on its own tile's frame, beside
   the jack, the frame broken round it; in the gutter between tiles it read as the neighbour's.  A tile's title in
@@ -219,10 +227,10 @@ What changed from the plan below, and why:
   picture of the tile.
 - **No splitters; a diode-ring mixer and a directional coupler instead** (Prompt 15).  Each MAX2871's second output,
   RFOUTA-, had been terminated while a two-cell resistive splitter shared the first.  It now has its own jack (OUT A+
-  and OUT A-, the same frequency 180 degrees apart), so RF-MOD's R1 became a double-balanced diode-ring mixer
+  and OUT A-, the same frequency 180 degrees apart), so RF-MOD's r1 became a double-balanced diode-ring mixer
   (ADEX-10L+, 10-1000 MHz, its baluns and four diodes drawn on the silkscreen) to set against the ADL5350 and AMOD-A's
-  Gilbert cell, and RF-MOD-2's X5 a dual directional coupler (FWD and REFL, 0.6-3.5 GHz) that makes X1 and X2 a
-  network analyzer for reflection as well as transmission.  The AM loopstick (P13) gained a screw terminal for an
+  Gilbert cell, and IQ-MOD's q5 a dual directional coupler (FWD and REFL, 0.6-3.5 GHz) that makes q1 and q2 a
+  network analyzer for reflection as well as transmission.  The AM loopstick (p13) gained a screw terminal for an
   external tuning capacitor with a knob beside its switched ones, and AMOD-A's speaker channel input is SPEAKER IN.
 - **Fitting 20 mm cells.**  Several AMOD-A tiles lost a variant, a DIP switch or a test loop to the cell's room
   beside the power switch and its FET.  The handbook lists what each tile kept.
@@ -231,11 +239,11 @@ What changed from the plan below, and why:
   work together, the RFX2401C front end and the printed antennas made way for the second mixer and a splitter (since a diode-ring mixer).  SMA
   whips replace the antennas.
 - **Checked again against the ECP5-2ADC-2DAC board, before ordering.**  The host has its own Johnson-noise source,
-  photodiode amplifier and LED driver, so two AMOD-A tiles changed: A5 is now a socket and x101 amplifier for an
-  HB100 10.525 GHz Doppler module (5.08's speed gun, the only route above 6 GHz), and A10 an impedance and I-V tile
+  photodiode amplifier and LED driver, so two AMOD-A tiles changed: a5 is now a socket and x101 amplifier for an
+  HB100 10.525 GHz Doppler module (5.08's speed gun, the only route above 6 GHz), and a10 an impedance and I-V tile
   (a DIP-selected reference resistor and V and I outputs for the host's two ADCs).  On RF-MOD the QPL9547 LNA is in
   (the taped QPL9547TR7 was in stock: 0.3 dB of noise figure instead of a second gain block), and a TRF3722
-  quadrature transmitter (R13) on the host's two DACs replaced the second synthesizer: an image-free transmitter
+  quadrature transmitter (r13) on the host's two DACs replaced the second synthesizer: an image-free transmitter
   whose LO output drives a receive mixer coherently.
 - **Every jack in a checkerboard.**  Each tile takes IN at a cell's top-left corner and OUT at its bottom-right, so
   no two jacks on any board are closer than 14.85 mm (10.5 mm in the first layout, too close for two cables and
@@ -244,7 +252,7 @@ What changed from the plan below, and why:
   45 degrees between their jacks.
 - **No mounting holes on AMOD-A and RF-MOD.**  Four stick-on rubber feet replace them.  The Pmod plug moved into
   the corner when its pinout was found mirrored before the order and fixed.  AMOD-P keeps its M3 holes.
-- **Every part turned the way JLCPCB places it** (found while drawing AMOD-P2).  A new check fits JLCPCB's own
+- **Every part turned the way JLCPCB places it** (found while drawing AMOD-N).  A new check fits JLCPCB's own
   drawing of each part onto the board's footprint.  Every SOT-23 transistor and SOT-23-5/6 chip had been left at
   KiCad's angle; JLCPCB draws most of them turned 180 degrees, so every powered tile's P-FET would have gone on
   backwards.  The placement files now turn them and move the USB-C (1.6 mm, the move done by hand in earlier
@@ -296,8 +304,8 @@ an FPGA. Its chapters 16 to 18 (counters, memory and state machines,
 analog-to-digital conversion and the phase-locked loop) and its
 microcontroller chapters are what this tutorial covers with gateware, a
 RISC-V core and Linux instead. Where a tile continues one of the book's
-labs the table says so: the AM radio of Lab 3L is P13 with A4, Lab 18L's
-successive-approximation ADC and '4046 PLL are A6 and A7, Lab 10L's PID
+labs the table says so: the AM radio of Lab 3L is p13 with a4, Lab 18L's
+successive-approximation ADC and '4046 PLL are a6 and a7, Lab 10L's PID
 motor loop is PhMOD's H-bridge with a fan on it, and the crystals,
 filters and resonators of Labs 2L and 3L come back with a lock-in to
 measure them.
@@ -714,7 +722,7 @@ their electrical rules, their design rules and every fabrication check.
 | board | tiles | layers | parts per board |
 | --- | --- | --- | --- |
 | PhMOD (AMOD-2 until Prompt 17): magnetic resonance, the ionosphere and light | 10 | 4 | $78.19 |
-| RF-MOD-2: coherent I/Q and microwave physics, 0.4-6 GHz | 11 | 4 | $99.65 |
+| IQ-MOD: coherent I/Q and microwave physics, 0.4-6 GHz | 11 | 4 | $99.65 |
 
 ![PhMOD as built: ten tiles for DC to 30 MHz. Along the top, the NMR duplexer with its OPA847 preamplifier, the THS3491 pulse amplifier and the switched noise source; then the reflection bridge and the power tile with its USB-C, -5 V and +-15 V; the coupled resonators with their DIP switch and the laser driver with its bias-T; along the bottom, the two-channel HF receiver with the Pmod plug, the VLF loop amplifier and the coil driver with its two screw terminals](img/phmod_render.png)
 
@@ -734,11 +742,11 @@ PhMOD, the physics board (AMOD-2 until Prompt 17), is a board for DC to 30 MHz, 
   (sferics, the Navy's 24 kHz stations, WWVB).
 - **Noise, and light.**  A switched avalanche-noise source (Y-factor noise figure, transfer functions from noise) and
   a laser driver whose bias-T puts a synthesizer's gigahertz on the current: coherent population trapping in rubidium
-  and pulsed ODMR, with RF-MOD-2.
+  and pulsed ODMR, with IQ-MOD.
 
-![RF-MOD-2 as built: eleven tiles for 0.4 to 6 GHz. Along the top, the ODMR loop, the log detector, the low-noise amplifier and the GNSS front end; the dual directional coupler, the noise source and the power tile; the I/Q modulator and the I/Q demodulator; along the bottom, the synthesizer with the Pmod plug and the absorptive switch](img/rf_mod_2_render.png)
+![IQ-MOD as built: eleven tiles for 0.4 to 6 GHz. Along the top, the ODMR loop, the log detector, the low-noise amplifier and the GNSS front end; the dual directional coupler, the noise source and the power tile; the I/Q modulator and the I/Q demodulator; along the bottom, the synthesizer with the Pmod plug and the absorptive switch](img/iq_mod_render.png)
 
-RF-MOD-2 is a coherent transceiver: one MAX2871, locked to the host's CLK OUT, drives from its two outputs the LO of an ADL5375 I/Q
+IQ-MOD is a coherent transceiver: one MAX2871, locked to the host's CLK OUT, drives from its two outputs the LO of an ADL5375 I/Q
 modulator (the host's DACs on I and Q) and an ADL5380 I/Q demodulator (the host's ADCs on I and Q), so the transmitter
 and the receiver share one phase and Chapter 6's modems run image-free on a real carrier.  Around it: a dual directional coupler, the QPL9547
 LNA, an AD8318 log detector, a SKY13370 switch, a switched noise source, a GNSS front end for an active antenna, and a
@@ -757,14 +765,15 @@ What changed from the plan below, and why:
   slow I<sup>2</sup>C converters, the instrumentation amplifier and the Hall sensor gave way to the bridge, the
   resonators, the receivers and the noise source, which use both of the host's channels.
 - The tile numbers in the plan below are the plan's; the boards renumbered them.  The repository's
-  `PLAN_LEVEL2.md` has every change with its reason, `docs/HANDBOOK_phmod.md` and `docs/HANDBOOK_rf_mod_2.md` the
+  `PLAN_LEVEL2.md` has every change with its reason, `docs/HANDBOOK_phmod.md` and `docs/HANDBOOK_iq_mod.md` the
   experiments step by step, and `docs/KIT.md` what each needs beside the boards.
 
 The rest of this section is the plan as it stood before the boards were drawn.
 
 ### AMOD-2: lasers, piezos, spins and slow I/O
 
-(The plan's AMOD-2.  It was built as PhMOD above; its optics tiles wait for an optics board, OMOD.)
+(The plan's AMOD-2.  It was built as PhMOD above, its tiles h1-h10 (the plan's Y numbers are its own); its optics
+tiles wait for an optics board, OMOD.)
 
 What a physics experiment adds to a converter board is nearly always one
 of five things: a current you can set and modulate (a laser diode), a
@@ -843,6 +852,8 @@ and lock.  The added mirror lowers it, so measure it first.
 | **a seismometer, a thermostat, a motor loop** | Y11 with a geophone coil, Y5 on a heater, Y9 on a fan with a tachometer (*Learning the Art of Electronics* Lab 10L) | the sensor or the fan |
 
 ### RF-MOD-2: quadrature, a hardware Costas loop and detectors
+
+(The plan's RF-MOD-2.  It was built as IQ-MOD above, its tiles q1-q11; the plan's X numbers are its own.)
 
 RF-MOD's two mixers make the sum and the difference of the LO and the IF,
 and Chapter 6's whole band fits twice inside each ISM band, so the
