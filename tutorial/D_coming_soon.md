@@ -7,16 +7,18 @@
 
 Hardware that does not exist yet, and some that is on its way. The next
 board, above, was ordered from JLCPCB in October 2026 and is in
-production as this is written. Around it, five boards of analog and RF
-building blocks are an idea: three first-level boards (passive, active and
-RF) and two advanced ones for the experiments a senior lab wants (lasers,
-piezos, spins, and quadrature radio). Then what the boards could do
+production as this is written. Around it, boards of analog and RF
+building blocks began as an idea, five of them: three first-level boards
+(passive, active and RF) and two advanced ones for the experiments a senior
+lab wants (lasers, piezos, spins, and quadrature radio). Nine are now
+designed and not yet ordered: a second passive board, a conversion board and
+two motor boards joined the first level. Then what the boards could do
 together (the coffee-can radar, direction finding, MIMO, and a list of
 experiments), the cheap extras that several pages ask for (long cables, an
 antenna), what other teaching platforms cover that this tutorial does not
 yet, and why openness all the way down matters for learning with an AI.
-The last section before the cables is written for the agent that will
-design the five boards: it says where the rules, the generators and the
+The last section before the cables was written for the agent that would
+design the boards: it says where the rules, the generators and the
 decisions are.
 
 ## The next board
@@ -166,7 +168,8 @@ What the two boards settled, for everything below:
 ### Built: rev A, 2026-10-25
 
 Claude designed the three first-level boards and the Icepi Zero adapter overnight from the plan below and Jason's
-answers at the end of this appendix.  Every board passed its electrical rules, its design rules and a fabrication
+answers at the end of this appendix; a second passive board followed (Prompt 17), then a conversion board and two
+motor boards (Prompt 19).  Every board passed its electrical rules, its design rules and a fabrication
 check of the files JLCPCB is sent, including every part code checked against JLCPCB's own description and stock on
 the day.  The boards, their generator, the handbooks and the night's record are in
 [github.com/gallicchio/AMOD-and-RFMOD](https://github.com/gallicchio/AMOD-and-RFMOD) (`~/mudd/pcbs/AMOD-and-RFMOD`).
@@ -176,6 +179,9 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 | AMOD-P, passive | 13 | 27 | 2 | $17.07 |
 | AMOD-A, active, USB-C powered | 12 | 21 | 4 | $50.40 |
 | AMOD-N, the second passive board (Prompt 17) | 11 | 28 | 4 | $43.82 |
+| AMOD-C, conversion: power and data (Prompt 19) | 12 | 26 | 4 | $43.57 |
+| AMOD-M, motors and actuators (Prompt 19) | 11 | 18 | 4 | $35.98 |
+| AMOD-B, a brushless gimbal motor (Prompt 19) | 12 | 13 | 4 | $42.11 |
 | RF-MOD, 915 MHz and 2.4 GHz | 10 | 24 | 4 | $66.51 |
 | Icepi Zero 2x12 adapter with a Pmod | | | 4 | three hand-soldered headers |
 
@@ -186,6 +192,14 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 ![The back of AMOD-N: under each tile a panel with its number and name, its limits, loads and supply, and for the splitter, the low-pass, the stub and the oscillator a small plot of the response to expect](img/amod_n_back.png)
 
 ![The active board as built: twelve powered tiles, each with its own slide switch, a USB-C power tile on the right edge and the Pmod plug at the left end of the bottom edge](img/amod_a_render.png)
+
+![The conversion board, AMOD-C, as built: a switched-capacitor filter, a switched-capacitor integrator over two cells and a 555 along the top; a cascode, a second-order delta-sigma modulator over two cells and the power tile; a SAR comparator, a buck, an LDO and an electronic load over two cells, and a charge pump; along the bottom a differential pair over two cells, a precision rectifier and a track-and-hold](img/amod_c_render.png)
+
+![The motor board, AMOD-M, as built: a solenoid's switch with its flyback jumper over two cells, a servo header and the motor supply's barrel jack along the top; a hall sensor, a reflective optical sensor, a load cell's amplifier and the power tile; a stepper's two drivers and a DC-coupled bridge amplifier, each over two cells; along the bottom a DC motor's driver with its encoder connector and a buck power stage, the Pmod plug in the margin under the DC motor](img/amod_m_render.png)
+
+![The brushless board, AMOD-B, as built: the gimbal motor's four radial slots and its outline in the middle over four cells, a magnetic encoder at the centre, two hall sensors at the left and an index sensor under the rim; around it the encoder's analog angle, a vibration pickup's terminal, the index amplifier and the motor supply along the top; the halls' amplifiers and an IMU down the left; the power tile and the bus current on the right; along the bottom the back-EMF, a three-phase driver over two cells with the motor's terminal, and the phase current, the Pmod plug in the margin under the driver](img/amod_b_render.png)
+
+![The back of AMOD-B: under each tile its panel, the SPI lines from the plug running up the gutter to the IMU, the encoder's lines on 45-degree diagonals between the gimbal's slots, and the board's QR code beside the gimbal's slots](img/amod_b_back.png)
 
 ![The RF board as built: a diode-ring mixer with its diodes drawn on the silkscreen, two filters, a QPL9547 low-noise amplifier and a gain block, the power and reference tile, two ADL5350 mixers, a synthesizer with two outputs and a TRF3722 quadrature transmitter, every 50 ohm line a coplanar waveguide with a via fence](img/rf_mod_render.png)
 
@@ -202,6 +216,20 @@ What changed from the plan below, and why:
   the Pmod's 3.3 V either way) and a one-transistor oscillator near 10 MHz
   that a DAC tunes and a tone locks.  The board AMOD-2 below became **PhMOD**, the physics board; an optics board
   would be OMOD.
+- **Three more first-level boards** (Prompt 19).  **AMOD-C**, conversion, is the inside of the converters and the
+  supplies the other boards take for granted: a buck and an LDO with an electronic load, a charge pump the FPGA
+  clocks, a switched-capacitor filter and integrator, a second-order delta-sigma modulator with both integrators on
+  jacks, a track-and-hold, a SAR comparator, a differential pair, a cascode, a 555 as a V-to-F and a precision
+  rectifier.  Motors took two boards, one Pmod each (Jason: "If it makes more sense to do 2 boards rather than one
+  board with two Pmods, stick with an extra board"): **AMOD-M** drives a brushed DC motor with its encoder and a
+  stepper from the FPGA's lines, and a servo, a solenoid (its flyback chosen by a jumper: a diode, a TVS or the FET's
+  avalanche), a DC-coupled bridge amplifier for a voice coil or a maglev's electromagnet and a buck power stage from
+  DACs, with a hall, an optical and a load-cell sensor for their loops.  **AMOD-B** holds a gimbal motor on four
+  slots over its own sensors (a 14-bit magnetic encoder under the shaft, two linear halls, an optical index), driven
+  by a three-phase bridge from three FPGA lines with a DAC that floats all three phases; its back-EMF, the phase and
+  bus currents, the encoder's angle as a voltage, the motor's vibration and an IMU make it a one-axis gimbal and a
+  sensorless-commutation bench.  Both take a 5-12 or 5-16 V motor supply on a barrel jack, with the USB's 5 V
+  joining it through a Schottky so small motors turn with none.
 - **The back of every board is its manual** (Prompt 18: "When someone is screwing things into the board, it's far
   easier to read the silkscreen in front of them than it is to look up stuff on github").  Under each tile, on the
   back, a panel gives its number and name, its input limit, its load, its supply and switch, and the one thing that
@@ -264,7 +292,8 @@ What changed from the plan below, and why:
 ![The Icepi Zero adapter with a Pmod: the original 2x12 adapter with a right-angle Pmod socket on a 15 mm extension of its right-hand end](img/icepi_pmod_adapter.png)
 
 What a bench needs beside the boards (USB-C supplies, SMA cables and adapters, SMA whips, the transducers, the
-speaker, the electret, the ferrite rod and the rubber feet) is listed in the repository's `docs/KIT.md`.
+speaker, the electret, the ferrite rod, the rubber feet, and for the motor boards a 3-12 V supply, the motors, a load
+cell, magnets and a piezo element) is listed in the repository's `docs/KIT.md`.
 
 The rest of this section is the plan as it stood before the boards were drawn.
 
