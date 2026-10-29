@@ -268,7 +268,7 @@ What changed from the plan below, and why:
   whips replace the antennas.
 - **Checked again against the ECP5-2ADC-2DAC board, before ordering.**  The host has its own Johnson-noise source,
   photodiode amplifier and LED driver, so two AMOD-A tiles changed: a5 is now a socket and x101 amplifier for an
-  HB100 10.525 GHz Doppler module (5.08's speed gun, the only route above 6 GHz), and a10 an impedance and I-V tile
+  HB100 10.525 GHz Doppler module ([5.08](5_08_more_hardware.md#instruments-for-a-physics-lab)'s speed gun, the only route above 6 GHz), and a10 an impedance and I-V tile
   (a DIP-selected reference resistor and V and I outputs for the host's two ADCs).  On RF-MOD the QPL9547 LNA is in
   (the taped QPL9547TR7 was in stock: 0.3 dB of noise figure instead of a second gain block), and a TRF3722
   quadrature transmitter (r13) on the host's two DACs replaced the second synthesizer: an image-free transmitter
