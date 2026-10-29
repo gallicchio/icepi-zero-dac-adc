@@ -75,7 +75,8 @@ more than anything else in the tutorial, so:
 | `>` or a name like `adda>` | the board | a bare-metal C program's own prompt (Chapter 2) |
 | `#` | the board | root's shell under Linux (Chapter 3); `micropython` there runs MicroPython *on the board* |
 | `>>>` | the board | MicroPython's prompt, after you typed `micropython` at a `#` |
-| `A#`, `B#`, `A$` | board A, board B, the laptop | with two boards (Chapter 5) |
+| `A#`, `B#` | board A, board B | root's shell on each, with two boards (Chapter 5) |
+| `A$`, `B$` | your laptop | a command for board A or for board B (Chapters 6 and 7) |
 
 A block of commands with no prompt at all, like the `git clone` above, is
 typed at the laptop's `$`. Everything in Chapter 1 runs on the laptop.

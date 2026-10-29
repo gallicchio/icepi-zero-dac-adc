@@ -75,7 +75,7 @@ import numpy as np
 from litex import RemoteClient
 
 F_SYS = 50e6                 # the SoC's clock
-ADC_CODES_PER_VOLT = 25.35   # measured in 0.00
+ADC_CODES_PER_VOLT = 25.35   # measured in 1.02
 
 wb = RemoteClient(csr_csv="build/bone/csr.csv")      # every register's name and address
 wb.open()

@@ -124,7 +124,7 @@ the few awkward ones at the end.
 #include <generated/soc.h>
 
 #define F_SYS              CONFIG_CLOCK_FREQUENCY   /* 50 MHz */
-#define ADC_CODES_PER_VOLT 25.35f                   /* measured: see 0.00 */
+#define ADC_CODES_PER_VOLT 25.35f                   /* measured: see 1.02 */
 #define N_SAMPLES          16384
 
 /*---- function generator (2.03) ---------------------------------------------*/
@@ -575,8 +575,8 @@ smallest step.
   those codes' individual widths (the ADC's *[differential nonlinearity](https://en.wikipedia.org/wiki/Differential_nonlinearity)*)
   rather than their average.
 - Below one code, the ADC's own noise, only about a tenth of a code rms (the
-  half-code residual of [0.00](0_00_the_hardware.md#000-the-hardware)'s sine
-  fit is mostly the converter's nonlinearity, not noise), *dithers* a small
+  half-code residual behind [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do)'s 7.1
+  effective bits is mostly the converter's nonlinearity, not noise), *dithers* a small
   signal across code boundaries, and averaging 16 million samples recovers
   it. That little [dither](https://en.wikipedia.org/wiki/Dither) is why these readings fall short: low by 25–40%,
   though this test can't say how much of that is the ADC: the ADALM2000's

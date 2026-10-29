@@ -340,7 +340,7 @@ $ python3 capture.py -d 4 -o slow.csv --no-plot
 ```
 
 Here's a 4 V, 1.1 MHz sine from the generator, converted to volts with the
-calibration from [0.00](0_00_the_hardware.md#000-the-hardware):
+calibration from [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do):
 
 ![capture.sv: a 1.1 MHz sine at 25 MS/s, and a 10.1 MHz sine aliased at 12.5 MS/s](img/capture.png)
 

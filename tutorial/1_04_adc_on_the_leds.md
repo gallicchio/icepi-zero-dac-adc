@@ -165,7 +165,7 @@ these designs do, and that timing is the same every time you load the design.
   bench supply's ripple and whatever the cable picks up are usually more.)
   Fix it by updating the LEDs only ten times a second.
 - With a power supply and a multimeter, check the ADC's calibration from
-  [0.00](0_00_the_hardware.md#000-the-hardware): code = 126.7 + 25.35 × V.
+  [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do): code = 126.7 + 25.35 × V.
 
 <!-- nav -->
 [← 1.03 A sine: direct digital synthesis](1_03_dac_sine.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.05 ADC samples to Python →](1_05_adc_to_python.md)

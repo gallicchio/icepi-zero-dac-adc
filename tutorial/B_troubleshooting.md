@@ -12,7 +12,7 @@ connectors toward you, **ADC IN is on the left and DAC OUT on the right**.
 
 | symptom | cause and fix |
 | --- | --- |
-| The ADC reads a constant (about 127, or nothing changes), or the DAC's signal doesn't arrive | the wrong SMA. With the USB connectors toward you, **ADC IN is the left-hand SMA and DAC OUT the right-hand one** ([0.00](0_00_the_hardware.md#which-sma-is-which)) |
+| The ADC reads a constant (about 127, or nothing changes), or the DAC's signal doesn't arrive | the wrong SMA. With the USB connectors toward you, **ADC IN is the left-hand SMA and DAC OUT the right-hand one** ([1.02](1_02_dac_sawtooth.md#which-sma-is-which)) |
 | `openFPGALoader` can't find the board, or `Permission denied` | Linux and WSL: the udev rule and group membership of [1.00](1_00_circuits_from_code.md#100-circuits-from-code); unplug and replug the board afterwards, and log out and back in |
 | WSL: no `/dev/ttyUSB0`, or `openFPGALoader` sees nothing | the board isn't attached to WSL: `usbipd attach --wsl --busid ...` in PowerShell, again after every replug. If `lsusb` shows the board but there's still no `/dev/ttyUSB0`, `sudo modprobe ftdi_sio` |
 | macOS: `openFPGALoader` can't open the FTDI device | another program has the serial port open (close it). If it still fails, try `sudo openFPGALoader ...` (untested on a Mac) |

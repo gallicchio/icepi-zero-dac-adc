@@ -583,7 +583,7 @@ TS = cm.TS
 N = 16384                                           # samples in a capture
 PRE = 64                                            # samples before the step
 SIG = {"adc": 0, "sp": 1, "e": 2, "u": 3, "y": 4}
-CODES_PER_VOLT = 25.35                              # the ADC (0.00)
+CODES_PER_VOLT = 25.35                              # the ADC (1.02)
 VOLTS_PER_CODE = 0.0307                             # the DAC
 ADC_REST = 127                                      # what 0 V at ADC IN reads (1.07: 0.776 x 128 + 27.5)
 

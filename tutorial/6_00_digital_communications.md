@@ -128,7 +128,7 @@ The FPGA's job is small: [5.01](5_01_two_clocks.md#501-two-clocks)'s `awgcap.sv`
 from the laptop over and over at 50 MS/s, and records 16384 samples at
 25 MS/s. Everything else, until [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga), is Python *on the laptop*, in
 `src/comms/`, talking to the board over the serial port, so every command
-in this chapter starts with the laptop's `$` ([0.01](0_01_how_to_use_this_tutorial.md#where-does-this-run) has the whole table of
+in this chapter starts with the laptop's `$` ([0.01](0_01_how_to_use_this_tutorial.md#where-does-a-command-run) has the whole table of
 prompts):
 
 ```console

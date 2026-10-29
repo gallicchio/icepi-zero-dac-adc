@@ -62,7 +62,7 @@ import sigma_delta as sd                                     # noqa: E402
 N_DAC, FS, F_LOOP, OSRS = sd.N_DAC, sd.FS, sd.F_LOOP, sd.OSRS
 N_REC = 16384                   # ADC samples in a record (two loops)
 WAYS = ["none", "dither", "shaped"]
-ADC_PER_V = 25.35               # ADC codes per volt at its input (0.00)
+ADC_PER_V = 25.35               # ADC codes per volt at its input (1.02)
 ADC_ZERO = sd.ADC_GAIN * 128 + 27.5     # 126.83: what the ADC reads of the DAC's mid-scale (0 V)
 AWG_RATE, AWG_N, AWG_CYCLES = 75e6, 65536, 8     # the M2k's W1: 8 cycles = 9155.27 Hz, as the DAC's 3
 

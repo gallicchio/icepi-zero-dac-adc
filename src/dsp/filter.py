@@ -61,7 +61,7 @@ N = 16384                       # the capture's length
 IMPULSE, STEP, NOISE = 64, 64, 32   # the built-in stimuli, in ADC codes
 SEED = 0x2545F491               # the noise generator's seed at each capture
 CABLE_GAIN = 0.776              # ADC codes per DAC code through the loopback cable (1.07)
-DAC_V = 0.0307                  # volts per DAC code (0.00)
+DAC_V = 0.0307                  # volts per DAC code (1.02)
 SRC_NAMES = ["ADC", "impulse", "step", "noise", "tone"]
 
 

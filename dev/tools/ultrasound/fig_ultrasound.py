@@ -31,8 +31,8 @@ import ofdm_air                                                       # noqa: E4
 
 DATA = os.path.join(TOP, "dev", "data")
 IMG = os.path.join(TOP, "tutorial", "img")
-CODES_PER_VOLT = 25.35                       # the ADC (0.00)
-VOLTS_PER_CODE_DAC = 0.0307                  # the DAC (0.00)
+CODES_PER_VOLT = 25.35                       # the ADC (1.02)
+VOLTS_PER_CODE_DAC = 0.0307                  # the DAC (1.02)
 
 
 def load(name, where=""):

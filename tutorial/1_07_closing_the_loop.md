@@ -320,7 +320,7 @@ ADC code at DAC codes 0, 128, 255: 27.02 126.00 225.00
 ![loopback.sv: ADC code vs DAC code](img/loopback_stairs.png)
 
 ADC = 0.776 × DAC + 27.5. The slope agrees within 0.3% with the two
-calibrations in [0.00](0_00_the_hardware.md#000-the-hardware), which were made separately with an
+calibrations in [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do), which were made separately with an
 external instrument: (30.7 mV/code) × (25.35 codes/V) = 0.778. The residual is
 the ADC's rounding to whole codes and nothing more. Notice too that, with a
 steady input, the ADC's output doesn't flicker at all: its noise is well below

@@ -24,7 +24,7 @@
 #include <generated/soc.h>
 
 #define F_SYS              CONFIG_CLOCK_FREQUENCY   /* 50 MHz */
-#define ADC_CODES_PER_VOLT 25.35f                   /* measured: see 0.00 */
+#define ADC_CODES_PER_VOLT 25.35f                   /* measured: see 1.02 */
 #define N_SAMPLES          16384
 
 /*---- function generator (2.03) ---------------------------------------------*/

@@ -39,7 +39,7 @@ DATA = os.path.join(TOP, "dev", "data")
 SIM = "--sim" in sys.argv
 NAMES = [("moving", dict(moving=16), C1), ("lowpass", dict(lowpass=2e6), C2),
          ("edge", dict(edge=True), C3), ("rc", dict(rc=1e6), C2)]
-ADC_PER_V, ADC_ZERO = 25.35, -1.3           # codes per volt, and the code (minus 128) at 0 V (0.00)
+ADC_PER_V, ADC_ZERO = 25.35, -1.3           # codes per volt, and the code (minus 128) at 0 V (1.02)
 DAC_ZERO = -0.02                             # volts at code 128
 
 

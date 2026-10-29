@@ -306,7 +306,7 @@ if __name__ == "__main__":
         raw = ser.read(args.n)
 
     code = np.frombuffer(raw, dtype=np.uint8)
-    volts = (code - 126.7) / 25.35    # the ADC's calibration, from the hardware table
+    volts = (code - 126.7) / 25.35    # the ADC's calibration, from 1.02's table
     t_ms = np.arange(len(code)) / FS * 1e3
     print(f"{len(code)} samples; codes {code.min()}..{code.max()}, "
           f"{volts.min():.2f} V to {volts.max():.2f} V")

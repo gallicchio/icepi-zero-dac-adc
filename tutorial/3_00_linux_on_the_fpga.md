@@ -16,7 +16,7 @@ Linux controls any hardware: through files. By the end of this chapter,
 you'll be able to set up a function generator under Linux, which is running on
 the FPGA itself, by typing the following commands (at the board's own shell,
 logged in as root: a `#` prompt means that throughout Chapter 3;
-[0.01](0_01_how_to_use_this_tutorial.md#where-does-this-run) has the table of
+[0.01](0_01_how_to_use_this_tutorial.md#where-does-a-command-run) has the table of
 prompts):
 
 ```console
