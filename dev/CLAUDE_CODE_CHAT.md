@@ -3084,3 +3084,134 @@ Its bitstreams, renders and simulation output are in `.gitignore`. The Verilog i
 - The repository is 10 commits ahead of GitHub. This session has no key, so you push.
 
 **Board state:** both boards run the show from their flash, DK0GFLAW as X and DP051TLX as Y (DP051TLX had `ddc.bit` at the end of Prompt 29). The scope is as found.
+
+## Prompt 31
+
+You are now in charge of the icepi zero tutorial and are primarily focused on that for the next hour. Do a full 360 review of this whole tutorial. Start with the most complicated and interesting tutorial pages. Make the writing tighter and easier to read. (Students aren't reading this like a novel, they are going coming in and out as they try to actually do the tutorial.) As an example, you can look at the types of changes I made to the first few tutorials when I went through them by hand. Test what you can with the two devices you have connected. Spend the next hour improving things as much as possible. Stop before 2pm and make sure everything is committed and git is clean.
+
+(Then, mid-turn:) Keep in mind that the wiring to the oscilloscope through 1 meter BNC cables might cause different reflections than the direct cables. This is a good challenge for robustness, but it if it makes the plots messier, stick with the plots from the simpler cabling without the 1-meter cable to the oscilloscope.
+
+## Response 31 2026-11-10 12:49:46 - 13:15:12 Claude Opus 5.5
+
+63 pages tightened in the style of your edits of 0.00-1.03 (101aa9d, 1493241), chapter 5 and 6 tested on the two boards, and a few fixes, in 20 commits. `make check`: 0 errors, 1 warning (0.00's, from before). Not touched: 0.00-1.03 (yours), 5.08 (new today), 5.09 (mostly tables) and Appendix D.
+
+**How.** Nine agents worked in parallel, one page each, then more as they finished, from the hardest pages down: 6.11, 6.12, 6.10, 7.06, 7.05, 6.02, 1.10, 4.06, 6.05 first. Each had the same brief:
+- the reader dips in while doing the experiment;
+- study your two commits;
+- lists for enumerations, a bold action before each command, what you should see after it;
+- cut the page's own history and the figures' provenance;
+- prose only: no code, headings, link targets, images or numbers changed;
+- flag what looks wrong instead of fixing it.
+
+Every page was checked by script against HEAD before it was committed: code blocks, headings, images and links are identical, and no number left the prose. Pages are about as long as before, since the list markers and action lines add what the cuts remove. They are easier to scan, not shorter.
+
+**Tested on the two boards** (DK0GFLAW and DP051TLX, each DAC teed to the other's ADC and to the SDS1104X-E through 1 m of BNC). No figure was redrawn: the pages keep the plots from the direct cables.
+
+| page | run | result |
+| --- | --- | --- |
+| 5.01 | `lockin_log.py` + `beat.py`, 60 s | ±4.221 ppm, both boards agree to 5 digits. Right after swapping a bigger design out the beat drifted 0.23 ppm in a minute (277° rms), still climbing two minutes later (54° rms): a settling tip added |
+| 5.04 | `coupled.py` free, one-way, mutual | this pair is 4.7 Hz apart, beyond the page's K: `--KB 1` and `--KB 6` never locked. With `--detune -4.7`, `--KB 1` locked to ±0.1°, and mutual K = 0.5 Hz to ±0.2°. The page now says so, and `coupled.py` prints the slip |
+| 5.03 | `twoway.py`, 60 s | round trip 437.6 ns, 0.67 ns rms (the page: 425.6, 0.15 on direct cables); offset 4.7 µs/s. A note on teeing in a scope added |
+| 5.05 | `modem_test.py`, both ways | 0 errors in 20,000 bytes at 115,200, 1 M and 2.5 Mbaud; 3 Mbaud fails (19,931 wrong), as the page says |
+| 6.11 | `qpsk_modem_test.py`, both ways; `qpsk_modem_check.py` | 0 bit errors in 160,000 each way. The check's five tests PASS in 2 min: the page showed three tests and "about a minute"; now replaced |
+| 6.02 | `psk.py A B`, plain and `--cfo 3000 --sro 2000` | 0 bit errors, MER 37.6 dB; found +1950 ppm and +3015 Hz |
+| 6.03 | `qam.py A B` | 0 bit errors in 1920, MER 35.4 dB, rings where expected |
+| 6.04 | `msk.py A B`, and `--bt 0.3` | 0 bit errors, MER 21.2 and 15.9 dB |
+| 6.07 | `ofdm.py A B --qam 16`, `--qam 64` both ways | QAM-16: 37.2 Mbit/s, 0 errors in 244,080. QAM-64: 55.9 Mbit/s, 18 and 320 errors in 366,120 (the page: 0-17 on direct cables): the stubs cost a little |
+| 6.06, 6.09, 6.10 | `cdma.py`, `ecc.py`, `chirp.py`, A to B | CDMA: both users decoded, 0 bit errors. ECC: every scheme 0 wrong. Chirps: the delays found, and under one Doppler step the chirp and ZC peaks shift while the m-sequence's and Gold's are lost, as the page explains |
+
+**Fixed along the way:**
+- `src/comms`: eight scripts said `awgcap.sv` was 5.01's (it is 5.03's), and so did 6.02's new step.
+- `psk.py`, `qam.py` and `msk.py` printed NumPy 2's `np.int64(...)`; they now print plain integers, as the pages show.
+- `sound.py`'s multitone is 6.07's, not 6.04's.
+- 6.10's figure scripts are linked to `dev/tools/comms/`, and `fig_radar.py` was offered a `--bw` it doesn't take.
+- 7.01's `firwin` call gained `fs=25e6`.
+- Pointers fixed in 4.01, 6.10, 6.12 and 7.03.
+- 4.06's kelvin per millimetre: 5, not 3.
+- 5.00 sets `$A` and `$B` explicitly.
+
+**Board state:** both boards run the show again (loaded into RAM from `src/xyshow/build`, the bitstreams already in their flash), in step: 118 good bursts, 0 bad, trim −3.8 ppm. X is on auto. The scope was not touched.
+
+<details>
+<summary><b>Possible errors found while editing, left for you to judge</b> (page: line numbers as of this commit)</summary>
+
+Numbers that disagree with each other or with their own arithmetic.  None was changed: each needs the author's
+judgement or a measurement.
+
+- **4.07** 28-29: with 45-55 pF the corners are 290-354 kHz and 2.9-3.5 MHz; the page quotes the top of each.
+- **4.05** 25: 0.2 dB = 0.023 Np gives Z₀αl ≈ 1.15 Ω; the page's 1.3 Ω needs about 0.23 dB.
+- **4.02** 16: "the module's response above 10 MHz", but this page's sweeps stop at 2 and 5 MHz.
+- **Two boards' crystals:** 5.01 says 0.76 ppm, 6.07 0.75 ppm, 6.11 both 0.76 (1471) and 0.2 ppm (1631), 6.12 0.2 ppm
+  (1293). Probably different days or pairs; each page could say which.
+- **Prices:** 7.00 (39) says "two $40 boards", Appendix A (33) $79 for the Icepi Zero, 0.00 "$120 of hardware".
+- **1.06** 359: "a 4 V, 1.1 MHz sine": amplitude or peak-to-peak? (codes 28-226 are about ±3.9 V).
+- **1.07** 279, 296: 4.6 ns/m (0.73 c) against 6.05's echo.py model of RG-316 at 0.695 (4.8 ns/m); 275: "all 16 edges"
+  (16 rising, 15 falling).
+- **1.08** 776-777: 0.05 mV against 3.9 V is −97.8 dB (page −99), 0.5 mV is −77.8 dB (page −77).
+- **1.10** 1052: the Try-this reruns dev/tools/fig_am.py, which overwrites tutorial/img/am_*.png; 1004: "about 24,000
+  logic cells" is the whole LFE5U-25F, not the design; 1029: voice isn't allowed on the 10.1 MHz (30 m) ham band;
+  922 vs 933: 53.79 vs 53.7 codes.
+- **2.06** 164: "the same 3.85 V at 1 MHz as the firmware's `li` in 2.05", but 2.05's sweep has no 1 MHz point (and
+  used the 16.5 cm cable, this page the 101.5 cm one).
+- **B** 50: 1000 tries × 20 ms is 20 s a file; the row says 23 s (measured, so perhaps overhead).
+- **3.02** 604: `funcgen/phase` reads the lock-in's phase (`lockin/phase` meant?); 491: "two shell scripts ... with
+  awk", but dump.sh only hexdumps.
+- **3.03** 528: the 14 kB module's ~18.7k base64 characters at 8 per 10 ms take about 23 s, not 30.
+- **3.04** 63: an 8 GB card (4 GiB root), against 0.00's "1 GB or more" (0.00: 48).
+- **4.01** 441:
+  "0.26 V at 40 MHz", but the console above reads 0.275-0.283 V.
+- **4.06** 266: 318 µs × 344.6 m/s = 10.96 cm (11.0, not 10.9, unless 318 is rounded); 274: ±0.7° ÷ 41.9°/mm ≈
+  17 µm, not 16, and ÷ 8.1°/K is 86 mK, not 75; 223-224: the reference repeats after 400-800 samples, not "a few"; 597:
+  11 cm at 1-4 km/s is 27-110 µs, not 10-100.
+- **6.02** 813-815: ω_n "≈ 2θ per symbol: 9 kHz", yet 4/(ζω_n) ≈ 300 symbols needs ω_n = θ (≈150), and 832 says
+  4.7 kHz; 1173: "x⁴ within 10 Hz", 13 Hz in the second run, and "FLL off by 10 kHz" is about 6.9 kHz there; 696: MER
+  described as "size against spacing", the inverse.
+- **6.03** 571: "within a third of a percent", but the inner ring is 0.215 against 0.218 (1.4%); 628: 8PSK's d_min²
+  is 1.76 Eb (0.88 is the Q argument; the 3.6 dB column fits 1.76); 681-683: 3.7 + 4 + 3 = 10.7 dB, not 8.8.
+- **6.04** 6: the alt text's 20 dB against 22 dB at 860 and in the table; 36: "5.05 used h = 2" holds only at
+  1.5625 Mbit/s (5.05 ran 115,200 baud, h ≈ 27); 932: learnSDR lesson 24 links to a .grc at the repository root,
+  unlike the other lessons.
+- **6.05** 355: "true delay 5.7 samples", but the multitone taps give about 5.45 (218 ns) and the m-sequence 6.0
+  (239 ns); 361: "219-239 ns" against 218 at 344; 550: the "third notch" at 6.25 MHz, 15 dB, is the table's second
+  (540), and 1155 calls it a 20 dB notch.
+- **6.06** 53: squaring "leaves the phase" (cdma.py: twice the phase); 399: longer bits need PER_BIT edited, and
+  1023 = 3 × 11 × 31 limits the choices.
+- **6.07** 321: QAM-256's BER 2.2×10⁻³ against the Detail's best 2.3×10⁻³ (435).
+- **6.08** 376: Voyager 1 is about 25 billion km away by 2026, not 24.
+- **6.09** 21: 1950 is Hamming's paper; the weekend with the relay computer was about 1947; 705: pilots listed among
+  ecc.py's receiver fixes, but ecc.py has none (its third is the fourth-power carrier estimate); 692: "0.15 errors"
+  is a rate, for both loops; 747: "twelve to sixteen" against the figure's hard 15, soft 17.
+- **6.10** 632-640: no "10 dB" in the table; 915: 8 ns is below the 14 ns bound,
+  not on it; 917: 2-4 ns is a twentieth to a tenth of a sample; 1501:
+  "the gentlest envelope", but filtered PAPR is ZC 2.6 dB against the chirp's 5.0.
+- **6.11** 1497: one in 250 after 8000 predicts about 48 of 20,000 lost, not 64; 1375: "the gains are a quarter"
+  holds for Gardner's detector, Costas's halves; 1542 vs 1553: "6% of bytes" vs 6% per low bit; 1630-1632: one cable
+  A to B, yet bytes "each way"; 695: ×181 is four shift-adds, not "a shift and an add"; 728 vs 1432: 39 vs 38 dB.
+- **6.12** 1251: sample −96 at 3052 S/s is 31 ms, not
+  a tenth of a second; 1327 and 1368: 24 mW against the warning's 23 mW (1672); 1600-1604: 40 dB of amplifier is
+  short of the 60 dB margin.
+- **5.02** 285-286: "−3.30 and −1.70 ppm in the afternoon and +0.06 and −0.65 ppm in the evening, with their modules
+  fitted" tells it differently from 5.01 (228-232), where +0.06 and −0.65 are each board against the laptop and
+  −3.30 was taken before that board had its module.
+- **6.13** 9, 16: "tested on one board looped back" and "none of these ideas has been built yet", but Appendix C
+  records Chapter 6 run on two boards on 2026-10-07 (and today's run above), so "Two boards, for real" is done.
+- **C** 322: "the first receiver did not acquire the carrier phase feed-forward" is garbled.
+- **6.00** 83 vs 105: learnSDR lesson 24 links to docs/lesson24.md in the table and to lesson24_FSKhardware.grc in
+  the list (perhaps both right).
+- **7.01** 269: a
+  1 ms RC is 25,000 samples per time constant (100,000 is four); 51: the listing is ~134 lines, not "a hundred".
+- **7.02** 327-329: K = 6, GUARD = 0 is a 64-code dead zone, more than a 1 V square wave spans at the ADC.
+- **7.03** 19: "measures it by the first", but all three ways are measured; 965: the quantized null is exactly
+  1.5625 MHz (1.49 is the nearest sweep point).
+- **7.07** 100: "20 ns timing is 0.2% of a pulse" is 0.2% of a 10 µs Rabi cycle; of a π/2 pulse of a few µs it is
+  0.5-1%.
+- **7.04** 390: with 27 of 28 multipliers used, a seventeenth tap still fits.
+- **7.05** 369, 372, 397, 924, 958, 1261: claims that the table beside them doesn't bear out (dither "exactly on the
+  line", shaping "costs nothing", "a whole code", the plain rows, "no better", "a little" higher); 402: a hundredth
+  of a code is about 14.6 bits, not thirteen; 931: the panel shows the 1-bit streams; 1334: nine cycles a loop is
+  27.5 kHz, above OSR 1024's 12.2 kHz band edge.
+- **7.06** 1374: a PI loop with a −4.0-code steady-state error (the cable PI step at 1440 has none); 1578, 1591-1592:
+  for a pure delay the page's own rule gives a critical gain of 1/G, whatever the cable; 54: the 35 ns counts more
+  than the DAC's settling.
+
+</details>
