@@ -6,14 +6,20 @@
 ![The SPI flash with the bitstream, the SD card's boot and root partitions, and the boot timeline from power-up to login](img/sd_card.png)
 
 A five-minute boot is fine while you're developing, but not for an
-instrument. The board has what it takes to boot by itself. The SPI
-flash chip beside the FPGA keeps a bitstream through power cycles
-(`openFPGALoader -f`), and the micro-SD slot is wired to the FPGA. The SoC
-includes LiteX's SD-card controller, and its [BIOS](https://en.wikipedia.org/wiki/BIOS) tries each way of booting in
-turn: serial boot first, for a quarter of a second, so that `litex_term` can
-always take over, and then the SD card. From the card, the BIOS reads
-`boot.json` from the first partition, a FAT file system, and loads the files
-it names, just as serial boot did.
+instrument. The board has what it takes to boot by itself:
+
+- the SPI flash chip beside the FPGA keeps a bitstream through power cycles
+  (`openFPGALoader -f`);
+- the micro-SD slot is wired to the FPGA, and the SoC includes LiteX's
+  SD-card controller.
+
+The SoC's [BIOS](https://en.wikipedia.org/wiki/BIOS) tries each way of
+booting in turn:
+
+1. **serial boot**, for a quarter of a second, so that `litex_term` can
+   always take over;
+2. **the SD card**: the BIOS reads `boot.json` from the first partition, a
+   FAT file system, and loads the files it names, just as serial boot did.
 
 | where | what |
 | --- | --- |
@@ -30,58 +36,72 @@ instead of a RAM disk.
 
 On a Xilinx Zynq (the chip in the PYNQ boards and the Red Pitaya), the CPUs
 are hard silicon beside the FPGA fabric. They boot first, from the SD card,
-and then load a bitstream from the card into the fabric; PYNQ's *overlays*
+and then load a bitstream from the card into the fabric. PYNQ's *overlays*
 swap one bitstream for another from a running Python program, while Linux
 keeps running on the hard CPUs.
 
-Here the CPU is *made of* the fabric. Until a bitstream is loaded there is no
-CPU to read the card, so the ECP5 has to configure itself, from the SPI flash
-(at power-up) or over JTAG (`openFPGALoader`). And loading a new bitstream
-erases the whole fabric, CPU and Linux included. The ECP5 can't swap one part
-of itself while the rest keeps running (partial reconfiguration), and the
-open-source tools couldn't build such a part if it could. The nearest thing
-would be for Linux to write a new bitstream into the SPI flash and then
-reload the FPGA from it: LiteX has an SPI-flash controller that would let it
-(this SoC leaves it out; `openFPGALoader -f` from the laptop does the job).
-That is a whole new system after a reboot, not an overlay.
+Here the CPU is *made of* the fabric:
+
+- Until a bitstream is loaded there is no CPU to read the card, so the ECP5
+  has to configure itself, from the SPI flash (at power-up) or over JTAG
+  (`openFPGALoader`).
+- Loading a new bitstream erases the whole fabric, CPU and Linux included.
+  The ECP5 can't swap one part of itself while the rest keeps running
+  (partial reconfiguration), and the open-source tools couldn't build such a
+  part if it could.
+
+The nearest thing would be for Linux to write a new bitstream into the SPI
+flash and then reload the FPGA from it. LiteX has an SPI-flash controller
+that would allow it (this SoC leaves it out; `openFPGALoader -f` from the
+laptop does the job). That is a whole new system after a reboot, not an
+overlay.
 
 </details>
 
 ## Make the card
 
-There are two ways. Both erase the card. Use a card of 8 GB or more: the
-installer makes a 4 GiB root partition.
+There are two ways, and both erase the card. **Use a card of 8 GB or
+more**: the installer makes a 4 GiB root partition.
 
-**With a card reader** (any laptop): write
-[`src/linux/prebuilt/sdcard.img.xz`](../src/linux/prebuilt/) to the card with
-[Raspberry Pi Imager](https://www.raspberrypi.com/software/) (*Choose OS → Use
-custom*) or [balenaEtcher](https://etcher.balena.io/). Both read the `.xz`
-file directly. On Linux you can also
-`xzcat sdcard.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync`, with your card
-reader's device in place of `sdX` (check with `lsblk` first: `dd` will happily
-erase the wrong disk). To make your own image from your own build, see
-[`make_sd_image.py`](../src/linux/make_sd_image.py).
+**With a card reader** (any laptop):
 
-**Without a card reader**: let the board write its own card. Its Linux has a
-driver for the SD controller, and the card appears as `/dev/mmcblk0`. The
-hard part is getting 9 MB of files *to* the board, since its only link is
-the serial port. Serial boot is reliable (`litex_term` sends each file in
+- **Write [`src/linux/prebuilt/sdcard.img.xz`](../src/linux/prebuilt/) to the
+  card** with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
+  (*Choose OS → Use custom*) or [balenaEtcher](https://etcher.balena.io/).
+  Both read the `.xz` file directly.
+- On Linux you can also run
+  `xzcat sdcard.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync`, with your
+  card reader's device in place of `sdX`. **Check with `lsblk` first**: `dd`
+  will happily erase the wrong disk.
+- To make an image from your own build, see
+  [`make_sd_image.py`](../src/linux/make_sd_image.py).
+
+**Without a card reader**, let the board write its own card. Its Linux has a
+driver for the SD controller, and the card appears as `/dev/mmcblk0`.
+
+The hard part is getting 9 MB of files *to* the board, since its only link
+is the serial port. Serial boot is reliable (`litex_term` sends each file in
 checksummed frames and resends any that arrive damaged), so the card's files
-ride along with a serial boot: the kernel accepts an [initramfs](https://en.wikipedia.org/wiki/Initial_ramdisk) made of several
-archives back to back, and
-[`make_sd_installer.sh`](../src/linux/make_sd_installer.sh) adds a second,
-small archive to the end of `rootfs.cpio.gz` that holds the card's files under
-`/boot/sd/`, and a script that installs them. The prebuilt version is in
-`src/linux/prebuilt/install/` (it borrows `Image` and `opensbi.bin` from
-`images/` next to it, so keep the folder as it is). Put a card in the board,
-and:
+ride along with a serial boot:
+
+- the kernel accepts an [initramfs](https://en.wikipedia.org/wiki/Initial_ramdisk)
+  made of several archives back to back;
+- [`make_sd_installer.sh`](../src/linux/make_sd_installer.sh) adds a second,
+  small archive to the end of `rootfs.cpio.gz`, holding the card's files
+  under `/boot/sd/` and a script that installs them.
+
+The prebuilt version is in `src/linux/prebuilt/install/`. It borrows `Image`
+and `opensbi.bin` from `images/` next to it, so keep the folder as it is.
+
+**Put a card in the board**, and boot the installer:
 
 ```bash
 openFPGALoader -b icepi-zero src/linux/prebuilt/icepi_zero_adda.bit && \
 litex_term --speed=460800 --images=src/linux/prebuilt/install/boot.json /dev/ttyUSB0
 ```
 
-The upload is 15 MB this time, 5½ minutes. Log in, and:
+The upload is 15 MB this time: 5½ minutes. **Log in, and run the
+installer**:
 
 ```console
 # time /root/install-sd.sh
@@ -270,34 +290,37 @@ sync
 echo "Done.  Flash the bitstream (openFPGALoader -f), reset, and it boots from the card."
 ```
 
-Step 1 also erases any GPT, the newer kind of partition table that a laptop
-may have written when the card was formatted. A GPT keeps a second copy at
-the card's far end, and a leftover copy would confuse a laptop that reads the
-card later. `mkdosfs` and `mke2fs` make empty file systems on the two
-partitions. `mke2fs -i 131072` makes one *inode* (a file's entry in the file
-system) per 128 kB of space: 32,768 of them, plenty for BusyBox's few hundred
-files. The default is 8 times as many, and writing all those empty inodes to
-the card takes 5 minutes on this CPU. The file system is ext2, the simplest of
-the ext family (no journal); the kernel's ext4 driver mounts it.
+- **Step 1 also erases any GPT**, the newer kind of partition table that a
+  laptop may have written when the card was formatted. A GPT keeps a second
+  copy at the card's far end, and a leftover copy would confuse a laptop that
+  reads the card later.
+- **`mkdosfs` and `mke2fs`** make empty file systems on the two partitions.
+  `mke2fs -i 131072` makes one *inode* (a file's entry in the file system)
+  per 128 kB of space: 32,768 of them, plenty for BusyBox's few hundred
+  files. The default is 8 times as many, and writing all those empty inodes
+  to the card takes 5 minutes on this CPU.
+- **The file system is ext2**, the simplest of the ext family (no journal);
+  the kernel's ext4 driver mounts it.
 
 </details>
 
 ## Flash the gateware, and boot from the card
 
-Write the same bitstream to the SPI flash (`-f`) instead of the FPGA's SRAM.
-When it's written, the FPGA reloads itself from the flash and boots, so start
-`litex_term` right away:
+**Write the same bitstream to the SPI flash** (`-f`) instead of the FPGA's
+SRAM. When it's written, the FPGA reloads itself from the flash and boots, so
+**start `litex_term` right away**:
 
 ```bash
 openFPGALoader -b icepi-zero -f src/linux/prebuilt/icepi_zero_adda.bit   # 53 s
 litex_term --speed=460800 /dev/ttyUSB0      # no --images: let the BIOS boot by itself
 ```
 
-From now on the board boots by itself whenever it's powered. (Without
+From now on the board boots by itself whenever it's powered. Without
 `--images`, `litex_term` ignores the BIOS's request for a serial boot, so
-after a quarter of a second the BIOS moves on to the card.) To watch a whole
-boot, type `reboot` at the board's prompt: that restarts the SoC without
-taking the serial port away the way unplugging does.
+after a quarter of a second the BIOS moves on to the card.
+
+**To watch a whole boot, type `reboot`** at the board's prompt. That restarts
+the SoC without taking the serial port away, as unplugging would:
 
 ```console
 --================ Boot ================--
@@ -325,16 +348,28 @@ buildroot login:
 
 ## Make it boot faster
 
-Where do the 86.5 s go? About 14 s loading the kernel, 9 s of kernel, and
-59 s of start-up scripts. Starting a program costs a third of a second here
-(`time /bin/true`, a program that does nothing at all, takes 0.37 s), and the
-scripts start one program after another. Five of [Buildroot](https://en.wikipedia.org/wiki/Buildroot)'s standard services do nothing
-useful on this board: `syslogd` and `klogd` keep a system log, but `dmesg`
-works without them; `sysctl` applies settings, and there are none; `network`
-sets up networking on a board with no network hardware (it fails anyway); and
-`crond` runs scheduled jobs, of which there are none. The script `rcS` runs
-every `/etc/init.d/S??*` in order, so moving them into a subfolder switches
-them off. And while you're there, add a script that loads the driver at boot:
+Where do the 86.5 s go?
+
+- about 14 s loading the kernel,
+- 9 s of kernel,
+- 59 s of start-up scripts.
+
+Starting a program costs a third of a second here (`time /bin/true`, a
+program that does nothing at all, takes 0.37 s), and the scripts start one
+program after another.
+
+Five of [Buildroot](https://en.wikipedia.org/wiki/Buildroot)'s standard
+services do nothing useful on this board:
+
+- `syslogd` and `klogd` keep a system log, but `dmesg` works without them;
+- `sysctl` applies settings, and there are none;
+- `network` sets up networking on a board with no network hardware (it fails
+  anyway);
+- `crond` runs scheduled jobs, of which there are none.
+
+The script `rcS` runs every `/etc/init.d/S??*` in order, so **moving them
+into a subfolder switches them off**. While you're there, **add a script that
+loads the driver at boot**:
 
 ```console
 # cd /etc/init.d
@@ -345,8 +380,8 @@ them off. And while you're there, add a script that loads the driver at boot:
 # sync
 ```
 
-`sync` makes sure the changes are on the card (more on that below). Then type
-`reboot`, and watch:
+`sync` makes sure the changes are on the card (more on that below). Then
+**type `reboot`**, and watch:
 
 ```console
 [   40.994469] adda: loading out-of-tree module taints kernel.
@@ -356,16 +391,16 @@ Welcome to Buildroot
 buildroot login:
 ```
 
-**61 s from reset to login, with the instruments ready.** Log in, and
+**61 s from reset to login, with the instruments ready.** Log in:
 `/sys/bus/platform/devices/f0002000.adda/` is already there, with no
-`insmod`. Notice also that the changes you made survived the reset. On the RAM
-disk, every change vanished at each boot; now the card is the root file
-system, and `/root` is a place to keep your scripts and data.
+`insmod`. The changes you made also survived the reset. On the RAM disk,
+every change vanished at each boot; now the card is the root file system,
+and `/root` is a place to keep your scripts and data.
 
-One caution comes with that. Linux holds changes in memory and writes them to
-the card up to 30 s later, and ext2 keeps no journal to repair a write that was
-cut short. So type `sync` before you unplug the board. After any reset that
-wasn't a clean shutdown, the kernel warns
+One caution comes with that: **type `sync` before you unplug the board.**
+Linux holds changes in memory and writes them to the card up to 30 s later,
+and ext2 keeps no journal to repair a write that was cut short. After any
+reset that wasn't a clean shutdown, the kernel warns
 `EXT4-fs (mmcblk0p2): warning: mounting unchecked fs`. That means it can't
 vouch for the file system, not that anything is damaged.
 
@@ -396,16 +431,21 @@ computer this is.
   to reach a login. An embedded system tuned for it starts the one program it
   needs and is ready in a second or two.
 
-Tuning helps this board too, though it can't make up a factor of a hundred in
-CPU speed. Starting one program as `init`, instead of BusyBox's scripts,
-would leave about the kernel's 27 s. A kernel stripped to this board's
-hardware loads faster, and a quicker bitstream load saves 1.4 s (the last
-Try-this below). A reasonable floor is somewhere around 20 s; these estimates
-come from the measurements above, but haven't been tried. If an instrument
-has to be ready the moment it's switched on, it shouldn't use Linux: the
-firmware of Chapter 2 needs no operating system, and the BIOS that would
-start it is running 1.5 s after power-up, and through its memory test at
-2.8 s.
+Tuning helps this board too, though it can't make up a factor of a hundred
+in CPU speed:
+
+- starting one program as `init`, instead of BusyBox's scripts, would leave
+  about the kernel's 27 s;
+- a kernel stripped to this board's hardware loads faster;
+- a quicker bitstream load saves 1.4 s (the last **Try this** below).
+
+A reasonable floor is somewhere around 20 s. (These are estimates from the
+measurements above; they haven't been tried.)
+
+If an instrument has to be ready the moment it's switched on, it shouldn't
+use Linux. The firmware of [Chapter 2](2_00_a_processor_on_the_fpga.md) needs
+no operating system, and the BIOS that would start it is running 1.5 s after
+power-up, and through its memory test at 2.8 s.
 
 </details>
 
@@ -418,11 +458,11 @@ edge has four connectors, left to right as seen from above:
 - **A mini-HDMI socket** (the board's files call it GPDI). Its pins go
   straight to the FPGA, which makes the HDMI signal itself, in logic.
   linux-on-litex-vexriscv's stock Icepi Zero build includes LiteX's *video
-  terminal*, which shows the BIOS on a monitor at 800 × 600, and LiteX also
-  has a *framebuffer* (`--with-video-framebuffer`, 640 × 480) that Linux can
-  use as its console. `make_linux.py` leaves video out to make room for the
-  ADC/DAC peripherals: this SoC already fills 51 of the FPGA's 56 block RAMs.
-  A build without them could have it back. (Not tried here.)
+  terminal*, which shows the BIOS on a monitor at 800 × 600. LiteX also has a
+  *framebuffer* (`--with-video-framebuffer`, 640 × 480) that Linux can use as
+  its console. `make_linux.py` leaves video out to make room for the ADC/DAC
+  peripherals: this SoC already fills 51 of the FPGA's 56 block RAMs. A build
+  without them could have it back. (Untested.)
 - **USB-C, marked Flash**: the FT231X, to the laptop.
 - **USB-C 1 and 2**: their two data wires also go straight to FPGA pins,
   which is enough for USB 1.1 (12 Mbit/s) done in logic. LiteX has a USB
@@ -433,35 +473,39 @@ edge has four connectors, left to right as seen from above:
   `add_usb_host()` in the target, and room, again at the ADC/DAC's expense.
   Then a USB keyboard and mouse (through a USB-C to USB-A adapter) would just
   work, and with the framebuffer the board would be a computer of its own.
-  (Not tried here either.)
+  (Also untested.)
 
-A network is harder. There's no Ethernet jack or WiFi chip on the board.
-With the USB host, a USB Ethernet adapter that works at 12 Mbit/s might work
-too, but most WiFi adapters need USB 2.0's 480 Mbit/s, firmware, and more
-CPU for the encryption than one 50 MHz core has. A Raspberry Pi Zero has
-another trick: through its USB port, it *looks like* a network adapter to the
-laptop. That needs a USB *device* controller with a Linux "gadget" driver;
-LiteX's USB device core can be a serial port (the Icepi Zero target's
-`--uart-name=usb_acm`), but has no such driver. What works today is IP over a
-serial line, [SLIP](https://en.wikipedia.org/wiki/Serial_Line_Internet_Protocol), which [5.05](5_05_fsk_modem.md#505-a-modem) runs between two boards over a second serial port.
+A network is harder: there's no Ethernet jack or WiFi chip on the board.
+
+- **USB Ethernet**: with the USB host, an adapter that works at 12 Mbit/s
+  might work too. Most WiFi adapters, though, need USB 2.0's 480 Mbit/s,
+  firmware, and more CPU for the encryption than one 50 MHz core has.
+- **USB gadget**: a Raspberry Pi Zero, through its USB port, *looks like* a
+  network adapter to the laptop. That needs a USB *device* controller with a
+  Linux "gadget" driver. LiteX's USB device core can be a serial port (the
+  Icepi Zero target's `--uart-name=usb_acm`), but has no such driver.
+- **What works today** is IP over a serial line,
+  [SLIP](https://en.wikipedia.org/wiki/Serial_Line_Internet_Protocol), which
+  [5.05](5_05_fsk_modem.md#505-a-modem) runs between two boards over a second
+  serial port.
 
 **Try this:**
 
-- Time the start-up yourself. Add `cat /proc/uptime` lines to
+- **Time the start-up yourself.** Add `cat /proc/uptime` lines to
   `/etc/init.d/rcS`, or read the kernel's timestamps with `dmesg`. The 17 s
   between remounting `/` read-write (`dmesg | grep re-mounted`) and the first
-  service go to a dozen small commands in `/etc/inittab`, and to `S01seedrng`.
-  Which could you drop?
-- BusyBox is linked against the C library at run time. Try linking it
-  statically (`CONFIG_STATIC=y` in `src/linux/busybox.config`, then rebuild as
-  in [3.03](3_03_building_linux.md#303-building-linux-yourself)) and time `/bin/true` again. This wasn't tried here, so predict first:
-  does it help?
-- Make a third partition for data, format it, and log captures to it. `dd`
-  writes to the card at about 210 kB/s. How long a record of the lock-in can
-  you keep?
-- The FPGA reads its 440 kB bitstream from the flash one bit at a time, at
-  2.4 MHz, which takes about 1.5 s. The flash chip can send four bits at a
-  time, much faster. Repack the same design with
+  service go to a dozen small commands in `/etc/inittab`, and to
+  `S01seedrng`. Which could you drop?
+- **Link BusyBox statically.** It is linked against the C library at run
+  time. Set `CONFIG_STATIC=y` in `src/linux/busybox.config`, rebuild as in
+  [3.03](3_03_building_linux.md#303-building-linux-yourself), and time
+  `/bin/true` again. This is untested, so predict first: does it help?
+- **Make a third partition for data**, format it, and log captures to it.
+  `dd` writes to the card at about 210 kB/s. How long a record of the lock-in
+  can you keep?
+- **Load the bitstream faster.** The FPGA reads its 440 kB bitstream from the
+  flash one bit at a time, at 2.4 MHz, which takes about 1.5 s. The flash
+  chip can send four bits at a time, much faster. Repack the same design with
   `ecppack --bootaddr 0 --spimode qspi --freq 62.0 --compress <build>/gateware/icepi_zero_adda.config --bit adda_q62.bit`
   (from your own build, [3.03](3_03_building_linux.md#303-building-linux-yourself)), flash `adda_q62.bit`, and time the boot.
   Measured: the BIOS's `Memtest OK` comes 1.44 s sooner, and login 1.1–1.2 s

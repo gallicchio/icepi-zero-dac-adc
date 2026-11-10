@@ -9,31 +9,39 @@
 
 Ask a circuit (a filter, a cable, a crystal, a sample) a simple question: *what
 do you do to a sine at frequency f?* A linear circuit can only do two things
-to it: change its amplitude, and delay it, which shows up as a phase shift φ.
+to it:
+
+- change its amplitude;
+- delay it, which shows up as a phase shift φ.
+
 Measure those two numbers at one frequency after another and you have the
 circuit's frequency response, its [Bode plot](https://en.wikipedia.org/wiki/Bode_plot). An instrument that does this is a
 *[network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical))*. Its heart is the trick in this section, which works even
-when the response is tiny, buried in noise, or sitting next to a much bigger
-signal. The diagram at the top of this page is the whole instrument.
+when the response is tiny, buried in noise, or next to a much bigger signal.
+The diagram at the top of this page is the whole instrument.
 
 The DDS of [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) plays a sine wave through the DAC into the
 device. Call it cos(ω*t*): which point of the cycle is *t* = 0 is up to us, and
 a cosine makes the arithmetic below line up with complex numbers. What comes
 back to the ADC is *a* cos(ω*t* + φ), plus noise, plus anything else that
-happens to be there. The FPGA multiplies each sample of it by the cosine it
-sent, and separately by −sin(ω*t*), the same wave a quarter turn on, and
-averages each product for a time *T*. Here's that arithmetic done on real samples, through the
-101.5 cm cable of [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc), at 1.001 MHz:
+happens to be there. The FPGA
+
+- multiplies each sample of it by the cosine it sent;
+- separately multiplies it by −sin(ω*t*), the same wave a quarter turn on;
+- averages each product for a time *T*.
+
+Here's that arithmetic done on real samples, through the 101.5 cm cable of
+[1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc), at 1.001 MHz:
 
 ![The lock-in's arithmetic on real samples: the response, its products with cos and −sin, and their running averages](img/lockin_idea_time.png)
 
 1. The response comes back as big as it went out (the cable doesn't lose
    much) but later: the dots lag the grey reference by φ = −79.8°. That's about
    220 ns: the time it takes to get through the DAC, the cable and the ADC.
-2. Multiply sample by sample. Each product wiggles at twice the frequency,
-   2ω, but not around zero: around a steady value, the line.
-3. Average, and the wiggles cancel, leaving the steady values: X = 0.343 V
-   and Y = −1.903 V.
+2. **Multiply** sample by sample. Each product wiggles at twice the
+   frequency, 2ω, but not around zero: around a steady value, the line.
+3. **Average**, and the wiggles cancel, leaving the steady values:
+   X = 0.343 V and Y = −1.903 V.
 
 Why the steady values are what we want is one trig identity,
 cos *A* cos *B* = ½[cos(*A* − *B*) + cos(*A* + *B*)], and its partner for
@@ -74,9 +82,8 @@ transforms are written everywhere else.
 ## Why it ignores everything else
 
 Now the hard case. The DAC plays the same 1.001 MHz at only 0.485 V, plus
-an unrelated 3.03 V signal at 1.199 MHz, six times bigger and only 0.2 MHz
-away.
-The lock-in, still referenced to 1.001 MHz:
+an unrelated 3.03 V signal at 1.199 MHz: six times bigger, and only 0.2 MHz
+away. The lock-in is still referenced to 1.001 MHz:
 
 ![A small signal recovered from under a big one: the samples, their spectrum before and after multiplying, and the running average](img/lockin_idea_interferer.png)
 
@@ -104,10 +111,9 @@ one that has to lock onto an external reference: the reference and the
 stimulus come from the **same phase accumulator**, so they have exactly the
 same frequency by construction.
 
-(These figures do the lock-in's arithmetic in numpy, on samples recorded by
-`awgcap.sv` of [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there): [`dev/tools/fig_lockin_idea.py`](../dev/tools/fig_lockin_idea.py).
-The design below does the same arithmetic in the FPGA, 25 million samples a
-second.)
+The figures above do the lock-in's arithmetic in numpy, on samples recorded
+by `awgcap.sv` of [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there) ([`dev/tools/fig_lockin_idea.py`](../dev/tools/fig_lockin_idea.py)).
+The design below does it in the FPGA, 25 million samples a second.
 
 ## The design
 
@@ -407,6 +413,8 @@ module lockin_tb;
 endmodule
 ```
 
+**Run it:**
+
 ```console
 $ make sim-lockin
   2892000 ns  FPGA says: 051eb852 0a0fc564 f3db130a
@@ -415,13 +423,17 @@ $ make sim-lockin
  11603000 ns  FPGA says: 0ccccccd f6a7aa4a f342598b
 ```
 
-Decode the second line: X = 0x0a0faa02 / 65536 = 2575.7, and Y = 0xf3dad4c7
-as a signed number / 65536 = −3109.2. So *a* = 2 × 4037.4 / 127 = 63.6 codes
-(the fake world halved the 127-code sine, as it should), and φ = −50.4°. At 2.5 MHz the
-amplitude is the same and φ = −126.3°. Both phases correspond to the same
-delay, −φ/(360° *f*) = 140 ns: the testbench's 100 ns plus two clocks in the
-DAC and ADC registers. A delay shows up as a phase proportional to frequency,
-which is what [the measurements below](#measuring-with-it) use to measure a cable.
+Decode the second line:
+
+- X = 0x0a0faa02 / 65536 = 2575.7;
+- Y = 0xf3dad4c7, as a signed number, / 65536 = −3109.2;
+- so *a* = 2 × 4037.4 / 127 = 63.6 codes (the fake world halved the
+  127-code sine, as it should), and φ = −50.4°.
+
+At 2.5 MHz the amplitude is the same and φ = −126.3°. Both phases correspond
+to the same delay, −φ/(360° *f*) = 140 ns: the testbench's 100 ns plus two
+clocks in the DAC and ADC registers. A delay shows up as a phase proportional
+to frequency, which is what [the measurements below](#measuring-with-it) use to measure a cable.
 
 To look at waveforms rather than printed numbers, add
 `initial begin $dumpfile("lockin.vcd"); $dumpvars(0, lockin_tb); end` to the
@@ -595,6 +607,9 @@ if __name__ == "__main__":
 
 </details>
 
+**Load the design and measure at 100 kHz.** In this run, ADC IN was driven
+by a separate signal generator, **not** by the DAC:
+
 ```console
 $ make load-lockin
 $ python3 lockin.py -f 100e3
@@ -607,15 +622,16 @@ $ python3 lockin.py -f 100e3
   ...
 ```
 
-That output is worth a second look. The ADC input here was **not** the DAC:
-it was a separate 2 V signal generator (an ADALM2000) set to 100,003.07 Hz,
-as close to 100 kHz as it would go; with its crystal 2.8 ppm off ours
-(measured below), that is 3.35 Hz above the reference. The amplitude is
-steady to a fraction of a millivolt, but the phase advances about 52° from
-one reading to the next (readings are about 43 ms apart): a phasor turning at
-that 3.35 Hz. The amplitude reads 1.915 V rather than 2 V, 4% short: 3%
-because the phasor turns by 50° *during* each 42 ms average, and about 1% is
-the ADC's gain.
+That output is worth a second look. The generator, a 2 V ADALM2000, was set
+to 100,003.07 Hz, as close to 100 kHz as it would go. With its crystal 2.8 ppm off ours
+(measured below), that is 3.35 Hz above the reference. So:
+
+- the amplitude is steady to a fraction of a millivolt;
+- the phase advances about 52° from one reading to the next (readings are
+  about 43 ms apart): a phasor turning at that 3.35 Hz;
+- the amplitude reads 1.915 V rather than 2 V, 4% short: 3% because the
+  phasor turns by 50° *during* each 42 ms average, and about 1% is the ADC's
+  gain.
 
 What the lock-in does with a signal that is *not* at its reference frequency
 is the clearest picture of how it works. Here the same generator ran 2 Hz
@@ -623,20 +639,22 @@ away from the reference, and then at a range of offsets:
 
 ![Lock-in output for a detuned input, and its sinc-shaped pass band](img/lockin_bw.png)
 
-In the top panel, X and Y rotate at the 2 Hz difference while R stays at
-1.98 V. The lower panel is the pass band: the measured R lies on the [sinc](https://en.wikipedia.org/wiki/Sinc_function)
-function, with nulls at multiples of 1/*T* = 23.8 Hz. A signal generator is
-never exactly on your frequency: two crystal oscillators differ by parts per
-million (these two by 2.8 ppm, 0.28 Hz at 100 kHz). That's why a lock-in uses
-the stimulus itself as its reference.
+- **Top panel:** X and Y rotate at the 2 Hz difference while R stays at
+  1.98 V.
+- **Lower panel:** the pass band. The measured R lies on the [sinc](https://en.wikipedia.org/wiki/Sinc_function)
+  function, with nulls at multiples of 1/*T* = 23.8 Hz.
+
+A signal generator is never exactly on your frequency: two crystal
+oscillators differ by parts per million (these two by 2.8 ppm, 0.28 Hz at
+100 kHz). That's why a lock-in uses the stimulus itself as its reference.
 
 **Try this:**
 
-- Average for 2<sup>22</sup> samples instead of 2<sup>20</sup> (change
-  `N_LOG2`). What happens to the scatter of repeated measurements, and to the
-  pass band?
-- With `lockin_tb.sv`, change the fake world's delay `DELAY` and its gain, and
-  predict the numbers before you run it.
+- **Average longer**: 2<sup>22</sup> samples instead of 2<sup>20</sup>
+  (change `N_LOG2`). What happens to the scatter of repeated measurements,
+  and to the pass band?
+- **Change the fake world**: in `lockin_tb.sv`, change its delay `DELAY` and
+  its gain, and predict the numbers before you run it.
 
 ## Measuring with it
 
@@ -646,9 +664,9 @@ amplitude and phase, one frequency at a time.
 
 ### A cable
 
-Connect the DAC output to the ADC input with a coax. The DAC's 3.9 V amplitude
-is inside the ADC's ±5 V range. Sweep with linear steps and let `lockin.py`
-fit the phase slope:
+1. **Connect the DAC output to the ADC input** with a coax. The DAC's 3.9 V
+   amplitude is inside the ADC's ±5 V range.
+2. **Sweep with linear steps**, and let `lockin.py` fit the phase slope:
 
 ```console
 $ python3 lockin.py --sweep 1e5 8e6 -n 80 --linear
@@ -660,23 +678,26 @@ phase slope -76.571 deg/MHz  ->  delay 212.70 ns
 ```
 
 A delay τ turns into a phase −360° × *f* × τ, a straight line through zero,
-and its slope is the delay. That was with a 16.5 cm RG-316 cable. With a
+and its slope is the delay. That was with a 16.5 cm RG-316 cable; with a
 101.5 cm one, **216.6 ns**. Almost all of both is the instrument itself: the
 digital pipeline and the analog stages of [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc).
 Take [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s
-table and the two instruments agree: drop the 20 ns register between `n` and
-`dac_d` (here the DAC's data and the reference both come from the DDS's phase
-register at the same clock edge, so that register cancels), drop the 13 ns
-wait for a sampling edge (a sine has no edge to wait for), and add 10 ns
-because the delay here is measured to the middle of each 20 ns DAC step (the
-*[zero-order hold](https://en.wikipedia.org/wiki/Zero-order_hold)*: a sine
-rebuilt as a staircase lags its samples by half a sample):
+table and the two instruments agree:
+
+- drop the 20 ns register between `n` and `dac_d`: here the DAC's data and
+  the reference both come from the DDS's phase register at the same clock
+  edge, so that register cancels;
+- drop the 13 ns wait for a sampling edge: a sine has no edge to wait for;
+- add 10 ns, because the delay here is measured to the middle of each 20 ns
+  DAC step (the *[zero-order hold](https://en.wikipedia.org/wiki/Zero-order_hold)*: a sine rebuilt as a
+  staircase lags its samples by half a sample).
+
 240 − 20 − 13 + 10 = 217 ns.
 
 ![Lock-in sweeps through 101.5 cm and 16.5 cm of RG-316](img/cable.png)
 
-To get the cable alone, measure one cable, save it, and divide the other by
-it:
+**To get the cable alone**, measure one cable, save it, and divide the other
+by it:
 
 ```console
 $ python3 lockin.py --sweep 1e5 8e6 -n 80 --linear -o short.csv     # the 16.5 cm cable
@@ -692,7 +713,7 @@ measurement repeats to 0.05 ns from sweep to sweep and drifted less than
 
 Why does it disagree with the datasheet by 5%? That's the interesting part.
 
-First, why the cable looks like a pure delay at all. The ADC's input is high
+**Why the cable looks like a pure delay at all.** The ADC's input is high
 impedance: the ADC sees the same 3.9 V the DAC makes into a 1 MΩ scope. A
 cable into an open end would ring, unless the source *also* has the cable's
 impedance, 50 Ω. Then the reflection from the open end is absorbed at the
@@ -701,7 +722,7 @@ source, and the far end sees one clean, delayed copy of the signal. That's
 ±0.6% below 10 MHz, which is what series termination predicts, so the DAC's
 output is evidently built that way.
 
-Now what that does to the measurement. With a source resistance *R* and an
+**What that does to the measurement.** With a source resistance *R* and an
 open end, the phase is −atan[(*R*/*Z*<sub>0</sub>) tan(ωτ)], which is
 −(*R*/*Z*<sub>0</sub>)ωτ at these frequencies. The apparent delay is the
 true delay times *R*/*Z*<sub>0</sub>. A source 2 Ω off 50 Ω, and a cable 2 Ω
@@ -739,32 +760,38 @@ DAC OUT (the right-hand SMA, with the USB connectors toward you) and ADC IN
    example 1 kΩ in series, then 1 nF to ground, so *f*<sub>c</sub> = 1/(2π*RC*)
    = 159 kHz. Then divide by the reference:
    `python3 lockin.py --sweep 1e4 1e7 -n 31 -o rc.csv --ref thru.csv`.
+3. **Compare** |H| and phase(H) with 1/(1 + *j*ω*RC*). The phase goes through
+   −45° exactly at *f*<sub>c</sub>, the measurement a lock-in is made for.
 
-Compare |H| and phase(H) with 1/(1 + *j*ω*RC*). The phase goes through −45°
-exactly at *f*<sub>c</sub>, the measurement a lock-in is made for. Keep in
-mind that the DAC's ~50 Ω source resistance is in series with your R.
+Keep in mind that the DAC's ~50 Ω source resistance is in series with your R.
 [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) has more circuits to try, with the numbers to
 expect.
 
 **Know the floor.** Some of the DAC's signal leaks into the ADC inside the
 module and the adapter, even with nothing connected. With the ADC input driven
-to 0 V by a low-impedance source, the lock-in reads 0.05 mV at 10 kHz,
-0.5 mV at 1 MHz, 5.6 mV at 8 MHz and 15 mV at 12 MHz: −99, −77, −57 and
-−48 dB relative to the 3.9 V stimulus. Don't trust an |H| smaller than that,
-and note that a device with a high-impedance output lets in more crosstalk
-than a low-impedance source does.
+to 0 V by a low-impedance source, the lock-in reads:
+
+| frequency | reading | relative to the 3.9 V stimulus |
+| --- | --- | --- |
+| 10 kHz | 0.05 mV | −99 dB |
+| 1 MHz | 0.5 mV | −77 dB |
+| 8 MHz | 5.6 mV | −57 dB |
+| 12 MHz | 15 mV | −48 dB |
+
+Don't trust an |H| smaller than that. A device with a high-impedance output
+lets in more crosstalk than a low-impedance source does.
 
 **Try this:**
 
-- The ADC samples at 25 MS/s, so 12.5 MHz is its [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency). Try a
+- **Go above Nyquist.** The ADC samples at 25 MS/s, so 12.5 MHz is its [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency). Try a
   stimulus above it anyway. The ADC aliases 15 MHz to 10 MHz, but the
   reference table is looked up at exactly the same instants, so it aliases
   identically. Through the short cable the lock-in still reads 3.7 V at
   13 MHz and 3.1 V at 20 MHz, and falls below 1 V near 24 MHz, where the DAC's
   own sin(x)/x and filters cut in. At simple fractions of 25 MHz, like 10, 12.5
   and 20 MHz, readings scatter from one measurement to the next. Why?
-- Add a second reference at 3*f* and measure a diode's third harmonic
-  ([4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) has the circuit and the numbers to expect).
+- **Measure a harmonic.** Add a second reference at 3*f* and measure a
+  diode's third harmonic ([4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) has the circuit and the numbers to expect).
 
 <!-- nav -->
 [← 1.07 Closing the loop: the DAC talks to the ADC](1_07_closing_the_loop.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.09 A spectrum analyzer →](1_09_spectrum_analyzer.md)

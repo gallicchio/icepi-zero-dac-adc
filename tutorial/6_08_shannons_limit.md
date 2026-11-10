@@ -12,9 +12,11 @@ In 1948 Claude Shannon proved that a channel of bandwidth *B* and
 
 and not one more, *and* that below that rate there exist codes with as
 few errors as you like. Every page in this chapter has been circling that
-sentence. This one asks the question it invites: how far from *C* are the
-things we built? The answer has two halves, and "[QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) against Shannon"
-means both.
+sentence. This page asks: **how far from *C* are the things we built?**
+The answer has two halves, and
+"[QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) against Shannon"
+means both: how far QPSK sits from Shannon's curve, and how much of the
+cable's capacity it uses.
 
 ## The theorem, in one paragraph
 
@@ -28,10 +30,15 @@ log<sub>2</sub>(1 + *S*/*N*) bits in *n* symbols. And 2*B* symbols a second fit 
 bandwidth *B* ([1.06](1_06_fast_capture.md#106-fast-captures)'s [sampling theorem](https://en.wikipedia.org/wiki/Nyquist%E2%80%93Shannon_sampling_theorem)). That's *C*. It is a volume
 argument, and the "as few errors as you like" part is that in high
 dimensions almost all of a ball's volume is near its surface, so the noise
-balls stay apart. What the theorem does *not* say: which code (that took
-forty-five years, [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)); how long the code word may be (as long as you like,
-with the delay to match); that the noise is anything but Gaussian (a dropout
-isn't); or that anything at all helps above *C*.
+balls stay apart.
+
+What the theorem does *not* say:
+
+- which code (that took forty-five years, [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes));
+- how long the code word may be (as long as you like, with the delay to
+  match);
+- that the noise is anything but Gaussian (a dropout isn't);
+- that anything at all helps above *C*.
 
 ## Energy per bit, and the end of the road at −1.59 dB
 
@@ -41,10 +48,11 @@ hertz, and the noise as *N* = *N*<sub>0</sub> *B*, and the limit becomes
   η = log<sub>2</sub>(1 + η *E*<sub>b</sub>/*N*<sub>0</sub>),  i.e.  *E*<sub>b</sub>/*N*<sub>0</sub> ≥ (2<sup>η</sup> − 1)/η.
 
 As η → 0 this tends to ln 2 = −1.59 dB: with unlimited bandwidth, each
-bit still needs 0.69 times the noise density in energy. Bandwidth is free
-in the limit; energy is not. Deep-space links live in that corner. The
-left panel of the figure is this equation, and everything else on it is
-measured against it:
+bit still needs 0.69 times the noise density in energy. **Bandwidth is
+free in the limit; energy is not.** Deep-space links live in that corner.
+
+The left panel of the figure is this equation, and everything else on it
+is measured against it:
 
 <details>
 <summary>The whole file: <code>capacity.py</code></summary>
@@ -255,6 +263,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Run it** in `src/comms`. It needs no board:
+
 ```console
 $ python3 capacity.py                   # no board: theory, and 6.07's numbers
 Shannon: Eb/N0 >= (2^eta - 1)/eta at eta bit/s/Hz; eta -> 0 gives ln 2 = -1.59 dB
@@ -278,36 +288,53 @@ QPSK        2         1.76 dB                9.59 dB   7.8 dB
 At 2 bits per second per hertz Shannon asks for *E*<sub>b</sub>/*N*<sub>0</sub> = 1.76 dB.
 Uncoded QPSK at one error in 10<sup>5</sup> needs 9.59 dB. The gap is 7.8 dB: a
 factor of six in transmitter power, or in antenna area, or in range
-squared. That is "QPSK against Shannon", the first meaning, and the natural
-guess is that the four points are to blame. They aren't. Fix the input to
-four points and ask how many bits per symbol the best possible code could
-still carry (the *constrained capacity*, computed in `capacity.py` by
-integrating over the noise): at *E*<sub>s</sub>/*N*<sub>0</sub> = 5 dB QPSK's four points carry 1.72
-bits of their 2, where Shannon's unconstrained curve gives 2.06 bits, barely higher; 64-QAM
-at 20 dB carries 5.80 of 6. The coloured curves hug the black one until
-about a bit short of their maximum and only then flatten. So QPSK with a
-good code runs at 1.5 bits per second per hertz within a fraction of a
-decibel of the best anything can do. The 7.8 dB is entirely the absence of a
-code: "uncoded" means every symbol must stand alone against the noise, and
-Shannon's whole point is that it needn't.
+squared. That is "QPSK against Shannon", the first meaning.
 
-There are two ways toward the curve, and the figure shows both. A **code**
-moves you *left* at fixed η: the diamonds are DVB-S2's modes (its standard's
-table), QPSK with a rate-½ LDPC code at 1.1 dB from Shannon, 8PSK at 2.3 dB.
-**More points** move you *up* at fixed *E*<sub>b</sub>/*N*<sub>0</sub>: 64-QAM at 17.8 dB carries 6
-bits where QPSK carries 2 ([6.03](6_03_qam.md#603-qam-more-bits-per-symbol)). [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math) did the second with no code and
-reached half of capacity; [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)'s codes do the first.
+The natural guess is that the four points are to blame. They aren't. Fix
+the input to four points and ask how many bits per symbol the best
+possible code could still carry: the *constrained capacity*, which
+`capacity.py` computes by integrating over the noise.
+
+- At *E*<sub>s</sub>/*N*<sub>0</sub> = 5 dB, QPSK's four points carry 1.72
+  bits of their 2, where Shannon's unconstrained curve gives 2.06 bits,
+  barely higher.
+- 64-QAM at 20 dB carries 5.80 of 6.
+
+The coloured curves hug the black one until about a bit short of their
+maximum, and only then flatten. So QPSK with a good code runs at 1.5 bits
+per second per hertz within a fraction of a decibel of the best anything
+can do. **The 7.8 dB is entirely the absence of a code:** "uncoded" means
+every symbol must stand alone against the noise, and Shannon's whole
+point is that it needn't.
+
+There are two ways toward the curve, and the figure shows both:
+
+- **A code** moves you *left* at fixed η. The diamonds are DVB-S2's modes
+  (its standard's table): QPSK with a rate-½ LDPC code at 1.1 dB from
+  Shannon, 8PSK at 2.3 dB. [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)'s codes do this.
+- **More points** move you *up* at fixed *E*<sub>b</sub>/*N*<sub>0</sub>:
+  64-QAM at 17.8 dB carries 6 bits where QPSK carries 2
+  ([6.03](6_03_qam.md#603-qam-more-bits-per-symbol)). [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math) did this with
+  no code, and reached half of capacity.
 
 ## The cable
 
-The second meaning is in the right panel. [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math) sounded the cable: 40 dB
-against random noise alone, 30 dB counting everything the OFDM signal
-suffered (quantization, the converters' distortion, a channel measured from
-one noisy pilot), which over its 11.04 MHz is 111 Mbit/s. [QAM-64](https://en.wikipedia.org/wiki/Quadrature_amplitude_modulation) OFDM
-carried 55.9 Mbit/s with no errors: half the cable. QPSK, the modem of
-[6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier), carried 3.1 Mbit/s: 2.8% of the cable. Even inside its own 2.1 MHz, at
-its own MER of 38 dB, it used 12% of the 27 Mbit/s Shannon allows there.
-Three reasons, in order of size:
+The second meaning is in the right panel. [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math) sounded the cable:
+
+- **40 dB** of SNR against random noise alone;
+- **30 dB** counting everything the OFDM signal suffered (quantization,
+  the converters' distortion, a channel measured from one noisy pilot).
+  Over its 11.04 MHz that is 111 Mbit/s.
+
+What the modems carried:
+
+- **[QAM-64](https://en.wikipedia.org/wiki/Quadrature_amplitude_modulation) OFDM**:
+  55.9 Mbit/s with no errors, half the cable.
+- **QPSK**, the modem of [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier): 3.1 Mbit/s, 2.8% of the cable. Even
+  inside its own 2.1 MHz, at its own MER of 38 dB, it used 12% of the
+  27 Mbit/s Shannon allows there.
+
+QPSK falls short for three reasons, in order of size:
 
 1. Two bits per symbol, where 38 dB of SNR would support twelve or
    thirteen (Shannon) or ten (uncoded 1024-QAM).
@@ -315,40 +342,47 @@ Three reasons, in order of size:
    second.
 3. No code.
 
-The 8 dB coding gap is the *smallest* of the three on this cable, which is
-the opinionated point of the page: on a good channel the way toward
-Shannon is more points first and a code second; in deep space, where the
-SNR is a few dB, it is the other way round, and there the code is
+The 8 dB coding gap is the *smallest* of the three on this cable. That is
+the opinionated point of the page: **on a good channel the way toward
+Shannon is more points first and a code second.** In deep space, where
+the SNR is a few dB, it is the other way round, and there the code is
 everything.
 
 <details>
 <summary><b>Detail:</b> what 8-bit converters do to the SNR you quote</summary>
 
-Three SNRs for one cable: 40 dB from the sounding (random noise only),
-30 dB from the OFDM signal's EVM, 38 dB from QPSK's MER. They differ
-because an 8-bit DAC's distortion depends on the signal: OFDM's peaks are
-three or four times its rms ([6.04](6_04_msk_and_gmsk.md#604-msk-and-gmsk-constant-envelope)), so it either clips or uses fewer codes;
-QPSK's are not. And the 38 dB is close to what the converters allow:
-[6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
-receiver reads 39 dB on the model, where the only noise is the model's
-8 bits and 0.1 code, and 38.3 on the cable. With these
-converters, "the capacity of the cable" is a number that depends on what
-you send down it, and the honest figure gives three.
+Three SNRs for one cable:
+
+- 40 dB from the sounding (random noise only),
+- 30 dB from the OFDM signal's EVM,
+- 38 dB from QPSK's MER.
+
+They differ because an 8-bit DAC's distortion depends on the signal.
+OFDM's peaks are three or four times its rms
+([6.04](6_04_msk_and_gmsk.md#604-msk-and-gmsk-constant-envelope)), so it
+either clips or uses fewer codes; QPSK's are not. And the 38 dB is close
+to what the converters allow: [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s receiver reads 39 dB on the model,
+where the only noise is the model's 8 bits and 0.1 code, and 38.3 on the
+cable. With these converters, "the capacity of the cable" is a number
+that depends on what you send down it, and the honest figure gives three.
 
 </details>
 
 **Try this:**
 
-- Bit-loading: from the per-subcarrier SNR in the right panel, give each
-  subcarrier the largest constellation its own SNR allows, as DSL does, and
-  add up the rate. How close to the 111 Mbit/s does it get?
-- Voyager 1: 23 W into a 3.7 m dish, 24 billion kilometres, a 70 m dish at
-  the other end with a 20 K receiver, 160 bits a second. Compute its
-  *E*<sub>b</sub>/*N*<sub>0</sub> and see why it lives near the −1.59 dB corner, and why its
-  modulation is a few points and a very good code ([6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)).
-- Put a 20 dB attenuator in the cable and sound it again (`ofdm.py --sound`):
-  the capacity falls by about 20 dB × 11 MHz / 3 = 73 Mbit/s. Does it?
-- `python3 ecc.py` through the cable, and compare its MER with [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s.
+- **Bit-loading:** from the per-subcarrier SNR in the right panel, give
+  each subcarrier the largest constellation its own SNR allows, as DSL
+  does, and add up the rate. How close to the 111 Mbit/s does it get?
+- **Voyager 1:** 23 W into a 3.7 m dish, 24 billion kilometres, a 70 m
+  dish at the other end with a 20 K receiver, 160 bits a second. Compute
+  its *E*<sub>b</sub>/*N*<sub>0</sub> and see why it lives near the
+  −1.59 dB corner, and why its modulation is a few points and a very good
+  code ([6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)).
+- **An attenuator:** put a 20 dB attenuator in the cable and sound it
+  again (`ofdm.py --sound`). The capacity should fall by about
+  20 dB × 11 MHz / 3 = 73 Mbit/s. Does it?
+- **`ecc.py`:** run `python3 ecc.py` through the cable, and compare its
+  MER with [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s.
 
 <!-- nav -->
 [← 6.07 OFDM: the triumph of physics over math](6_07_ofdm.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.09 Error-correcting codes →](6_09_error_correcting_codes.md)

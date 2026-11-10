@@ -422,8 +422,8 @@ How the pieces connect:
 
 ## Load it and use it
 
-The prebuilt root file system has the driver in `/root`. Load it, and the
-kernel matches it to the device:
+The prebuilt root file system has the driver in `/root`. **Load it with
+`insmod`**, and the kernel matches it to the device:
 
 ```console
 # insmod /root/adda.ko
@@ -441,8 +441,9 @@ lockin:
 n_log2  result
 ```
 
-(*Tainted* just means the kernel has loaded code that isn't part of its own
-source tree.) Every instrument setting is now a file:
+*Tainted* just means the kernel has loaded code that isn't part of its own
+source tree. Every instrument setting is now a file. **Set the function
+generator**:
 
 ```console
 # echo 123456 > funcgen/frequency
@@ -451,11 +452,12 @@ source tree.) Every instrument setting is now a file:
 # echo triangle > funcgen/waveform; echo 128 > funcgen/amplitude
 ```
 
-The frequency reads back as the value the DDS really makes: the multiple of
-50 MHz / 2<sup>32</sup> just below what you asked for: the driver rounds the
-tuning word down. On the scope, a triangle from −2.02 to +1.99 V.
+The frequency reads back as the value the DDS really makes: the driver rounds
+the tuning word down, to the multiple of 50 MHz / 2<sup>32</sup> just below
+what you asked for. On the scope you should see a triangle from −2.02 to
++1.99 V.
 
-A capture, triggered on the way up through mid-scale, at 6.25 MS/s:
+**Take a capture**, triggered on the way up through mid-scale, at 6.25 MS/s:
 
 ```console
 # echo 2 > capture/decimation; echo 128 > capture/trigger
@@ -469,8 +471,8 @@ real	0m 0.59s
   52  51  52  54  57  62  68  75  82  91 101 111 121 131 142 152
 ```
 
-And the lock-in, with a 2 V signal at the function generator's frequency on
-the ADC input:
+**Run the lock-in**, with a 2 V signal at the function generator's frequency
+on the ADC input:
 
 ```console
 # echo 100000 > funcgen/frequency
@@ -482,10 +484,12 @@ the ADC input:
 -55.729 -3195.380
 ```
 
-√(X<sup>2</sup> + Y<sup>2</sup>) = 3196, and 2 × 3196 / 127 / 25.35 = 1.985 V. (The input came from
-a separate generator, so its phase drifts slowly against ours.) Two shell
-scripts in `/root` do that arithmetic with `awk`, and `sweep.py` does it in
-MicroPython ([3.01](3_01_booting_linux.md#301-booting-linux)):
+√(X<sup>2</sup> + Y<sup>2</sup>) = 3196, and 2 × 3196 / 127 / 25.35 = 1.985 V.
+(The input came from a separate generator, so its phase drifts slowly against
+ours.)
+
+Two shell scripts in `/root` do that arithmetic with `awk`, and `sweep.py`
+does it in MicroPython ([3.01](3_01_booting_linux.md#301-booting-linux)):
 
 <details>
 <summary><code>sweep.sh</code>, <code>sweep.py</code> and <code>dump.sh</code></summary>
@@ -580,27 +584,33 @@ does the same arithmetic. Through the 101.5 cm cable alone:
 
 `./sweep.sh 10000 10000000 7` printed the same to the fourth digit up to
 3 MHz, at frequencies one hertz lower (`awk`'s `%d` truncates, Python's
-`round()` rounds). At 10 MHz it read 4.1795 V: this cable's 10 MHz reading
-wanders by about 1% from run to run, whichever program takes it ([2.06](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop)'s
+`round()` rounds). At 10 MHz it read 4.1795 V. This cable's 10 MHz reading
+wanders by about 1% from run to run, whichever program takes it
+([2.06](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop)'s
 `remote.py` read 4.100 to 4.140 V).
 
-This is also the point where the whole stack is visible at once. A shell
-command becomes a `write()` system call, which reaches `frequency_store()`,
-whose `writel()` becomes a store instruction on the VexRiscv, then a Wishbone
-write to 0xf0002000. That changes `funcgen_core`'s tuning word, and the phase
-accumulator of [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) starts turning faster.
+This is also the point where the whole stack is visible at once:
+
+1. A shell command becomes a `write()` system call.
+2. The system call reaches the driver's `frequency_store()`.
+3. Its `writel()` becomes a store instruction on the VexRiscv, and then a
+   Wishbone write to 0xf0002000.
+4. That changes `funcgen_core`'s tuning word, and the phase accumulator of
+   [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) starts
+   turning faster.
 
 **Try this:**
 
-- Add a `funcgen/phase` file that reads the lock-in's phase in degrees,
+- **Add a `funcgen/phase` file** that reads the lock-in's phase in degrees,
   using integer arithmetic only (a CORDIC, or a lookup table and
-  interpolation). You'll need to build the driver: [3.03](3_03_building_linux.md#303-building-linux-yourself).
-- The Linux way for a data-acquisition device is the **IIO** (Industrial I/O)
-  subsystem: standard file names, buffered capture through
-  `/dev/iio:device0`, and laptop-side tools like `libiio` and ADI's Scopy, the
-  ADALM2000's own software. Rewrite the capture half of the driver as an IIO
-  driver. (The kernel built here doesn't have IIO switched on: add
-  `CONFIG_IIO=y` to `src/linux/kernel_modules.config`.)
+  interpolation). You'll need to build the driver:
+  [3.03](3_03_building_linux.md#303-building-linux-yourself).
+- **Rewrite the capture half of the driver as an IIO driver.** The **IIO**
+  (Industrial I/O) subsystem is the Linux way for a data-acquisition device:
+  standard file names, buffered capture through `/dev/iio:device0`, and laptop-side
+  tools like `libiio` and ADI's Scopy, the ADALM2000's own software. The
+  kernel built here doesn't have IIO switched on: add `CONFIG_IIO=y` to
+  `src/linux/kernel_modules.config`.
 
 <!-- nav -->
 [← 3.01 Booting Linux](3_01_booting_linux.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [3.03 Building Linux yourself →](3_03_building_linux.md)

@@ -22,7 +22,7 @@ slowest rates, satellite TV and deep-space probes all use BPSK or QPSK.
 
 ## The transmitter
 
-`psk.py` builds one loop's worth of signal for `awgcap.sv` ([5.01](5_01_two_clocks.md#501-two-clocks)) to play:
+`psk.py` builds one loop's worth of signal for `awgcap.sv` ([5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)) to play:
 
 - **Bits** from GPS's G1 register ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)), a pseudo-random sequence.
 - **Symbols** with *Gray coding*: the bit pairs 00, 01, 11, 10 go around the

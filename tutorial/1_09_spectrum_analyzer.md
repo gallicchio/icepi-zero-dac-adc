@@ -7,17 +7,21 @@
 
 The lock-in of [1.08](1_08_lockin.md#108-a-lock-in-amplifier) asks about one frequency at a time. A *spectrum
 analyzer* asks about all of them at once: how much of the signal is at each
-frequency. That's a Fourier transform, and this page does it twice: first in
-Python, on records from [1.06](1_06_fast_capture.md#106-fast-captures)'s capture design, and then in the FPGA itself,
-with a [fast Fourier transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) (FFT) written in SystemVerilog.
+frequency. That's a Fourier transform, and this page does it twice:
+
+- in Python, on records from [1.06](1_06_fast_capture.md#106-fast-captures)'s capture design;
+- in the FPGA itself, with a [fast Fourier transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) (FFT) written in SystemVerilog.
 
 ## In Python, on long captures
 
 [`spectrum.py`](../src/verilog/spectrum.py) takes many 16384-sample
-records, at 25 MS/s, from either `capture.sv` ([1.06](1_06_fast_capture.md#106-fast-captures): whatever you plug into
-the ADC) or `loopback.sv` ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc): a test signal from the DAC, through the
-cable). It FFTs each record and averages their power. It doesn't load a
-design itself: load one first, `make load-capture` or `make load-loopback`.
+records, at 25 MS/s, from either
+
+- `capture.sv` ([1.06](1_06_fast_capture.md#106-fast-captures)): whatever you plug into the ADC, or
+- `loopback.sv` ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)): a test signal from the DAC, through the cable.
+
+It FFTs each record and averages their power. It doesn't load a design
+itself: **load one first**, with `make load-capture` or `make load-loopback`.
 (`capture.sv` leaves the DAC alone, so nothing it plays can leak into what
 you're measuring.)
 
@@ -118,8 +122,8 @@ if __name__ == "__main__":
 
 </details>
 
-The figure at the top is `loopback.sv`'s square wave, 24.4 kHz, through the
-101.5 cm cable:
+**Measure `loopback.sv`'s square wave**, 24.4 kHz, through the 101.5 cm
+cable. This is the figure at the top:
 
 ```console
 $ make load-loopback
@@ -136,13 +140,18 @@ A square wave's [Fourier series](https://en.wikipedia.org/wiki/Fourier_series) i
 ...) times its half-swing. Here the half-swing is 2.957 V, so the series says
 3.765 V, 1.255 V, 0.753 V, 0.538 V and 0.418 V: the measurement agrees to
 0.1%. The even harmonics, which a perfectly symmetric square wave doesn't
-have, are 77 dB down. The lower panel divides each of the 256 odd harmonics
-by its predicted value. Two things bend it. Near 12.5 MHz, harmonic
-1024 − *n* folds onto harmonic *n* ([aliasing](https://en.wikipedia.org/wiki/Aliasing), as in [1.06](1_06_fast_capture.md#106-fast-captures)), which a perfect
-square wave, sampled, would show as (π*n*/1024)/sin(π*n*/1024): +3.9 dB at
-the top. What's left over is the loop's own frequency response, −0.5 dB at
-2.7 MHz and +1 dB at 12.5 MHz, the same as the lock-in measured in [1.08](1_08_lockin.md#108-a-lock-in-amplifier). One
-square wave measures the whole band at once.
+have, are 77 dB down.
+
+The lower panel divides each of the 256 odd harmonics by its predicted value.
+Two things bend it:
+
+- **Aliasing.** Near 12.5 MHz, harmonic 1024 − *n* folds onto harmonic *n*
+  ([aliasing](https://en.wikipedia.org/wiki/Aliasing), as in [1.06](1_06_fast_capture.md#106-fast-captures)). A perfect square wave, sampled, would
+  show this as a factor (π*n*/1024)/sin(π*n*/1024): +3.9 dB at the top.
+- **The loop's own frequency response**, what's left over: −0.5 dB at
+  2.7 MHz and +1 dB at 12.5 MHz, the same as the lock-in measured in [1.08](1_08_lockin.md#108-a-lock-in-amplifier).
+
+One square wave measures the whole band at once.
 
 Three things every [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer) has to deal with:
 
@@ -154,9 +163,10 @@ frequency 16 times lower).
 
 **Leakage, and windows.** An FFT treats its record as one period of a signal
 that repeats forever ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math) makes use of the same fact). The square wave fits
-16 whole periods into 16384 samples, so its lines are perfectly sharp. Cut the
-record at 10,000 samples instead, 9.77 periods, and the repeated record has a
-jump in it at every join. That jump has a spectrum of its own, spread across
+16 whole periods into 16384 samples, so its lines are perfectly sharp.
+
+Cut the record at 10,000 samples instead, 9.77 periods, and the repeated
+record has a jump in it at every join. That jump has a spectrum of its own, spread across
 every bin: *[leakage](https://en.wikipedia.org/wiki/Spectral_leakage)*. Multiplying the record by a *window* that tapers to zero
 at both ends, here the [Hann window](https://en.wikipedia.org/wiki/Hann_function)
 ½(1 − cos 2π*n*/*N*), removes the jump:
@@ -166,14 +176,16 @@ at both ends, here the [Hann window](https://en.wikipedia.org/wiki/Hann_function
 ![The same square wave, from 16384 samples, from 10000 samples, and from 10000 samples with a Hann window](img/spectrum_leakage.png)
 
 At first sight the window looks like a bad idea: the 16384-sample record with
-no window (blue) has the sharpest lines of all. But that's only because the
-square wave was made from the board's own clock, and fits the record
-exactly, a whole number of periods. A signal from anywhere else never does.
-Even two crystals that are meant to agree differ by parts per million
-([5.01](5_01_two_clocks.md#501-two-clocks)), so a real tone sits somewhere between
-two bins, and drifts. Without a window, as it drifts between bins, it changes
-from looking like blue to looking like orange and back. With a window, it
-always looks the same (green), just shifted:
+no window (blue) has the sharpest lines of all. That's only because the
+square wave comes from the board's own clock, so the record holds exactly a
+whole number of its periods. A signal from anywhere else never does: even
+two crystals that are meant to agree differ by parts per million
+([5.01](5_01_two_clocks.md#501-two-clocks)). So a real tone sits somewhere between
+two bins, and drifts. As it drifts between bins,
+
+- without a window, it changes from looking like blue to looking like orange
+  and back;
+- with a window, it always looks the same (green), just shifted:
 
 ![A pure tone moving from bin 100 to bin 101 and back: without a window it changes from one sharp line to a wide smear; with the Hann window it keeps its shape](img/spectrum_drift.gif)
 
@@ -181,8 +193,8 @@ That's why every spectrum analyzer that samples applies a window before
 its FFT. The price is that each line is a few bins wide.
 
 **Noise, and averaging.** Averaging the power of many records doesn't lower
-the noise floor (each record has the same noise), but it makes the floor
-smooth, so a line just above it stands out. The even harmonics at −66 dBV
+the noise floor (each record has the same noise), but it smooths the floor,
+so a line just above it stands out. The even harmonics at −66 dBV
 are hard to tell from the noise in one record, and plain in 64:
 
 ![The noise floor between harmonics, from one record and from 64](img/spectrum_average.png)
@@ -190,27 +202,31 @@ are hard to tell from the noise in one record, and plain in 64:
 The floor itself is about −84 dBV per bin, which works out to 0.08 codes rms
 of noise. That's well below the rounding noise an 8-bit ADC is usually said
 to have, 1/√12 of a code rms, which would give −73 dBV per bin. The reason
-is the signal: rounding the square wave's two flat levels makes the same
+is the signal. Rounding the square wave's two flat levels makes the same
 error every period, and an error that repeats lands on the harmonics, not in
 the floor. A signal that never repeats, like music, spreads the rounding
 error out, and the floor rises to about −73 dBV.
 
 ## On the FPGA
 
-The laptop did the Fourier transform above. Now the FPGA does it, 25 million
-samples a second in, a spectrum out. A *[discrete Fourier transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform)* of
+Now the FPGA does the Fourier transform, not the laptop: 25 million samples a
+second in, a spectrum out. A *[discrete Fourier transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform)* of
 N = 1024 samples,
 
 $$ X[k] = \frac{1}{N}\sum_{n=0}^{N-1} x[n]\, e^{-2\pi i k n / N}, $$
 
 takes N<sup>2</sup>, about a million, complex multiplications done directly.
-The *fast Fourier transform* gets the same answer with 5120. It splits the
-samples into the even-numbered and the odd-numbered ones, transforms each
-half, and combines them: if *A* and *B* are the two halves' transforms at
-frequency *k*, the whole one's is *A* + *W B* at *k* and *A* − *W B* at
-*k* + N/2, with *W* = e<sup>−2π*ik*/N</sup>. That combining step is a
-*[butterfly](https://en.wikipedia.org/wiki/Butterfly_diagram)*. Each half is split the same way, ten times over, down to single
-samples, so the transform is 10 stages of 512 butterflies, each one complex
+The *fast Fourier transform* gets the same answer with 5120:
+
+- split the samples into the even-numbered and the odd-numbered ones;
+- transform each half;
+- combine them: if *A* and *B* are the two halves' transforms at frequency
+  *k*, the whole one's is *A* + *W B* at *k* and *A* − *W B* at *k* + N/2,
+  with *W* = e<sup>−2π*ik*/N</sup>. That combining step is a
+  *[butterfly](https://en.wikipedia.org/wiki/Butterfly_diagram)*.
+
+Each half is split the same way, ten times over, down to single samples, so
+the transform is 10 stages of 512 butterflies, each one complex
 multiplication. Here is the same thing for N = 8: 3 stages of 4 butterflies.
 
 ![The 8-point FFT: inputs in bit-reversed order, three stages of butterflies, outputs in order](img/fft_butterfly.png)
@@ -218,7 +234,7 @@ multiplication. Here is the same thing for N = 8: 3 stages of 4 butterflies.
 [`fft.sv`](../src/verilog/fft.sv) is [1.06](1_06_fast_capture.md#106-fast-captures)'s `capture.sv` with that between
 "record" and "send":
 
-1. **Record** 1024 samples, subtract 128 (to remove the average DC level), 
+1. **Record** 1024 samples, subtract 128 (to remove the average DC level),
    multiply by a Hann window, and store
    each at its *[bit-reversed](https://en.wikipedia.org/wiki/Bit-reversal_permutation)* address (sample 1 = 0000000001 goes to address
    1000000000 = 512). Splitting into evens and odds ten times over leaves the
@@ -231,11 +247,11 @@ multiplication. Here is the same thing for N = 8: 3 stages of 4 butterflies.
    it all again for 2<sup>A</sup> frames.
 4. **Send** the 512 averages to the laptop: 2048 bytes, 20 ms.
 
-The numbers are 18-bit integers, the width of the FPGA's multipliers, and
-each stage halves its results, which keeps them from growing (that's the 1/N
-above). The top of the file explains why nothing can overflow. It uses 7 of
-the 28 multipliers, 7 of the 56 block RAMs and 5% of the logic, and runs at
-up to 84 MHz.
+The numbers are 18-bit integers, the width of the FPGA's multipliers. Each
+stage halves its results, which keeps them from growing (that's the 1/N
+above); the top of the file explains why nothing can overflow. `fft.sv` uses
+7 of the 28 multipliers, 7 of the 56 block RAMs and 5% of the logic, and runs
+at up to 84 MHz.
 
 <details>
 <summary>The whole file: <code>fft.sv</code></summary>
@@ -623,15 +639,25 @@ endmodule
 
 </details>
 
-**Simulate it first.** `make sim-fft` runs [`fft_tb.sv`](../src/verilog/fft_tb.sv)
+**Simulate it first.** **Run `make sim-fft`**: it runs [`fft_tb.sv`](../src/verilog/fft_tb.sv)
 on a sine exactly at bin 100 and prints the biggest bins, with the values
-to expect. [`fft_check.py`](../src/verilog/fft_check.py)
-goes further: it runs eight test signals through the simulation (a tone on a
-bin, one between bins, a tone 40 dB under another, white noise, averaging, a
-decimated tone, full scale, and an ADC stuck at 0) and compares the FPGA's
-output with numpy. Every number agrees exactly with a numpy model of the same
-integer arithmetic, and to within 0.2 dB with numpy's exact FFT. The rounding
-in the FPGA's arithmetic adds noise 20 dB below the 8-bit ADC's own.
+to expect.
+
+[`fft_check.py`](../src/verilog/fft_check.py) goes further. It runs eight
+test signals through the simulation and compares the FPGA's output with
+numpy:
+
+- a tone on a bin, and one between bins;
+- a tone 40 dB under another;
+- white noise;
+- averaging;
+- a decimated tone;
+- full scale;
+- an ADC stuck at 0.
+
+Every number agrees exactly with a numpy model of the same integer
+arithmetic, and to within 0.2 dB with numpy's exact FFT. The rounding in the
+FPGA's arithmetic adds noise 20 dB below the 8-bit ADC's own.
 
 **On the hardware.** [`fft.py`](../src/verilog/fft.py) is the laptop's half:
 it sends the command, reads back the 512 numbers, and draws them.
@@ -812,7 +838,7 @@ if __name__ == "__main__":
 
 `fft.sv` also plays a test signal on the DAC, a 781.25 kHz square wave, so
 the cable from [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)
-is all you need:
+is all you need. **Load `fft.sv` and run `fft.py`**:
 
 ```console
 $ make load-fft
@@ -824,37 +850,41 @@ peak 0.78125 MHz, 11.4 dB
 
 ![fft.sv's spectrum of its own 781 kHz square wave, through the cable, with the Fourier series of a sampled square wave](img/fft_hw.png)
 
-`-d D` keeps 1 sample in 2<sup>D</sup>, as in `capture.sv`, and `-a A`
-averages 2<sup>A</sup> frames. The FPGA computed 256 spectra and averaged
-them in about 0.2 s; the laptop only drew the result. The square wave has 32 samples a
-period, so the aliasing factor is now (π*n*/32)/sin(π*n*/32), and with it the
-harmonics agree with the Fourier series to within 1 dB, the loop's own
-response again. The even harmonics, about 50 dB down, are bigger than at
-24.4 kHz: at 781 kHz, the DAC's rising and falling edges, which aren't
-quite alike, are a bigger part of each period.
+The options:
 
-When something else is plugged into ADC IN, turn the test signal off with
-`--quiet`: some of the DAC's signal leaks into the ADC inside the module
+- `-d D` keeps 1 sample in 2<sup>D</sup>, as in `capture.sv`;
+- `-a A` averages 2<sup>A</sup> frames.
+
+With `-a 8`, the FPGA computed 256 spectra and averaged them in about 0.2 s;
+the laptop only drew the result.
+
+The square wave has 32 samples a period, so the aliasing factor is now
+(π*n*/32)/sin(π*n*/32). With it, the harmonics agree with the Fourier series
+to within 1 dB: the loop's own response again. The even harmonics, about
+50 dB down, are bigger than at 24.4 kHz. At 781 kHz, the DAC's rising and
+falling edges, which aren't quite alike, are a bigger part of each period.
+
+**When something else is plugged into ADC IN, add `--quiet`** to turn the test
+signal off. Some of the DAC's signal leaks into the ADC inside the module
 ([1.08](1_08_lockin.md#a-filter)'s "know the floor"), and a square wave would put
 its harmonics into your spectrum. With `--quiet`, the biggest peak through the
-cable falls from +11.4 to −79 dB re 1 V: the noise floor (below the dashed
-"ideal" line, for the reason given above: a steady input doesn't exercise the
-rounding).
-
+cable falls from +11.4 to −79 dB re 1 V. That is the noise floor, below the
+dashed "ideal" line for the reason given above: a steady input doesn't
+exercise the rounding.
 
 **Try this:**
 
-- Run `python3 fft.py -d 2` and watch the square wave's harmonics above
-  3.125 MHz fold back. Predict where each one lands.
-- Plug in [1.05](1_05_adc_to_python.md#105-adc-samples-to-python)'s music player
+- **Fold harmonics back**: run `python3 fft.py -d 2` and watch the square
+  wave's harmonics above 3.125 MHz fold back. Predict where each one lands.
+- **Look at music**: plug in [1.05](1_05_adc_to_python.md#105-adc-samples-to-python)'s music player
   and look at its spectrum with `spectrum.py -d 8` (`capture.sv`, 98 kHz
   sampling, 6 Hz bins), or live with `fft.py -d 8 -a 4 --quiet`. Can you see
   the notes?
-- Run `spectrum.py --loopback p`: [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s GPS sequence. Why is its spectrum a
+- **Look at a pseudo-random sequence**: run `spectrum.py --loopback p`, [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s GPS sequence. Why is its spectrum a
   comb of lines 24.4 kHz apart, and what shape is the comb's envelope?
-- With an external function generator, find the frequency at which a sine leaks least
-  and most with the rectangular window. How far down are the worst sidelobes,
-  with and without the Hann window?
+- **Measure leakage**: with an external function generator, find the
+  frequency at which a sine leaks least and most with the rectangular window.
+  How far down are the worst sidelobes, with and without the Hann window?
 
 One more instrument, and it's a radio: [1.10](1_10_am_radio.md#110-an-am-radio)
 turns the lock-in's multiplier and the DDS into an AM transmitter and
