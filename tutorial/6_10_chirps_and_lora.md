@@ -5,20 +5,27 @@
 
 ![The chirp through the cable for one whole loop: the recording mixed down with the band's lower edge, oscillating slowly at first and faster and faster for 327.68 microseconds; and its spectrogram, a straight line rising from 4.69 to 7.81 MHz, with the converters' second and third harmonics, aliased, as fainter lines crossing it](img/comms_chirp.png)
 
-A radar, a GPS receiver and a LoRa radio all do one thing: send a long
+A radar, a GPS receiver and a LoRa radio all do the same thing: send a long
 waveform the receiver knows, and correlate what comes back with it at every
 delay. That correlation is the matched filter of
-[6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping), and the
-whole of [6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)'s
-acquisition was it. This page asks what the waveform should *be*. GPS chose
-a binary code in 1973 because a code is one pin and an XOR. Radar chose the
-[chirp](https://en.wikipedia.org/wiki/Chirp) in 1960 because a chirp is what a swept oscillator does. LTE, 5G and
-the author's drone chose Zadoff–Chu sequences, which turn out to be chirps
-in disguise. Once your transmitter is a DAC rather than a pin, the choice is
-open, and the page measures it. Everything here is laptop Python driving
-`awgcap.sv` over the [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter), exactly as
-[6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)
-did; nothing new goes into the FPGA.
+[6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping), and it was
+the whole of [6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)'s
+acquisition.
+
+This page asks what the waveform should *be*:
+
+- **a binary code**: GPS's choice in 1973, because a code is one pin and an XOR;
+- **a [chirp](https://en.wikipedia.org/wiki/Chirp)**: radar's choice in 1960,
+  because a chirp is what a swept oscillator does;
+- **a Zadoff–Chu sequence**: the choice of LTE, 5G and the author's drone.
+  These turn out to be chirps in disguise.
+
+Once your transmitter is a DAC rather than a pin, you can pick any of them,
+and this page measures all of them. **Nothing new goes into the FPGA**:
+laptop Python drives `awgcap.sv` over the
+[UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter),
+exactly as in
+[6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier).
 
 ## Five waveforms, one receiver
 
@@ -40,48 +47,48 @@ record with what it sent at every lag:
 
 ![Ten chips of each waveform, held as played (rectangles) and filtered as a digital up-converter would make them (smooth, dashed); and the recorded spectra of all five, held and filtered, each drawn relative to its own in-band level so that the shapes compare: held, the four chipped waveforms are the same sinc with tails out to the band's edge, and the chirp, computed smooth rather than chipped, a flat band with skirts; filtered at the DAC, all five are one flat band B wide. Each panel's corner prints what the same peak swing at the DAC leaves of each waveform's power, relative to the held chirp: within 0.7 dB of it held, and 2.6 to 8 dB below it filtered, the single pulse 30 dB down either way](img/comms_waves.png)
 
-"Play a waveform" hides two choices, and this page says which it made
-every time:
+"Play a waveform" hides two choices, and this page always says which it
+made:
 
-- **How the chips are shaped.** By default (`--shape held`) each chip is a
-  rectangle 1/*B* long, as a pin toggling a code makes, or a DAC fed one
-  value per chip. Its spectrum is the sequence's own times a [sinc](https://en.wikipedia.org/wiki/Sinc_function), with
-  tails out to the ADC's band edge (the top right panel). The chirp is
-  computed sample by sample at the DAC's 50 MS/s, so it is smooth and
-  nearly *B* wide already. Its only out-of-band energy is skirts, −30 dB
-  and below, from the jump where it wraps from +*B*/2 back to −*B*/2 once a
-  loop. (The recording adds the converters' own second and third
-  harmonics, folded back by the ADC: the shelves at −30 dB around 2 and
-  11 MHz in the top right panel, and the fainter lines in the first
-  figure's spectrogram. They are 10 dB lower at half the swing, as
-  distortion is; this module through 2 m of cable shows 13 dB more of them
-  than the 1 m cable of the first edition did.) `--shape filtered` passes every waveform, the chirp included,
-  through an ideal low-pass exactly *B* wide, as a digital up-converter with
-  a good interpolation filter would (the dashed lines): no tails, no skirts,
-  and one flat spectrum for all five (the bottom right panel).
+- **How the chips are shaped.**
+  - `--shape held` (the default): each chip is a rectangle 1/*B* long, as a
+    pin toggling a code makes, or a DAC fed one value per chip. Its spectrum
+    is the sequence's own times a [sinc](https://en.wikipedia.org/wiki/Sinc_function),
+    with tails out to the ADC's band edge (the top right panel).
+  - The chirp is computed sample by sample at the DAC's 50 MS/s, so it is
+    already smooth and nearly *B* wide. Its only out-of-band energy is
+    skirts, −30 dB and below, from the jump where it wraps from +*B*/2 back
+    to −*B*/2 once a loop. It is the one waveform whose "held" and
+    "filtered" shapes are nearly the same.
+  - `--shape filtered` passes every waveform, the chirp included, through an
+    ideal low-pass exactly *B* wide, as a digital up-converter with a good
+    interpolation filter would (the dashed lines): no tails, no skirts, and
+    one flat spectrum for all five (the bottom right panel).
+  - The recording adds the converters' own second and third harmonics,
+    folded back by the ADC: the shelves at −30 dB around 2 and 11 MHz in the
+    top right panel, and the fainter lines in the first figure's spectrogram.
+    They are 10 dB lower at half the swing, as distortion is.
 - **What filters the converters have.** None. The DAC has no
-  reconstruction filter after it, the ADC no anti-alias filter before it.
-  The only filter is the receiver's digital one, a brick wall ±6.25 MHz
-  about the carrier, and the matched filter's reference is the transmitted
+  reconstruction filter after it, and the ADC no anti-alias filter before
+  it. The only filter is the receiver's digital one, a brick wall ±6.25 MHz
+  about the carrier. The matched filter's reference is the transmitted
   waveform through that same wall.
-- **How loud each one is.** Every waveform is scaled to the same peak
-  swing, ±100 DAC codes, because the DAC's range is what limits a
-  transmitter. The spectrum panels keep that question separate from the
-  shapes: each recording is drawn relative to its *own* level in the band,
-  so that a sinc and a flat band compare like with like, and the corner of
+- **How loud each one is.** Every waveform is scaled to the same peak swing,
+  ±100 DAC codes, because the DAC's range is what limits a transmitter. The
+  spectrum panels draw each recording relative to its *own* level in the
+  band, so that a sinc and a flat band compare like with like. The corner of
   each panel prints what the same peak swing leaves of each waveform's
-  power, relative to the held chirp. Held, the four long waveforms are
-  within 0.7 dB of each other, and the single pulse, one chip of energy
-  instead of 1023, is 30 dB (10 log 1023) down. Filtered, the levels part:
-  filtering makes peaks (the dashed lines' overshoots), and the same peak
-  swing then leaves less power. The m-sequence and Gold code lose about
-  7.3 and 7.4 dB, the chirp 4.4 (4.30 computed), and Zadoff–Chu 1.9.
-  The chirp's overshoot is all at its wrap, where the filter's edge meets
-  the jump: 1.76 times the swing. The `PAPR` column in the tables below is
-  the same effect. (The top panel compares like with like in one more
-  way: the codes are chipped at *B* and the chirp is not, so the chirp
-  alone has no tails. It is the one waveform whose "held" and "filtered"
-  shapes are nearly the same.)
+  power, relative to the held chirp:
+  - Held, the four long waveforms are within 0.7 dB of each other. The
+    single pulse, one chip of energy instead of 1023, is 30 dB
+    (10 log 1023) down.
+  - Filtered, the levels part. Filtering makes peaks (the dashed lines'
+    overshoots), and the same peak swing then leaves less power. The
+    m-sequence and Gold code lose about 7.3 and 7.4 dB, the chirp 4.4
+    (4.30 computed), and Zadoff–Chu 1.9. The chirp's overshoot is all at
+    its wrap, where the filter's edge meets the jump: 1.76 times the swing.
+
+  The `PAPR` column in the tables below is the same effect.
 
 <details>
 <summary>The whole file: <code>chirp.py</code></summary>
@@ -522,6 +529,8 @@ if __name__ == "__main__":
 
 </details>
 
+With the board looped back, **run `chirp.py`**:
+
 <!-- CHIRP_HW -->
 ```console
 $ cd src/comms
@@ -537,34 +546,38 @@ m       209.2   0.65     -43.7     -29.5     1.43    0.1     5.637       0.04   
 gold    209.3   0.65     -23.2     -23.6     1.43    0.1     5.637       0.08    lost
 ```
 
-Read the columns left to right and you have the page. The **width** of the
-peak is about 1/*B* for all five, whatever their length. The **sidelobes**
-are what is left beside the peak, the highest anywhere and the highest at
-whole chips of delay.
+Read the columns left to right and you have the page:
 
-Held, they differ wildly: the chirp's −13 dB, the
-[m-sequence](https://en.wikipedia.org/wiki/Maximum_length_sequence)'s −44, Zadoff–Chu's −40, the Gold code's −23. Do not read
-those as properties of the sequences yet. The chirp's *spectrum* is a flat
-band with sharp edges, and the other four's are sincs with tails, and
+- **width**: the peak's −3 dB width. About 1/*B* for all five, whatever
+  their length.
+- **sidelobes**: what is left beside the peak, the highest anywhere and the
+  highest at whole chips of delay.
+- ***B*<sub>rms</sub>**: the spectrum's rms width, which sets how well the
+  peak can be timed.
+- **PAPR**: the peak-to-average power ratio of what the DAC plays, which is
+  what an amplifier sees.
+- **delay**: the cable's, to a hundredth of a sample.
+- **Doppler**: what one step of carrier offset does to the peak's height
+  and position. This column splits the five into two kinds.
+
+Held, the sidelobes differ wildly: the chirp's −13 dB, the
+[m-sequence](https://en.wikipedia.org/wiki/Maximum_length_sequence)'s −44,
+Zadoff–Chu's −40, the Gold code's −23. Don't read those as properties of the
+sequences yet. The chirp's *spectrum* is a flat band with sharp edges, and
+the other four's are sincs with tails.
 [Same spectrum, same peak](#same-spectrum-same-peak) below gives all five
 the same spectrum and measures them again.
 
-***B*<sub>rms</sub>** is the spectrum's
-rms width, which sets how well the peak can be timed. **PAPR** is the
-peak-to-average power ratio of what the DAC plays: what an amplifier sees.
+Every waveform finds the same delay, 5.62 samples (225 ns), to within
+0.02 sample, through 2.02 m of RG-316. The cable is 9.7 ns of it; the rest
+is the converters.
 
-The **delay** is the cable's, to a hundredth of a sample,
-and every waveform finds the same 5.62 samples, 225 ns, to within
-0.02 sample, through 2.02 m of RG-316 (9.7 ns of it; the rest is the
-converters). (The step of
-[1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc),
-through a 1 m cable, crossed half-way 6 samples after the DAC moved, and
-`channel.py`, tuned to that step, puts the matched-filter peak at 6.0.
+With `--sim` the peak is at 6.0 instead. `channel.py` is tuned to the step
+of [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc),
+which, through a 1 m cable, crossed half-way 6 samples after the DAC moved.
 Through that same 1 m cable the chirps found 5.45: the real chain delays
 6.25 MHz by half a sample less than it delays a step's edge, which the
-model's two-pole filter does not know.) The last
-two columns are **Doppler**: what one step of carrier offset does to the
-peak's height and position, and that column splits the five into two kinds.
+model's two-pole filter does not know.
 
 ## Pulse compression
 
@@ -572,7 +585,7 @@ peak's height and position, and that column splits the five into two kinds.
 
 Why a long waveform at all? The matched filter's output for a delayed copy
 of *s*(*t*) is the waveform's own autocorrelation *R*(τ), centred on the
-delay, and two facts about *R* carry everything:
+delay. Two facts about *R* carry everything:
 
 1. **Its width is 1/*B*.** *R*(τ) is the Fourier transform of the power
    spectrum (Wiener–Khinchin), and a spectrum *B* wide transforms to a peak
@@ -584,17 +597,23 @@ delay, and two facts about *R* carry everything:
    ([6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping)). The
    bandwidth does not enter.
 
-Resolution comes from bandwidth and sensitivity from energy, and the two are
-separate knobs. A single pulse 1/*B* long has the resolution but only 1/*B*
-seconds' worth of energy; make it longer for energy and it loses resolution.
-*Pulse compression* is any waveform that is long *and* wide, so that the
-filter squeezes *T* seconds of energy into a peak 1/*B* wide. The gain over
-the short pulse is *BT*, the time–bandwidth product: 1023 here, 30 dB. The
-figure's lower panel is the demonstration. With noise 15 dB above the
-signal's peak power in a band *B* wide, the chirp, Zadoff–Chu and both codes
-show the cable's delay as a peak 16 dB above the floor's rms (2*E*/*N*<sub>0</sub>
-= 2 × 1023 × 0.03 ≈ 60, 18 dB, less the converters' share) and 7 dB above
-its highest spike; the pulse, with *E*/*N*<sub>0</sub> = 0.03, shows nothing:
+So resolution comes from bandwidth and sensitivity from energy, and the two
+are separate knobs. A single pulse 1/*B* long has the resolution but only
+1/*B* seconds' worth of energy; make it longer for energy and it loses
+resolution. *Pulse compression* is any waveform that is long *and* wide, so
+that the filter squeezes *T* seconds of energy into a peak 1/*B* wide. The
+gain over the short pulse is *BT*, the time–bandwidth product: 1023 here,
+30 dB.
+
+The figure's lower panel demonstrates it, with noise 15 dB above the
+signal's peak power in a band *B* wide:
+
+- the chirp, Zadoff–Chu and both codes show the cable's delay as a peak
+  16 dB above the floor's rms (2*E*/*N*<sub>0</sub> = 2 × 1023 × 0.03 ≈ 60,
+  18 dB, less the converters' share) and 7 dB above its highest spike;
+- the pulse, with *E*/*N*<sub>0</sub> = 0.03, shows nothing.
+
+On the board, **add noise 20 dB above the signal** with `--snr -20`:
 
 <!-- CHIRP_HW_SNR -->
 ```console
@@ -611,10 +630,14 @@ gold    291.1   0.91      -3.1      -4.1     1.43    0.1     5.884       0.76  +
 ```
 
 At −20 dB the "sidelobe" column has become the noise floor's height
-relative to the peak: a few dB, so the long waveforms are still finding the
-cable (within a sample of 5.6), while the pulse's −0.5 dB means its peak is
-a coin toss against the noise (the figure's run lost it entirely). Twenty decibels under the noise with a 30 dB
-gain leaves 10 dB, and 10 dB is what you see.
+relative to the peak: a few dB.
+
+- The long waveforms still find the cable, within a sample of 5.6.
+- The pulse's −0.5 dB means its peak is a coin toss against the noise (the
+  figure's run lost it entirely).
+
+Twenty decibels under the noise with a 30 dB gain leaves 10 dB, and 10 dB
+is what you see.
 
 ## Zadoff–Chu: the chirp, sampled
 
@@ -624,15 +647,16 @@ A Zadoff–Chu sequence of odd length *N* and root *u* (coprime with *N*) is
 
   *x*[*n*] = exp(−*jπ u n*(*n* + 1)/*N*),  *n* = 0 … *N* − 1.
 
-The phase is a parabola in *n*. A parabola's slope is a line, so the
-frequency, the phase's slope, ramps linearly: root *u* = 1 is a chirp
-sampled once per chip, sweeping the whole chip rate once per sequence and
-wrapping at ±½ cycle per chip as anything sampled must. The first line of
-`chirp.py`'s output is the check: the phase's second difference is
-−2π/1021 at every chip, to thirteen digits. Root 2 sweeps twice per
-sequence and root 7 seven times, by which point it looks like noise (the
-top row of the figure). Three things are *exactly* true of it, and a
-physicist should be suspicious of each until shown:
+The phase is a parabola in *n*, so the frequency, the phase's slope, ramps
+linearly. Root *u* = 1 is a chirp sampled once per chip: it sweeps the whole
+chip rate once per sequence, wrapping at ±½ cycle per chip as anything
+sampled must. The first line of `chirp.py`'s output is the check: the
+phase's second difference is −2π/1021 at every chip, to thirteen digits.
+Root 2 sweeps twice per sequence and root 7 seven times, by which point it
+looks like noise (the top row of the figure).
+
+Three things are *exactly* true of it, and a physicist should be suspicious
+of each until shown:
 
 - **|*x*[*n*]| = 1.** Every chip has the same magnitude, so a DAC uses all
   its codes all the time and an amplifier can run saturated. The PAPR
@@ -646,17 +670,22 @@ physicist should be suspicious of each until shown:
   zero. The m-sequence's is −1/*N* (−60 dB), the Gold code's three-valued
   (−24 dB).
 
-And one thing that is *not* true, though the author's GRCon talk said it: two
-roots are not orthogonal. With *N* prime, any two roots cross-correlate at
-exactly 1/√*N* in magnitude at *every* lag: −30.1 dB for all 1019 pairs
-against root 1 in the figure's last panel, where GPS's 32 Gold codes have
-496 pairs all at −23.9 dB (65/1023). A constant 1/√*N* is the best that
-*any* family of constant-amplitude sequences can do at every lag at once
-(the average [cross-correlation](https://en.wikipedia.org/wiki/Cross-correlation) power is 1/*N* for anything, by Parseval), so
-ZC's edge over Gold is the worst case, 6 dB, not orthogonality. LTE uses ZC
-for all three properties: the random-access preamble (*N* = 839), the
-primary synchronization signal (*N* = 63) and the uplink reference
-signals; 5G kept the first and the third.
+One thing is *not* true: two roots are not orthogonal. With *N* prime, any
+two roots cross-correlate at exactly 1/√*N* in magnitude at *every* lag. In
+the figure's last panel:
+
+- all 1019 pairs against root 1 sit at −30.1 dB;
+- GPS's 32 Gold codes have 496 pairs, all at −23.9 dB (65/1023).
+
+A constant 1/√*N* is the best that *any* family of constant-amplitude
+sequences can do at every lag at once: by Parseval, the average
+[cross-correlation](https://en.wikipedia.org/wiki/Cross-correlation) power
+is 1/*N* for anything. So ZC's edge over Gold is the worst case, 6 dB, not
+orthogonality.
+
+LTE uses ZC for all three properties: the random-access preamble
+(*N* = 839), the primary synchronization signal (*N* = 63) and the uplink
+reference signals. 5G kept the first and the third.
 
 <details>
 <summary><b>Detail:</b> why <i>n</i>(<i>n</i> + 1), and why odd <i>N</i></summary>
@@ -680,9 +709,11 @@ proof is a Gauss sum.
 Is the chirp's −13 dB sidelobe a property of chirps, and Zadoff–Chu's
 perfect autocorrelation a property of ZC? Only partly. Fact 1 of
 [Pulse compression](#pulse-compression) says the peak's shape is the
-Fourier transform of the power spectrum, so two waveforms with the same
-spectrum have the same peak, whatever their sequences. Give all five the
-same spectrum and measure again:
+Fourier transform of the power spectrum. So two waveforms with the same
+spectrum have the same peak, whatever their sequences.
+
+**Give all five the same spectrum** with `--shape filtered`, and measure
+again:
 
 <!-- CHIRP_HW_FILTERED -->
 ```console
@@ -699,42 +730,45 @@ gold    283.8   0.89     -13.1     -23.8     0.90    8.0     5.577       0.09   
 ```
 
 Every peak is now the same sinc: 0.89/*B* wide, first sidelobes at
-−13.2 dB (the figure's top right). And a repeated chirp *is* a repeated
-ZC sequence of root 1: filtered, the two match to 0.996 (computed), the ZC sweeping
-down instead of up and starting mid-band.
+−13.2 dB (the figure's top right). And a repeated chirp *is* a repeated ZC
+sequence of root 1: filtered, the two match to 0.996 (computed), the ZC
+sweeping down instead of up and starting mid-band.
 
-What ZC's algebra promises is
-still there, in the "on chips" column. At whole chips of delay its
-correlation is −38 dB, where the sinc has its zeros, and the chirp's
-is −35 and the m-sequence's −40. The Gold code's spectrum is not quite
-flat, and it has −24 dB there. A receiver that already knows the chip
-timing, as LTE's does after synchronization, samples on those zeros. A
-radar looking for a target at an unknown range sees the sinc between
-them, whatever the waveform.
+What ZC's algebra promises is still there, in the "on chips" column. At
+whole chips of delay, where the sinc has its zeros, the correlation is:
+
+- −38 dB for ZC,
+- −35 dB for the chirp,
+- −40 dB for the m-sequence,
+- −24 dB for the Gold code, whose spectrum is not quite flat.
+
+A receiver that already knows the chip timing, as LTE's does after
+synchronization, samples on those zeros. A radar looking for a target at an
+unknown range sees the sinc between them, whatever the waveform.
 
 So what made the held waveforms so different? Their spectra (top left). A
 held chip's spectrum is a sinc, −3.9 dB at the band's edges, with tails
-beyond, and a held chip's autocorrelation is a triangle two chips wide.
-The sequence's algebra makes every other whole-chip lag zero, so that
-triangle is the whole peak: 0.65/*B* wide, narrower than the sinc because
-the spectrum is wider, and with no −13 dB lobes (the next figure).
+beyond, and a held chip's autocorrelation is a triangle two chips wide. The
+sequence's algebra makes every other whole-chip lag zero, so that triangle
+is the whole peak: 0.65/*B* wide, narrower than the sinc because the
+spectrum is wider, and with no −13 dB lobes (the next figure).
 
-The tails reach
-12.5 MHz and beyond, and the ADC, with no anti-alias filter
+The tails reach 12.5 MHz and beyond, and the ADC, with no anti-alias filter
 ([1.06](1_06_fast_capture.md#106-fast-captures)), folds them back into the
-band. For the m-sequence the folded part is noise-like and spreads into a
-floor at −44 dB.
+band:
 
-For held ZC it makes a *ghost* (bottom panel). The chips'
-eighth spectral image sits 8 × 3.116 = 24.93 MHz from the carrier, the
-25 MS/s ADC folds it to 73 kHz from the carrier, and to a chirp a frequency
-offset is a delay ([Doppler](#doppler-a-bug-and-a-feature), below):
-73 kHz × *T*/*B* = 7.7 µs. The held ZC sees targets 7.6 µs late and
-7.8 µs early, at −40 and −43 dB, that aren't there.
+- **For the m-sequence**, the folded part is noise-like and spreads into a
+  floor at −44 dB.
+- **For held ZC**, it makes a *ghost* (bottom panel). The chips' eighth
+  spectral image sits 8 × 3.116 = 24.93 MHz from the carrier, and the
+  25 MS/s ADC folds it to 73 kHz from the carrier. To a chirp, a frequency
+  offset is a delay ([Doppler](#doppler-a-bug-and-a-feature), below):
+  73 kHz × *T*/*B* = 7.7 µs. So the held ZC sees targets 7.6 µs late and
+  7.8 µs early, at −40 and −43 dB, that aren't there.
 
-That, and not a weakness of its algebra, is why
-held ZC came out 4 dB worse than the held m-sequence: both have the same
-tails, but the m-sequence's fold spreads out and ZC's compresses.
+That, and not a weakness of its algebra, is why held ZC came out 4 dB worse
+than the held m-sequence. Both have the same tails, but the m-sequence's
+fold spreads out and ZC's compresses.
 
 The comparison that matters for a transmitter is the filtered one. A
 licensed band does not let you radiate the held chips' tails, and an
@@ -753,24 +787,29 @@ only three ways:
 ![The held peaks side by side, in chips of delay from the peak: the codes, Zadoff–Chu and the pulse a triangle with no sidelobes worth the name, the chirp a sinc with −13 dB first sidelobes, and the chirp with a Hamming window on the receiver's reference, wider but with sidelobes at −43 dB](img/comms_peaks.png)
 
 The chirp's flaw is the sinc: a −13.2 dB first sidelobe (theory −13.3),
-which would hide a small target one range cell from a big one. Filtered,
-as the last section showed, every waveform has it. Radar people kill it
-with a window on the *receiver's* reference, not the transmitted signal,
-which stays constant-envelope (a "mismatched filter").
-`fig_compression.py` tries a Hamming window (one argument to
-`chirp.compress`), the dashed line: sidelobes at −42.8 dB, a main lobe
-1.30/*B* wide instead of 0.89/*B*, and a 1.34 dB loss in SNR, which is
-exactly the Hamming window's processing loss from
-[1.06](1_06_fast_capture.md#106-fast-captures)'s spectra. Nothing is free:
-the window trades sidelobes for width and sensitivity.
+which would hide a small target one range cell from a big one. Filtered, as
+the last section showed, every waveform has it.
+
+Radar engineers kill it with a window on the *receiver's* reference (a
+"mismatched filter"), not on the transmitted signal, which stays
+constant-envelope. `fig_compression.py` tries a Hamming window (one argument
+to `chirp.compress`), the dashed line:
+
+- sidelobes at −42.8 dB;
+- a main lobe 1.30/*B* wide instead of 0.89/*B*;
+- a 1.34 dB loss in SNR, exactly the Hamming window's processing loss from
+  [1.06](1_06_fast_capture.md#106-fast-captures)'s spectra.
+
+Nothing is free: the window trades sidelobes for width and sensitivity.
 
 ## Doppler: a bug, and a feature
 
 ![A frequency offset applied to the recorded, held waveforms: the codes' peaks fall as a sinc and are gone at 1/T, the chirp's peak keeps its full height and slides, held Zadoff–Chu jumps a whole chip at a time and sags between, and filtered Zadoff–Chu slides as smoothly as the chirp, the other way](img/comms_doppler.png)
 
-A transmitter whose carrier is Δ*f* high is, to the correlator, sending a
-different waveform. The figure shows what that does, and `--cfo 1` does it
-on the board (one step is 3052 Hz, one cycle per loop):
+To the correlator, a transmitter whose carrier is Δ*f* high is sending a
+different waveform. The figure shows what that does. **Raise the carrier one
+step** on the board with `--cfo 1` (one step is 3052 Hz, one cycle per
+loop):
 
 <!-- CHIRP_HW_CFO -->
 ```console
@@ -787,40 +826,47 @@ gold    215.9   0.67      -0.0      -0.2     1.43    0.1  3136.300       0.89  -
 ```
 
 For a **code**, a frequency offset is a slow rotation of the chips through
-the correlation, and the peak falls as |sinc(Δ*f T*)|: gone at Δ*f* = 1/*T*
-= 3052 Hz. The m-sequence and the Gold code have no peak left (their
-"delay" is a noise spike). That is why a GPS receiver searches Doppler in
-steps of about 1/*T* for every satellite, the two-dimensional search of
-learnSDR's [lesson 23](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson23.md),
+the correlation, and the peak falls as |sinc(Δ*f T*)|: gone at
+Δ*f* = 1/*T* = 3052 Hz. The m-sequence and the Gold code have no peak left
+(their "delay" is a noise spike). That is why a GPS receiver searches
+Doppler in steps of about 1/*T* for every satellite (the two-dimensional
+search of learnSDR's
+[lesson 23](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson23.md)),
 and why acquisition is the slow part of a cold start.
 
 For a **chirp**, a frequency shift is a time shift. The chirp's frequency
-ramps at *B*/*T*, so a signal Δ*f* high looks like the same chirp arrived
-Δ*f T*/*B* early: the peak keeps its full height and slides, one chip per
-step here, −8.01 samples for the up-chirp and +8.02 for Zadoff–Chu (a
-down-chirp: the sign of the exponent). The delay found by the up-chirp is now
-−2.4 samples instead of 5.6, and ZC's 13.6. This *delay–Doppler coupling* is a
-bug for a radar that wants range (a 300 m/s target at 10 GHz is 20 kHz, 6.5
-chips at this *B*/*T*), and it is the feature that lets LoRa run on a 20 ppm
-crystal. The cure is the triangle: an up-chirp and a down-chirp slide
-opposite ways, so their mean is the delay and half their difference is the
-Doppler. LoRa's preamble (up) and start-of-frame delimiter (down) are
-exactly this, and FMCW radars sweep up and down for the same reason. The
-figure's fine Doppler curves are a frequency shift applied to the record in
-software, which is what a mixer would do; the board itself only moves in
-steps of 3052 Hz.
+ramps at *B*/*T*, so a signal Δ*f* high looks like the same chirp arriving
+Δ*f T*/*B* early. The peak keeps its full height and slides, one chip per
+step here:
+
+- the up-chirp by −8.01 samples, so the delay it finds is now −2.4 samples
+  instead of 5.6;
+- Zadoff–Chu by +8.02, to 13.6: it is a down-chirp (the sign of the
+  exponent).
+
+This *delay–Doppler coupling* is a bug for a radar that wants range (a
+300 m/s target at 10 GHz is 20 kHz, 6.5 chips at this *B*/*T*). It is also
+the feature that lets LoRa run on a 20 ppm crystal. The cure is the
+triangle: an up-chirp and a down-chirp slide opposite ways, so their mean is
+the delay and half their difference is the Doppler. LoRa's preamble (up)
+and start-of-frame delimiter (down) are exactly this, and FMCW radars sweep
+up and down for the same reason.
+
+The figure's fine Doppler curves come from a frequency shift applied to the
+record in software, which is what a mixer would do; the board itself only
+moves in steps of 3052 Hz.
 
 Between whole steps the held ZC is not the chirp. Its peak jumps a whole
-chip at a time and sags to 0.64 half-way, like a tone between two FFT bins.
-Each of its chips' spectral images is a copy of the chirp, and a fractional
+chip at a time and sags to 0.64 half-way, like a tone between two FFT bins:
+each of its chips' spectral images is a copy of the chirp, and a fractional
 offset slides the copies apart.
 
-Filtered, ZC has no images, and it slides
-as smoothly as the chirp, the other way (the dashed line). One piece of
-bookkeeping is needed for that comparison: the record must be cut where
-ZC's sweep wraps from one band edge to the other, half-way through its
-sequence, as the chirp's loop is. Otherwise the two halves of the sweep
-correlate at different phases and partly cancel.
+Filtered, ZC has no images, and it slides as smoothly as the chirp, the
+other way (the dashed line). That comparison needs one piece of
+bookkeeping: the record must be cut where ZC's sweep wraps from one band
+edge to the other, half-way through its sequence, as the chirp's loop is.
+Otherwise the two halves of the sweep correlate at different phases and
+partly cancel.
 
 ## Ranging, and how well
 
@@ -832,15 +878,19 @@ for a known waveform in white noise is
   σ<sub>τ</sub> = 1 / (2π *B*<sub>rms</sub> √(2*E*/*N*<sub>0</sub>)),
   *B*<sub>rms</sub><sup>2</sup> = ∫(*f* − *f*<sub>0</sub>)<sup>2</sup> |*S*(*f*)|<sup>2</sup> d*f* / ∫|*S*(*f*)|<sup>2</sup> d*f*,
 
-with *E*/*N*<sub>0</sub> = SNR × *BT*. Two things in it. The SNR enters as a
-square root, as any averaging does. And the bandwidth enters as the *rms*
-width of the spectrum, not its edges: it is the spectrum's second moment
-that times a peak, because the Fisher information is ∑|*s*′|<sup>2</sup>, and Parseval
-turns a derivative into a factor of *f*<sup>2</sup>. A flat spectrum *B* wide has
-*B*<sub>rms</sub> = *B*/√12 = 0.90 MHz for the chirp. The square chips, with
-their tails, have 1.43 MHz over the ADC's band, so at *equal chip rate* the
-codes' bound is 1.6 times tighter: they bought it with spectrum out to
-four times *B* that a licensed band would not let you use.
+with *E*/*N*<sub>0</sub> = SNR × *BT*. Two things in it:
+
+- **The SNR enters as a square root**, as in any averaging.
+- **The bandwidth enters as the *rms* width of the spectrum**, not its
+  edges. It is the spectrum's second moment that times a peak, because the
+  Fisher information is ∑|*s*′|<sup>2</sup>, and Parseval turns a
+  derivative into a factor of *f*<sup>2</sup>.
+
+A flat spectrum *B* wide has *B*<sub>rms</sub> = *B*/√12 = 0.90 MHz for the
+chirp. The square chips, with their tails, have 1.43 MHz over the ADC's
+band, so at *equal chip rate* the codes' bound is 1.6 times tighter. They
+bought it with spectrum out to four times *B*, which a licensed band would
+not let you use.
 
 <details>
 <summary><b>Detail:</b> where the bound comes from, in one paragraph</summary>
@@ -858,27 +908,33 @@ frequency as the unknown gives the bound on a Doppler estimate with the
 </details>
 
 The left panel is the test. The estimator (the correlation upsampled 16
-times, a parabola through the three points around the peak) sits on the
-bound: the chirp scatters 20 ns at −15 dB against a bound of 22 ns, the
-m-sequence 8 ns against 14 (twelve trials a point, so each scatter is
-good to ±20%); at 0 dB all three reach 2–4 ns, a twentieth of an ADC sample, from a 40 ns sampling period and a 3 MHz bandwidth.
-Below a threshold (the chirp's is about −21 dB, *E*/*N*<sub>0</sub> ≈ 8) some
-trials land on a noise peak instead, the estimate jumps by microseconds,
-and the bound stops applying: the hollow markers. Every radar and every GPS
-receiver has such a threshold, and the search-then-track structure exists
-to stay above it.
+times, and a parabola through the three points around the peak) sits on the
+bound:
 
-The right panel settles an argument the author has with himself. A plain
-tone at 6.25 MHz and the chirp, at the same power, in the same noise,
-integrated over one loop, give the same phase scatter: 3.2° and 3.6° at one
-loop, falling as 1/√(loops) to 1.2° and 1.1° at eight, against the
-predicted 1/√(2*E*/*N*<sub>0</sub>) = 4.0°.
-"Bandwidth cancels in the link budget" is true: each of the chirp's 1023 FFT
-bins holds a thousandth of its energy, 30 dB below the tone's one bin, and
-the matched filter adds the thousand bins back coherently, which *is* pulse
-compression. The tone gives you range modulo a wavelength, 33 m at 6.25 MHz
-in this cable (48 m in air); the chirp gives the same phase *and* resolves the ambiguity
-to ±1/*B* for free. That is the carrier-phase ranging of
+- the chirp scatters 20 ns at −15 dB, against a bound of 22 ns;
+- the m-sequence 8 ns against 14 (twelve trials a point, so each scatter is
+  good to ±20%);
+- at 0 dB all three reach 2–4 ns, a twentieth of an ADC sample, from a
+  40 ns sampling period and a 3 MHz bandwidth.
+
+Below a threshold (the chirp's is about −21 dB, *E*/*N*<sub>0</sub> ≈ 8),
+some trials land on a noise peak instead: the estimate jumps by
+microseconds, and the bound stops applying (the hollow markers). Every radar
+and every GPS receiver has such a threshold, and the search-then-track
+structure exists to stay above it.
+
+The right panel compares a plain tone at 6.25 MHz with the chirp, at the
+same power, in the same noise, each integrated over one loop. They give the
+same phase scatter: 3.2° and 3.6° at one loop, falling as 1/√(loops) to
+1.2° and 1.1° at eight, against the predicted
+1/√(2*E*/*N*<sub>0</sub>) = 4.0°. So "bandwidth cancels in the link budget"
+is true. Each of the chirp's 1023 FFT bins holds a thousandth of its energy,
+30 dB below the tone's one bin, and the matched filter adds the thousand
+bins back coherently, which *is* pulse compression.
+
+The tone gives you range modulo a wavelength, 33 m at 6.25 MHz in this
+cable (48 m in air). The chirp gives the same phase *and* resolves the
+ambiguity to ±1/*B* for free. That is the carrier-phase ranging of
 [6.13](6_13_more_ideas.md#613-more-ideas-and-a-radar-chapter), and it is how
 RTK GPS gets centimetres from a 300 m code chip.
 
@@ -888,19 +944,27 @@ RTK GPS gets centimetres from a 300 m code chip.
 
 Put an SMA T on the DAC's output and hang an open-ended cable *L* long from
 its third port. The signal that goes up the stub comes back 2*L*/*v* later,
-inverted by nothing (an open circuit reflects in phase), and joins the
-direct path into the ADC, which is a radar target at range *L* that never
-moves. The compressed output shows two peaks, and the range is *v*Δ*t*/2.
-With 30 m of RG-316 (*v* = 0.695*c*) the echo is at 288 ns, 7.2 samples: 2.9
-cells for a 10 MHz sweep (two clean peaks, the echo at −3 dB, a second
-bounce at −13 dB at 576 ns), 0.6 of a cell for a 2 MHz sweep (one blob).
-The right panel is the pulse-compression argument once more with the
-noise at the signal's peak power: the 100 ns pulse's floor is −2 dB (lost),
-the 1 µs pulse's −13 dB (found, but one blob), the chirp's −35 dB (two
-peaks). Energy, resolution, or both.
+not inverted (an open circuit reflects in phase), and joins the direct path
+into the ADC. That is a radar target at range *L* that never moves. The
+compressed output shows two peaks, and the range is *v*Δ*t*/2.
 
-The uncomfortable number is the size of a range cell, *v*/2*B*, which
-`chirp.py --stubs` tabulates:
+With 30 m of RG-316 (*v* = 0.695*c*), the echo is at 288 ns, 7.2 samples:
+
+- for a 10 MHz sweep, 2.9 cells: two clean peaks, the echo at −3 dB, and a
+  second bounce at −13 dB at 576 ns;
+- for a 2 MHz sweep, 0.6 of a cell: one blob.
+
+The right panel is the pulse-compression argument once more, with the noise
+at the signal's peak power:
+
+- the 100 ns pulse's floor is −2 dB (lost);
+- the 1 µs pulse's is −13 dB (found, but one blob);
+- the chirp's is −35 dB (two peaks).
+
+Energy, resolution, or both.
+
+The uncomfortable number is the size of a range cell, *v*/2*B*.
+**Tabulate it** with `chirp.py --stubs` (no board needed):
 
 ```console
 $ python3 chirp.py --stubs                 # no board
@@ -912,24 +976,35 @@ one range cell = a round trip of 1/B = a stub v/2B long (v = 0.695 c, RG-316):
    12.00        8.7      8.7    17.4    43.4    86.8        8.2
 ```
 
-The 5 m stub of [4.05](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub) is six
-tenths of a cell even at the ADC's full 12 MHz, so its echo merges with the
-direct path: a 25 MS/s ADC makes a poor radar
-for anything on a bench, and that is the honest reason the figure above is
-simulated. What would make it real: an SMA T and a 30 m spool of RG-58 with
-one SMA end and the other end open (two peaks at 10 MHz, one blob at 2 MHz,
-from the same stub); 50 m adds the five-cell case; 100 m would give ten but
-the loss will eat it. `fig_radar.py PORT --stub 30` is written and waiting.
-The parts are in [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)'s
-list. The stub echo's amplitude (0.67 of the direct path from the T's 25 Ω
-junction, then −⅓ per further bounce) is a model of a T whose source
-impedance the author will have to measure.
+The 5 m stub of [4.05](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub) is
+six tenths of a cell even at the ADC's full 12 MHz, so its echo merges with
+the direct path. A 25 MS/s ADC makes a poor radar for anything on a bench,
+and that is the honest reason the figure above is simulated.
 
-What a real radar adds is Doppler, and a tabletop version is in reach: [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)'s
-40 kHz ultrasonic transducers have a wavelength of 8.6 mm, the same as a
-35 GHz radar, and `awgcap.sv` played 64 times slower gives a 21 ms loop, so a
-5 kHz chirp around 40 kHz resolves 3.4 cm, a fan blade gives Doppler, and a
-hand walked along a rail gives synthetic-aperture imaging. That is MIT's
+To make it real (the parts are in
+[6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)'s
+list):
+
+- an SMA T and a 30 m spool of RG-58 with one SMA end and the other end
+  open: two peaks at 10 MHz, one blob at 2 MHz, from the same stub;
+- 50 m adds the five-cell case;
+- 100 m would give ten, but the loss will eat it.
+
+`fig_radar.py PORT --stub 30` is written and waiting. The stub echo's
+amplitude (0.67 of the direct path from the T's 25 Ω junction, then −⅓ per
+further bounce) comes from a model of the T, whose source impedance is
+still to be measured.
+
+What a real radar adds is Doppler, and a tabletop version is in reach.
+[4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)'s 40 kHz
+ultrasonic transducers have a wavelength of 8.6 mm, the same as a 35 GHz
+radar. `awgcap.sv` played 64 times slower gives a 21 ms loop, and then:
+
+- a 5 kHz chirp around 40 kHz resolves 3.4 cm;
+- a fan blade gives Doppler;
+- a hand walked along a rail gives synthetic-aperture imaging.
+
+That is MIT's
 [coffee-can radar course](https://ocw.mit.edu/courses/res-ll-003-build-a-small-radar-system-capable-of-sensing-range-doppler-and-synthetic-aperture-radar-imaging-january-iap-2011/)
 at 2.4 GHz, on a bench for five dollars, and it is the radar chapter in
 [6.13](6_13_more_ideas.md#613-more-ideas-and-a-radar-chapter).
@@ -939,18 +1014,24 @@ at 2.4 GHz, on a bench for five dollars, and it is the radar chapter in
 ![LoRa through the cable at spreading factor 7: the spectrogram of a frame, two up-chirps, two down-chirps and four data symbols that start their sweep at their value; the preamble's and the delimiter's dechirped bins, whose sum gives the carrier offset and difference the timing; the four data symbols dechirped, one spike each; and the bit error rate for spreading factors 7 to 10 against the exact theory with Semtech's quoted sensitivities](img/comms_lora.png)
 
 LoRa is the chirp's delay–Doppler coupling turned into a modulation, and it
-is the reason a $3 radio reaches ten kilometres on twenty-five milliwatts. A symbol
-is the base up-chirp (a sweep from −*B*/2 to +*B*/2 over *M* = 2<sup>SF</sup>
-chips) *cyclically shifted* by its value *s*, which is to say a sweep that
-starts somewhere and wraps round: SF bits per symbol, Gray-coded so that a
-near miss costs one bit. The receiver is three lines. Mix down and low-pass
-to ±*B*/2, keep one sample per chip, multiply by the conjugate of the base
-chirp (*dechirp*: a chirp that started *s* chips late becomes a *tone* at
-*sB*/*M*, the sweep is gone), and take one *M*-point FFT. The biggest bin is
-*s*. One FFT is *M* matched filters in *M* log *M* operations, detected by
+is the reason a $3 radio reaches ten kilometres on twenty-five milliwatts.
+
+**A symbol** is the base up-chirp (a sweep from −*B*/2 to +*B*/2 over
+*M* = 2<sup>SF</sup> chips) *cyclically shifted* by its value *s*: a sweep
+that starts somewhere and wraps round. That carries SF bits per symbol,
+Gray-coded so that a near miss costs one bit.
+
+**The receiver** is three lines:
+
+1. Mix down and low-pass to ±*B*/2, and keep one sample per chip.
+2. Multiply by the conjugate of the base chirp (*dechirp*). A chirp that
+   started *s* chips late becomes a *tone* at *sB*/*M*: the sweep is gone.
+3. Take one *M*-point FFT. The biggest bin is *s*.
+
+One FFT is *M* matched filters in *M* log *M* operations, detected by
 magnitude, with no carrier phase to track. `lora.py` runs it at 3.125
 million chips a second, 25 times LoRa's 125 kHz, so that a frame fits a
-loop:
+loop.
 
 <details>
 <summary>The whole file: <code>lora.py</code></summary>
@@ -1294,6 +1375,9 @@ if __name__ == "__main__":
 
 </details>
 
+**Run `lora.py`** three ways: as it is, with the carrier 12 steps high, and
+at SF 10 with noise 16 dB above the signal:
+
 <!-- LORA_HW -->
 ```console
 $ python3 lora.py --no-plot
@@ -1315,68 +1399,88 @@ sent   484
 found  484   (0 symbol errors, 0 bit errors in 10 bits)
 ```
 
-The second run is the trick that makes LoRa work on a bad crystal. The
-carrier is 36.6 kHz high, a bin and a half, so every dechirped bin has
-moved by 1.5. An up-chirp's bin moves by ν − τ (carrier offset minus timing
-error, in bins and chips) and a down-chirp's by ν + τ: the preamble lands
-at 1.75 and the start-of-frame delimiter at 1.25: ν = 1.50 bins and τ =
-−0.25 chips, and the data decode cleanly. That is the whole reason for the
-down-chirps. A 20 ppm crystal at 868 MHz is 17 kHz, 14% of a 125 kHz
-channel, and a [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) receiver would need
+**The second run** is the trick that makes LoRa work on a bad crystal. The
+carrier is 36.6 kHz high, a bin and a half, so every dechirped bin has moved
+by 1.5:
+
+- an up-chirp's bin moves by ν − τ (carrier offset minus timing error, in
+  bins and chips), and the preamble lands at 1.75;
+- a down-chirp's moves by ν + τ, and the start-of-frame delimiter lands at
+  1.25.
+
+So ν = 1.50 bins and τ = −0.25 chips, and the data decode cleanly. That is
+the whole reason for the down-chirps. A 20 ppm crystal at 868 MHz is
+17 kHz, 14% of a 125 kHz channel. A
+[QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK))
+receiver would need
 [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
 frequency-locked loop and a long preamble to find it; LoRa reads it off two
 FFT bins.
 
-The third run is the energy argument. *E*<sub>s</sub>/*N*<sub>0</sub> = SNR × 2<sup>SF</sup>
-per symbol, so SF 10 integrates 1024 chips, 30 dB, and decodes a symbol
-sixteen decibels *under* the noise. Each extra spreading factor doubles the
-symbol (+3 dB of energy) and doubles *M* (−0.3 dB for the bigger
-competition), net 2.7 dB per SF for half the rate. The figure's last panel
-is the measured [bit error rate](https://en.wikipedia.org/wiki/Bit_error_rate) for SF 7–10 against the exact theory for *M*
-orthogonal signals detected non-coherently (Proakis's textbook formula, in
-`lora.ser_theory`): the points sit on it, and the SNRs for one symbol error
-in a hundred are −9.0, −11.7, −14.4 and −17.2 dB, with SF 11 and 12 (which
-do not fit a loop) at −20.0 and −22.7 by theory. Semtech's datasheet quotes
-−7.5, −10, −12.5, −15, −17.5 and −20 dB for SF 7–12: 1.5 to 2.7 dB from the
-ideal uncoded detector, which is a fair price for a radio that costs three
-dollars.
+**The third run** is the energy argument. *E*<sub>s</sub>/*N*<sub>0</sub> =
+SNR × 2<sup>SF</sup> per symbol, so SF 10 integrates 1024 chips, 30 dB, and
+decodes a symbol sixteen decibels *under* the noise. Each extra spreading
+factor doubles the symbol (+3 dB of energy) and doubles *M* (−0.3 dB for the
+bigger competition): net 2.7 dB per SF, for half the rate.
+
+The figure's last panel is the measured
+[bit error rate](https://en.wikipedia.org/wiki/Bit_error_rate) for SF 7–10
+against the exact theory for *M* orthogonal signals detected
+non-coherently (Proakis's textbook formula, in `lora.ser_theory`). The
+points sit on it. The SNR for one symbol error in a hundred:
+
+| SF | 7 | 8 | 9 | 10 | 11 | 12 |
+| --- | --- | --- | --- | --- | --- | --- |
+| ideal uncoded detector (dB) | −9.0 | −11.7 | −14.4 | −17.2 | −20.0 | −22.7 |
+| Semtech's datasheet (dB) | −7.5 | −10 | −12.5 | −15 | −17.5 | −20 |
+
+SF 11 and 12 do not fit a loop, so they have no measured points. Semtech's numbers
+are 1.5 to 2.7 dB from the ideal uncoded detector, which is a fair price for
+a radio that costs three dollars.
 
 <details>
 <summary><b>Detail:</b> why ten kilometres on twenty-five milliwatts</summary>
 
-Five things, and only one of them is clever. (1) The receiver's noise is
-*kTB*, and *B* is 125 kHz: −123 dBm, plus about 6 dB of noise figure for a
-three-dollar chip: −117 dBm. (2) A symbol integrates 2<sup>SF</sup> chips,
-21–36 dB, so it demodulates at −7.5 to −20 dB SNR: −137 dBm at SF 12,
-Semtech's quoted sensitivity, and against +14 dBm transmitted that is a
-151 dB link budget;
-free space at 868 MHz over 10 km costs 111 dB, leaving 40 dB for walls and
-trees. (3) Constant envelope, so a fifty-cent amplifier runs saturated.
-(4) The chirp tolerates the crystal, above. (5) Nothing beats Shannon
-([6.08](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are)):
-the price is 290 bits per second at SF 12, and at that rate GPS, which
-also integrates its way 30 dB under the noise, sends 50. LoRa is spread
-spectrum ([6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way))
-with a chirp instead of a code, and the chirp's only real advantage over the
-code is item 4.
+Five things, and only one of them is clever:
+
+1. **A narrow band.** The receiver's noise is *kTB*, and *B* is 125 kHz:
+   −123 dBm, plus about 6 dB of noise figure for a three-dollar chip:
+   −117 dBm.
+2. **Long symbols.** A symbol integrates 2<sup>SF</sup> chips, 21–36 dB, so
+   it demodulates at −7.5 to −20 dB SNR: −137 dBm at SF 12, Semtech's
+   quoted sensitivity. Against +14 dBm transmitted, that is a 151 dB link
+   budget. Free space at 868 MHz over 10 km costs 111 dB, leaving 40 dB for
+   walls and trees.
+3. **Constant envelope**, so a fifty-cent amplifier runs saturated.
+4. **The chirp tolerates the crystal**, above.
+5. **Nothing beats Shannon**
+   ([6.08](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are)):
+   the price is 290 bits per second at SF 12. At that rate GPS, which also
+   integrates its way 30 dB under the noise, sends 50.
+
+LoRa is spread spectrum
+([6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)) with a
+chirp instead of a code, and the chirp's only real advantage over the code
+is item 4.
 
 </details>
 
-The opinion. The physics is from 1960 (Klauder, Price, Darlington and
+An opinion: the physics is from 1960 (Klauder, Price, Darlington and
 Albersheim, "The theory and design of chirp radars", *Bell System Technical
-Journal*) plus textbook *M*-ary orthogonal signalling. Semtech's patent
+Journal*), plus textbook *M*-ary orthogonal signalling. Semtech's patent
 (Seller and Sornin, EP 2449690 / US 9,252,834, bought with Cycleo in 2012)
-covers the framing and the sync trick, and the business is the chips. It
-is excellent, cheap engineering of public-domain ideas, and since Matt
-Knight (2016) and then Robyns and colleagues (2017) reverse-engineered the
-rest (gr-lora), it is also the best teaching modulation there is: every part of it is on this page, and a $10 module will
-talk to a `lora.py` that runs at 125 kchip/s with a real radio front end.
+covers the framing and the sync trick, and the business is the chips. It is
+excellent, cheap engineering of public-domain ideas. Since Matt Knight
+(2016) and then Robyns and colleagues (2017) reverse-engineered the rest
+(gr-lora), it is also the best teaching modulation there is: every part of
+it is on this page, and a $10 module will talk to a `lora.py` that runs at
+125 kchip/s with a real radio front end.
 
 ## Gold codes, or chirps?
 
-The author's claim was that for ranging, once the hardware is a DAC rather
-than a digital pin, Zadoff–Chu sequences and chirps beat GPS's binary
-codes. The measurements say he is right, with the fine print:
+This page's claim: for ranging, once the hardware is a DAC rather than a
+digital pin, Zadoff–Chu sequences and chirps beat GPS's binary codes. The
+measurements say it is right, with this fine print:
 
 | | binary code (m-sequence, Gold) | chirp | Zadoff–Chu |
 | --- | --- | --- | --- |
@@ -1392,13 +1496,17 @@ codes. The measurements say he is right, with the fine print:
 | hardware | one pin, an XOR, a 1-bit correlator | a swept oscillator, or a DAC | a DAC with I and Q |
 
 Filtered to the same band, all three compress to the same peak, so the
-choice comes down to the last four rows. The chirp has the gentlest
-envelope, the chirp and ZC survive a frequency offset, and ZC has a family
-where the chirp has one member. Held at an equal *chip rate*, the square
-chips buy a tighter ranging bound with spectrum they are not entitled to,
-which GPS gets away with because its satellites own the band. The codes'
-remaining argument is the 1973 one: a Gold code is one pin and an
-XOR, and a correlator for it is a counter. With a DAC you give nothing up.
+choice comes down to the last four rows:
+
+- the chirp has the gentlest envelope;
+- the chirp and ZC survive a frequency offset;
+- ZC has a family where the chirp has one member.
+
+Held at an equal *chip rate*, the square chips buy a tighter ranging bound
+with spectrum they are not entitled to; GPS gets away with that because its
+satellites own the band. The codes' remaining argument is the 1973 one: a
+Gold code is one pin and an XOR, and a correlator for it is a counter. With
+a DAC you give nothing up.
 
 **Try this:**
 
@@ -1410,18 +1518,20 @@ XOR, and a correlator for it is a counter. With a DAC you give nothing up.
 - Find the SNR where the delay estimate first jumps off the bound, for each
   waveform, with `fig_ranging.py --trials 30`. Why is the pulse's threshold
   30 dB higher?
-- Hann, Blackman and no window against Hamming on the chirp's reference
-  (the `window` argument of `chirp.compress`, as `fig_compression.py` uses
-  it): sidelobes, width and loss, as in [1.06](1_06_fast_capture.md#106-fast-captures).
+- Compare Hann, Blackman and no window against Hamming on the chirp's
+  reference (the `window` argument of `chirp.compress`, as
+  `fig_compression.py` uses it): sidelobes, width and loss, as in
+  [1.06](1_06_fast_capture.md#106-fast-captures).
 - `lora.py --sf 10 --cfo 1`: one step is exactly one bin at SF 10. Then
   shorten the preamble to one chirp in the code and find the SNR where
   sync fails; real LoRa sends eight.
 - `fig_lora.py --records 200` fills in SF 10's low-error points.
 - With a second board (`chirp.py PORT_A PORT_B`): the one-way delay now
   includes the two clocks' offset, which is
-  [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)'s [time transfer](https://en.wikipedia.org/wiki/Time_transfer) with a
-  chirp; and their 0.76 ppm frequency difference is 4.75 Hz at 6.25 MHz, a
-  six-hundredth of a Doppler step. `--cfo 1` fakes a crystal 488 ppm off.
+  [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)'s
+  [time transfer](https://en.wikipedia.org/wiki/Time_transfer) with a
+  chirp. Their 0.76 ppm frequency difference is 4.75 Hz at 6.25 MHz, a
+  six-hundredth of a Doppler step. (`--cfo 1` fakes a crystal 488 ppm off.)
 - If you have the T and the stub: `fig_radar.py PORT --stub 30`, then
   `--bw 2e6` and `--bw 12e6`. Then a 50 m stub, or the two in series.
 
