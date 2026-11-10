@@ -115,7 +115,7 @@ made:
     python3 chirp.py --stubs            # print stub lengths for 1, 2, 5, 10 range cells
     python3 chirp.py -o chirp.npz --no-plot
 
-The board runs awgcap.sv (5.01): a 16384-sample waveform at 50 MS/s, over and over
+The board runs awgcap.sv (5.03): a 16384-sample waveform at 50 MS/s, over and over
 (one loop T = 327.68 us), recorded at 25 MS/s.  Five waveforms, each one loop long,
 each a complex envelope on the 6.25 MHz carrier (I on cos, Q on -sin, as psk.py):
 
@@ -1052,7 +1052,7 @@ loop.
     python3 lora.py --ber=-24:-4        # symbol and bit error rates against SNR, SF 7 to 10
     python3 lora.py -o lora.npz --no-plot
 
-The board runs awgcap.sv (5.01).  LoRa sends 125 kchip/s; here, 3.125 Mchip/s, so that
+The board runs awgcap.sv (5.03).  LoRa sends 125 kchip/s; here, 3.125 Mchip/s, so that
 a symbol fits a loop:
 
   chips    3.125 Mchip/s = B: 16 DAC samples, 8 ADC samples per chip, 1024 chips per loop

@@ -12,7 +12,7 @@
     python3 lora.py --ber=-24:-4        # symbol and bit error rates against SNR, SF 7 to 10
     python3 lora.py -o lora.npz --no-plot
 
-The board runs awgcap.sv (5.01).  LoRa sends 125 kchip/s; here, 3.125 Mchip/s, so that
+The board runs awgcap.sv (5.03).  LoRa sends 125 kchip/s; here, 3.125 Mchip/s, so that
 a symbol fits a loop:
 
   chips    3.125 Mchip/s = B: 16 DAC samples, 8 ADC samples per chip, 1024 chips per loop

@@ -48,7 +48,7 @@ equivalent-time trick of [1.07](1_07_closing_the_loop.md#107-closing-the-loop-th
                                         #   to the signal), to see the matched filter work
     python3 eye.py -o eye.npz --no-plot
 
-The board runs awgcap.sv (5.01).  Each waveform is BPSK at BASEBAND, with no carrier:
+The board runs awgcap.sv (5.03).  Each waveform is BPSK at BASEBAND, with no carrier:
 the DAC's voltage is +1 or -1 (times 100 codes, about mid-scale) for each bit, the
 bits from GPS's G1 register (1.07).  Two pulse shapes:
 

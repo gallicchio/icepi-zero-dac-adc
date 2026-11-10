@@ -479,7 +479,7 @@ if __name__ == "__main__":
         print("carrier:      x^4 line says %+.0f Hz, then the loop finds %+.0f Hz more"
               % (r["coarse"], np.mean(r["w"][last] * R / (2 * np.pi))))
         print("unique words at symbols %s, turned by %s x %d deg; fine gain %.3f"
-              % (list(r["starts"]), list(r["rot"]), 360 // symmetry(M), r["gain"]))
+              % ([int(v) for v in r["starts"]], [int(v) for v in r["rot"]], 360 // symmetry(M), r["gain"]))
         radii, meas, cnt = rings(r["z"], M)
         print("rings |z|: expected %s" % " ".join("%.3f" % x for x in radii))
         print("           measured %s" % " ".join("%.3f" % x for x in meas))

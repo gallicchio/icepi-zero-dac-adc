@@ -18,7 +18,7 @@
     python3 chirp.py --stubs            # print stub lengths for 1, 2, 5, 10 range cells
     python3 chirp.py -o chirp.npz --no-plot
 
-The board runs awgcap.sv (5.01): a 16384-sample waveform at 50 MS/s, over and over
+The board runs awgcap.sv (5.03): a 16384-sample waveform at 50 MS/s, over and over
 (one loop T = 327.68 us), recorded at 25 MS/s.  Five waveforms, each one loop long,
 each a complex envelope on the 6.25 MHz carrier (I on cos, Q on -sin, as psk.py):
 

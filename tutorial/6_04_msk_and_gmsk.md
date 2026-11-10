@@ -127,7 +127,7 @@ Everything on this page is one file:
                                         #   then continuous phase, MSK, GMSK (and BPSK)
     python3 msk.py --wav DIR            # only write those sound files
 
-The board runs awgcap.sv (5.01): it plays a 16384-sample waveform at 50 MS/s, over
+The board runs awgcap.sv (5.03): it plays a 16384-sample waveform at 50 MS/s, over
 and over (one loop = 327.68 us), and records 16384 samples at 25 MS/s (two loops).
 
 TRANSMITTER (here, in Python; the board just plays the result)
@@ -817,7 +817,7 @@ if __name__ == "__main__":
             print("discriminator: mean frequency %+.0f Hz from the carrier" % r["cfo_est"])
         print("timing loop:  bit rate offset found %+.0f ppm (mean of the last 200 bits)"
               % np.mean((r["sps"] / r["period"][last] - 1) * 1e6))
-        print("unique words at bits %s, turned by %s x 180 deg" % (list(r["starts"]), list(r["rot"])))
+        print("unique words at bits %s, turned by %s x 180 deg" % ([int(v) for v in r["starts"]], [int(v) for v in r["rot"]]))
         print("%d bit errors in %d bits after the first %d bits; MER %.1f dB"
               % (r["errs"], r["nbits"], args.skip, r["mer"]))
         if args.out:

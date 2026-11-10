@@ -9,7 +9,7 @@
     python3 cdma.py --power2 15         # make user 2 15 dB louder than user 1 ("near-far")
     python3 cdma.py -o cdma.npz --no-plot
 
-The board runs awgcap.sv (5.01).  Two "satellites" share one 6.25 MHz carrier and the
+The board runs awgcap.sv (5.03).  Two "satellites" share one 6.25 MHz carrier and the
 same instants.  Each multiplies its own data by its own GPS C/A code, 1023 chips long:
 
     C/A code = G1 xor (two stages of G2, which pair being the satellite's "PRN")

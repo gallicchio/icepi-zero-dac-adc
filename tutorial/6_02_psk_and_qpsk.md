@@ -61,7 +61,7 @@ The transmitter and the whole receiver are in one file:
     python3 psk.py --diff               # differential coding instead of the unique word
     python3 psk.py -o psk.npz --no-plot
 
-The board runs awgcap.sv (5.01): it plays a 16384-sample waveform at 50 MS/s, over
+The board runs awgcap.sv (5.03): it plays a 16384-sample waveform at 50 MS/s, over
 and over (one loop = 327.68 us), and records 16384 samples at 25 MS/s (two loops).
 
 TRANSMITTER (here, in Python; the board just plays the result)
@@ -630,7 +630,7 @@ if __name__ == "__main__":
               % np.mean((r["sps"] / r["period"][last] - 1) * 1e6))
         print("Costas loop:  carrier offset found %+.0f Hz" % np.mean(r["w"][last] * R / (2 * np.pi)))
         print("unique words at symbols %s, turned by %s x %d deg"
-              % (list(r["starts"]), list(r["rot"]), 360 // M))
+              % ([int(v) for v in r["starts"]], [int(v) for v in r["rot"]], 360 // M))
         print("%d bit errors in %d bits after the first %d symbols; MER %.1f dB"
               % (r["errs"], r["nbits"], args.skip, r["mer"]))
         if args.out:

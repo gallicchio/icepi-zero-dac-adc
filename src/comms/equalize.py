@@ -11,7 +11,7 @@
     python3 equalize.py --sim --echo 1:0.67 --spacing 1  # one tap per symbol instead of two
     python3 equalize.py --sim --echo 1:0.67 -o eq.npz --no-plot
 
-The board runs awgcap.sv (5.01) and plays psk.py's QPSK: 512 symbols per loop (a 32-symbol
+The board runs awgcap.sv (5.03) and plays psk.py's QPSK: 512 symbols per loop (a 32-symbol
 unique word, then 480 of data) at 1.5625 Msymbol/s on 6.25 MHz, 16 ADC samples a symbol.
 
 THE CHANNEL is the record (the ADC's, or channel.py's model) plus echo.py's echo, plus

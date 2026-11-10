@@ -62,7 +62,7 @@ whole story:
     python3 sound.py --records 4        # average 4 records per probe (the default)
     python3 sound.py -o sound.npz --no-plot
 
-The board runs awgcap.sv (5.01).  The cable, the converters and the T with its stub are
+The board runs awgcap.sv (5.03).  The cable, the converters and the T with its stub are
 one linear, time-invariant system: whatever goes in comes out convolved with its impulse
 response h[n], or, the same thing, with each frequency multiplied by H(f).  Three probes,
 each one loop long, measure it:
@@ -74,7 +74,7 @@ each one loop long, measure it:
   step       a square wave, 8 periods per loop: h[n] is the difference between
              successive samples of the (averaged) step response.
   multitone  every bin of the loop from 3 kHz to 12.3 MHz at the same amplitude with
-             random phases (6.04's sounding).  The loop repeats, so its spectrum sits
+             random phases (6.07's sounding).  The loop repeats, so its spectrum sits
              exactly on the FFT's bins, and H(f) = Y(f) / X(f): one divide per bin.
              Its inverse FFT is h[n] again.
   psk        psk.py's QPSK frame itself, the same divide, but only where the signal has
@@ -639,7 +639,7 @@ per symbol), and cutting the series short sets a floor.
     python3 equalize.py --sim --echo 1:0.67 --spacing 1  # one tap per symbol instead of two
     python3 equalize.py --sim --echo 1:0.67 -o eq.npz --no-plot
 
-The board runs awgcap.sv (5.01) and plays psk.py's QPSK: 512 symbols per loop (a 32-symbol
+The board runs awgcap.sv (5.03) and plays psk.py's QPSK: 512 symbols per loop (a 32-symbol
 unique word, then 480 of data) at 1.5625 Msymbol/s on 6.25 MHz, 16 ADC samples a symbol.
 
 THE CHANNEL is the record (the ADC's, or channel.py's model) plus echo.py's echo, plus
