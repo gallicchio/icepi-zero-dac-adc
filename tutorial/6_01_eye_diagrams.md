@@ -5,22 +5,31 @@
 
 ![Measured eye diagrams through the cable, at 1.56, 6.25 and 12.5 Mbaud: square pulses as recorded are wide open but ring; square pulses after their matched filter; root-raised-cosine pulses as recorded are only about 70 percent open; after their matched filter they are about 95 percent open at every rate](img/comms_eye.png)
 
-Send a stream of random bits, +1 V for a 1 and −1 V for a 0, and record what
-arrives. Now cut the record into pieces two symbols long, all starting at
-the same point in a symbol, and draw them on top of each other. That's an
-**eye diagram**, and it's how engineers judge a link at a glance. Where the
-receiver will decide, in the middle of each symbol, every trace should be
-near +1 or −1, leaving a clear gap, the "eye", between them. Anything that
-smears one symbol into the next (*intersymbol interference*) or adds noise
-closes the eye, and once it's shut the receiver can't tell 1s from 0s.
+An **eye diagram** is how engineers judge a link at a glance. To draw one:
 
-`eye.py` sends BPSK at baseband, with no carrier: just ±100 DAC codes, with
-the bits from GPS's G1 register ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)), through `awgcap.sv` and the cable, at
-five rates from 0.78 to 12.5 million symbols a second (*Mbaud*; the figure
-shows three of them). Each loop
-holds an odd number of symbols, so the ADC's 8192 samples per loop fall at
-8192 different places within a symbol: folding them at the symbol period
-draws the whole eye, even at two samples per symbol. It's the
+1. Send a stream of random bits, +1 V for a 1 and −1 V for a 0, and record
+   what arrives.
+2. Cut the record into pieces two symbols long, all starting at the same
+   point in a symbol.
+3. Draw them on top of each other.
+
+Where the receiver will decide, in the middle of each symbol, every trace
+should be near +1 or −1, leaving a clear gap between them: the "eye".
+Anything that smears one symbol into the next (*intersymbol interference*)
+or adds noise closes the eye. Once it's shut, the receiver can't tell 1s
+from 0s.
+
+`eye.py` sends BPSK at baseband, with no carrier, through `awgcap.sv` and
+the cable:
+
+* the symbols are just ±100 DAC codes, with the bits from GPS's G1 register
+  ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc));
+* it runs at five rates from 0.78 to 12.5 million symbols a second
+  (*Mbaud*); the figure shows three of them.
+
+Each loop holds an odd number of symbols, so the ADC's 8192 samples per
+loop fall at 8192 different places within a symbol. Folding them at the
+symbol period draws the whole eye, even at two samples per symbol. It's the
 equivalent-time trick of [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc), and of every sampling oscilloscope.
 
 <details>
@@ -228,6 +237,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Cable DAC OUT to ADC IN**, load `awgcap.sv` and run `eye.py`:
+
 ```console
 $ cd src/twoboard && make load-awgcap        # DAC OUT cabled to ADC IN
 $ cd ../comms && python3 eye.py
@@ -244,69 +255,82 @@ eye opening (1 = wide open, 0 or less = shut)
 
 Square pulses look ideal: the eye is wide open. You can see the cable ring
 after each edge, but it dies out long before the middle of the next symbol.
-The trouble is their spectrum. A square pulse's spectrum is a [sinc](https://en.wikipedia.org/wiki/Sinc_function),
-whose sidelobes fall off only as 1/*f*: a 1 Mbaud square-pulse signal still
-puts energy tens of megahertz away, on top of everyone else's channel. A
-radio licence gives you a band, and you must stay inside it.
+
+The trouble is their spectrum, a [sinc](https://en.wikipedia.org/wiki/Sinc_function) whose sidelobes fall off only as
+1/*f*. A 1 Mbaud square-pulse signal still puts energy tens of megahertz
+away, on top of everyone else's channel. A radio licence gives you a band,
+and you must stay inside it.
 
 ## Root-raised-cosine pulses, and the matched filter
 
 So modems shape each symbol as a smooth pulse whose spectrum stops at
-(1 + α) × half the symbol rate. The usual one is the
-**root-raised cosine** (RRC); α, the *roll-off*, is the extra bandwidth, here
-0.35, as digital satellite TV uses. The price is that one RRC pulse rings on
-into its neighbours: the RRC eye, as recorded, is only about 70% open.
+(1 + α) × half the symbol rate. The usual one is the **root-raised cosine**
+(RRC). α, the *roll-off*, is the extra bandwidth: here 0.35, as digital
+satellite TV uses. The price is that one RRC pulse rings on into its
+neighbours, so the RRC eye, as recorded, is only about 70% open.
 
 The receiver then filters with **the same pulse shape**. Two RRCs in a row
-make a *raised cosine*, a pulse that is exactly zero at every other symbol's
-centre, so the neighbours' ringing vanishes exactly where the receiver
-looks: the eye opens to 95%, at every rate. This is *Nyquist's criterion*
-for no intersymbol interference (learnSDR's [lesson 14](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson14.md)): the pulse may
-do what it likes between symbols, as long as it is zero at every other
-symbol's centre. The raised cosine is the standard pulse that does it with
-a spectrum that stops at (1 + α)*R*/2, and the square root is split between
-the two ends so that the receiver's half is also the matched filter
-([lesson 15](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson15.md); PySDR's [pulse-shaping chapter](https://pysdr.org/content/pulse_shaping.html) derives the same thing):
+make a *raised cosine*, a pulse that is exactly zero at every other
+symbol's centre. So the neighbours' ringing vanishes exactly where the
+receiver looks, and the eye opens to 95%, at every rate.
+
+This is *Nyquist's criterion* for no intersymbol interference (learnSDR's [lesson 14](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson14.md)):
+the pulse may do what it likes between symbols, as long as it is zero at
+every other symbol's centre.
+
+* The raised cosine is the standard pulse that does it with a spectrum that
+  stops at (1 + α)*R*/2.
+* The square root is split between the two ends, so that the receiver's
+  half is also the matched filter ([lesson 15](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson15.md); PySDR's [pulse-shaping chapter](https://pysdr.org/content/pulse_shaping.html)
+  derives the same thing):
 
 ![Computed: left, one symbol as a square pulse, a root-raised-cosine pulse and the raised cosine that two RRCs make, which is zero at every other symbol's centre; middle, their spectra, the square pulse's sidelobes falling only as 1/f while the RRC stops at (1 + alpha) R / 2; right, twelve raised-cosine symbols whose sum passes exactly through each symbol's value at its centre and wobbles everywhere else](img/comms_pulses.png)
 
 That second filter isn't just a tidy trick. Filtering with the pulse's own
 shape, the **matched filter**, gives the best [signal-to-noise ratio](https://en.wikipedia.org/wiki/Signal-to-noise_ratio) any
-linear filter can: it weights each moment by how much of the signal is
-there, and white noise is the same everywhere. Its output signal-to-noise
-ratio is 2*E*/*N*<sub>0</sub>, the pulse's energy against the noise density,
-whatever the pulse's shape. For square pulses the matched filter is a running
-average over one symbol ("integrate and dump"). Its eye closes a little at
-high rates (0.78 open at 12.5 Mbaud): the averaging is done on the ADC's
-samples, and a square edge has energy above 12.5 MHz that the ADC has
-already folded onto the signal, so the digital "integrate and dump" isn't
-quite the analog one. Sampled receivers want band-limited pulses.
+linear filter can:
 
-With noise almost as large as the signal (its rms 0.7 times the signal's, added at the
-transmitter), the raw eyes shut completely, and the matched filters open
-them again, as long as each symbol holds enough samples to average:
+* It weights each moment by how much of the signal is there, and white
+  noise is the same everywhere.
+* Its output signal-to-noise ratio is 2*E*/*N*<sub>0</sub>, the pulse's energy against
+  the noise density, whatever the pulse's shape.
+
+For square pulses the matched filter is a running average over one symbol
+("integrate and dump"). Its eye closes a little at high rates (0.78 open at
+12.5 Mbaud). The averaging is done on the ADC's samples, and a square edge
+has energy above 12.5 MHz that the ADC has already folded onto the signal,
+so the digital "integrate and dump" isn't quite the analog one. Sampled
+receivers want band-limited pulses.
+
+**Run it with `--noise 0.7`** to add noise almost as large as the signal (its
+rms 0.7 times the signal's, at the transmitter). The raw eyes shut
+completely, and the matched filters open them again, as long as each symbol
+holds enough samples to average:
 
 ![The same eye diagrams with noise 0.7 times the signal added at the transmitter, measured: as recorded, every eye is shut; after the matched filters, the eyes are 62 to 65 percent open at 1.56 Mbaud, about 22 percent at 6.25 Mbaud, and shut at 12.5 Mbaud](img/comms_eye_noise.png)
 
-At 1.56 Mbaud each symbol is 16 ADC samples and the filter averages the noise
-down by about √16; at 12.5 Mbaud there are only 2 samples per symbol to
-average, and the eye stays shut. This is the trade every link makes: fewer
-symbols per second, or more signal, or more errors.
+* At 1.56 Mbaud each symbol is 16 ADC samples, and the filter averages the
+  noise down by about √16.
+* At 12.5 Mbaud there are only 2 samples per symbol to average, and the eye
+  stays shut.
+
+This is the trade every link makes: fewer symbols per second, or more
+signal, or more errors.
 
 A slow channel closes the eye from the other side. Through a cable with a
-3 MHz low-pass in it (simulated here), each symbol's step takes longer than
-a symbol at the higher rates, and the levels pile up:
+3 MHz low-pass in it (simulated here, `--sim --corner 3e6`), each symbol's
+step takes longer than a symbol at the higher rates, and the levels pile up:
 
 ![Simulated: square pulses through a channel with a 3 MHz low-pass. The eye is wide open at 0.78 and 1.56 Mbaud, 97 and 92 percent open at 3.12 and 6.25 Mbaud, and 29 percent at 12.5 Mbaud, where each symbol's step hasn't finished before the next begins](img/comms_eye_slow.png)
 
 **Try this:**
 
-- Put [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)'s RC low-pass in the cable and measure the slow-channel eye for
-  real. At what corner frequency does each rate's eye close?
-- Four levels instead of two (±1 and ±3: *PAM-4*, as in Ethernet and some
-  DDR memory) carry two bits per symbol. Change the levels in `eye.py` and
-  watch three small eyes appear in place of one big one.
-- Change the roll-off α. Smaller α makes a narrower spectrum but longer
+- **Put [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)'s RC low-pass in the cable** and measure the slow-channel
+  eye for real. At what corner frequency does each rate's eye close?
+- **Send four levels instead of two** (±1 and ±3: *PAM-4*, as in Ethernet
+  and some DDR memory), two bits per symbol. Change the levels in `eye.py`
+  and watch three small eyes appear in place of one big one.
+- **Change the roll-off α.** Smaller α makes a narrower spectrum but longer
   ringing: what happens to the raw RRC eye, and to the matched one if the
   timing is a little off?
 

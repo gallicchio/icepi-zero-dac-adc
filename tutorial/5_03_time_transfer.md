@@ -388,6 +388,12 @@ Over two minutes, 571 exchanges:
 > loop (212.92 ns, measured through a 16.5 cm cable), with no clock offset at all, since both ends
 > share one clock. That's the number the round trip above was compared with.
 
+**With an oscilloscope teed in** (as in [5.08](5_08_xy_show.md#508-a-3d-show-on-an-oscilloscope)), it still works, a
+little worse. A second pair, each link teed to the scope through 1 m of BNC
+cable, measured a round trip of 437.6 ns with 0.67 ns rms of scatter. The
+open 1 m stub sends back an echo about 10 ns late, which most likely accounts
+for the extra delay.
+
 **Measuring a cable.** The round trip is the converters plus the cables,
 so a change of cables shows up in it directly. With two longer cables of
 unknown length in place of the 16.5 cm ones, 631 exchanges gave

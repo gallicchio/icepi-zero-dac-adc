@@ -5,44 +5,53 @@
 
 ![Measured, one board looped back: two users share 6.25 MHz under noise 10 dB stronger than both; correlating with each GPS code at every delay finds each user's peak, PRN 1 at 0.64 chips and PRN 2 at 301.06 chips, while PRN 3, not sent, finds nothing; each peak is a triangle two chips wide; and each user's bits come out again, 0 errors, with the noise](img/comms_cdma.png)
 
-Thirty-odd GPS satellites all transmit at the same frequency, 1575.42 MHz, at
-the same time, and their signals arrive 20 dB *below* the noise. A receiver
-pulls each one out, and measures its delay to a few nanoseconds. The trick is
-**spread spectrum**: each satellite multiplies its slow data (50 bits a
-second) by its own fast pseudo-random code, 1023 *chips* that repeat every
-millisecond. The code spreads the signal over a band twenty thousand times wider
-than the data needs (43 dB; the two "satellites" below manage 33 times,
-15 dB). A receiver that multiplies by the same code,
-lined up, un-spreads that one satellite, and turns everything else, other
-satellites and noise alike, into a weak hiss:
+Thirty-odd GPS satellites all transmit at the same frequency, 1575.42 MHz,
+at the same time, and their signals arrive 20 dB *below* the noise. A
+receiver pulls each one out, and measures its delay to a few nanoseconds.
+The trick is **spread spectrum**:
+
+* Each satellite multiplies its slow data (50 bits a second) by its own
+  fast pseudo-random code, 1023 *chips* that repeat every millisecond.
+* The code spreads the signal over a band twenty thousand times wider than
+  the data needs (43 dB). The two "satellites" below manage 33 times, 15 dB.
+* A receiver that multiplies by the same code, lined up, un-spreads that
+  one satellite. Everything else, other satellites and noise alike, becomes
+  a weak hiss:
 
 ![Computed: spreading as multiplication: slow data bits times a fast 31-chip code gives a wide signal 15 dB lower in spectral density; multiplying the received signal by the same code again gives the bits and their narrow spectrum back; multiplying by another user's code leaves only wide hiss. Spectra beside each row on one dB scale](img/comms_d_cdma.png)
 
-2G and 3G phones (IS-95, UMTS), Wi-Fi's
-slowest rates and Bluetooth's hopping are cousins; the end of this page says
-why the phones gave it up.
+2G and 3G phones (IS-95, UMTS), Wi-Fi's slowest rates and Bluetooth's
+hopping are cousins. [Why CDMA lost](#why-cdma-lost) says why the phones gave it up.
 
-The codes are *[Gold codes](https://en.wikipedia.org/wiki/Gold_code)*, the *[C/A code](https://en.wikipedia.org/wiki/GPS_signals#Coarse/Acquisition_code)*s (learnSDR's lessons [21](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson21.md) and [22](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson22.md) build them in GNU Radio): GPS's G1 register ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)) XOR a
+The codes are *[Gold codes](https://en.wikipedia.org/wiki/Gold_code)*, the *[C/A code](https://en.wikipedia.org/wiki/GPS_signals#Coarse/Acquisition_code)*s: GPS's G1 register ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)) XOR a
 second register, G2, tapped at two stages that are different for each
-satellite, its *PRN* number. Any two of them barely correlate at any delay,
-and each correlates with itself only when lined up.
+satellite, its *PRN* number. (learnSDR's lessons [21](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson21.md) and [22](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson22.md) build them in
+GNU Radio.)
+
+* Any two of them barely correlate, at any delay.
+* Each correlates with itself only when lined up.
 
 ## Two satellites in one cable
 
-`cdma.py` makes two "satellites", PRN 1 and PRN 2, on one 6.25 MHz carrier.
-Each sends 31 bits per loop (the first 8 are GPS's own preamble, 10001011),
-each bit 33 chips of its code: 3.12 million chips a second, a spreading gain
-of 33, 15.2 dB. PRN 2's code starts 300.4 chips later, as if its satellite
-were farther away.
+`cdma.py` makes two "satellites", PRN 1 and PRN 2, on one 6.25 MHz carrier:
 
-The receiver does what a GPS receiver does to *acquire* a satellite: mix down
-(the lock-in's cos and −sin again), then correlate with the code at every
-possible delay at once, with FFTs: *c*[*d*] = IFFT(FFT(*z*) · FFT(code)<sup>*</sup>),
-all 8192 delays in one line. The data flips the code's sign every 33
-chips, so it correlates bit by bit and adds up the powers. At the right delay
-there's a peak. Then, at that delay, each bit's correlation is the bit times
-the carrier's phase; squaring removes the bits (as learnSDR's [lesson 12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md)
-suggests) and leaves the phase, and the preamble settles which way round:
+* Each sends 31 bits per loop. The first 8 are GPS's own preamble, 10001011.
+* Each bit is 33 chips of its code: 3.12 million chips a second, a
+  spreading gain of 33, 15.2 dB.
+* PRN 2's code starts 300.4 chips later, as if its satellite were farther
+  away.
+
+The receiver does what a GPS receiver does to *acquire* a satellite:
+
+1. Mix down (the lock-in's cos and −sin again).
+2. Correlate with the code at every possible delay at once, with FFTs:
+   *c*[*d*] = IFFT(FFT(*z*) · FFT(code)<sup>*</sup>), all 8192 delays in one line.
+   The data flips the code's sign every 33 chips, so it correlates bit by
+   bit and adds up the powers. At the right delay there's a peak.
+3. At that delay, each bit's correlation is the bit times the carrier's
+   phase. Squaring removes the bits (as learnSDR's [lesson 12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md)
+   suggests) and leaves the phase, and the preamble settles which way
+   round:
 
 <details>
 <summary>The whole file: <code>cdma.py</code></summary>
@@ -294,6 +303,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Load `awgcap.sv` and cable DAC OUT to ADC IN**, then run `cdma.py`:
+
 ```console
 $ cd src/comms && python3 cdma.py        # awgcap.sv loaded, DAC OUT cabled to ADC IN
 chips at 3.1219 Mchip/s, 31 bits per loop per user at 94.6 kbit/s; spreading gain 15.2 dB
@@ -303,83 +314,98 @@ PRN 3: peak   2.8 dB above the rest, at   577.69 chips
 (user 2's delay minus user 1's: sent 300.40 chips, measured 300.42)
 ```
 
-PRN 3, which nobody sent, finds only the largest of its noise bumps. The two
-real ones each find their own signal, and the difference of their delays is
-right to 0.02 chip, 6 ns: that's how GPS measures distance. With noise
-10 dB stronger than both users together, added at the transmitter (`--snr
--10`), the peaks drop to 8 dB but both users' bits still come out with no
-errors.
+* **PRN 1 and PRN 2** each find their own signal, and the difference of
+  their delays is right to 0.02 chip, 6 ns: that's how GPS measures
+  distance.
+* **PRN 3**, which nobody sent, finds only the largest of its noise bumps.
 
-Two numbers to keep apart. The 15.2 dB is chips per bit, and it is also
-about the height of each acquisition peak above its floor: a bit's 33-chip
-correlation leaves every other delay at 1/33 of the peak's power. The Gold
-codes' famous −24 dB (65/1023) never shows up here, because no bit holds a
-whole code; GPS, with 20 codes per bit, gets both. And `--snr -10` is the
-signal against noise spread over the DAC's whole 0–25 MHz; after
-de-spreading, each bit stands about 10 dB above its noise (the scatter of
-the dots in the last panel), not 15.2 − 10 = 5 dB.
+**Run it with `--snr -10`** to add noise 10 dB stronger than both users
+together, at the transmitter. The peaks drop to 8 dB, but both users' bits
+still come out with no errors.
+
+Two numbers to keep apart:
+
+* **15.2 dB** is chips per bit, and also about the height of each
+  acquisition peak above its floor: a bit's 33-chip correlation leaves every
+  other delay at 1/33 of the peak's power. The Gold codes' famous −24 dB
+  (65/1023) never shows up here, because no bit holds a whole code. GPS,
+  with 20 codes per bit, gets both.
+* **`--snr -10`** is the signal against noise spread over the DAC's whole
+  0–25 MHz. After de-spreading, each bit stands about 10 dB above its noise
+  (the scatter of the dots in the last panel), not 15.2 − 10 = 5 dB.
 
 ## Why CDMA lost
 
 Spread spectrum did more than GPS. From 1995 (Qualcomm's IS-95) through 3G
-(CDMA2000, and UMTS's wideband CDMA at 3.84 million chips a second) every
+(CDMA2000, and UMTS's wideband CDMA at 3.84 million chips a second), every
 phone call in a cell was one of these users: every handset on the same
-1.25 MHz (IS-95) or 5 MHz (UMTS), each with its own code, pulled apart by correlation just as PRN 1 and
-PRN 2 were above. It was beautiful. Users were separated by mathematics
-instead of by frequency or time slots; a cell got quieter, not fuller, when
-users left; and the codes resolved the echoes of the city into separate
-fingers that a *rake receiver* could add back together. (The near–far
-problem of the "Try this" below was real: every handset's power was
-adjusted 800 times a second so that none of them shouted.)
+1.25 MHz (IS-95) or 5 MHz (UMTS), each with its own code, pulled apart by
+correlation just as PRN 1 and PRN 2 were above. It was beautiful:
 
-Then the channels got wider, and the beauty didn't scale. At 3.84 Mchip/s
-an echo 0.26 µs late, 80 m of extra path, is a separate finger; at ten times
-the chip rate it's ten fingers, each needing its own tracking loop, and the
-chips themselves start to smear into each other, so the receiver needs a
-chip-rate equalizer on top of the rake. Every user's code is only
-*approximately* orthogonal to every other's once they arrive at different
-delays (the [cross-correlation](https://en.wikipedia.org/wiki/Cross-correlation) is about 1/√N, not zero), so the cell's
-capacity was limited by its own users' interference, and the whole design
-got harder, not easier, with each generation. 4G threw it out. LTE, 5G
-and Wi-Fi all use the next section's ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s) OFDM, where the echoes are undone by one complex
-division per subcarrier, with no fingers at all, and the channels have grown
-from 5 MHz to hundreds of MHz without anyone minding. The GPS way survives where
-it's genuinely the right tool: many weak transmitters that must share one
-frequency and be *ranged* (GPS itself), hopping and hiding (Bluetooth,
-military links), and chirps that go very far on very little power
-([6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)'s LoRa).
+* Users were separated by mathematics instead of by frequency or time slots.
+* A cell got quieter, not fuller, when users left.
+* The codes resolved the echoes of the city into separate fingers that a
+  *rake receiver* could add back together.
+
+The near–far problem of the "Try this" below was real: every handset's
+power was adjusted 800 times a second so that none of them shouted.
+
+Then the channels got wider, and the beauty didn't scale:
+
+* At 3.84 Mchip/s an echo 0.26 µs late, 80 m of extra path, is a separate
+  finger. At ten times the chip rate it's ten fingers, each needing its own
+  tracking loop.
+* The chips themselves start to smear into each other, so the receiver
+  needs a chip-rate equalizer on top of the rake.
+* Every user's code is only *approximately* orthogonal to every other's
+  once they arrive at different delays (the [cross-correlation](https://en.wikipedia.org/wiki/Cross-correlation) is about
+  1/√N, not zero), so the cell's capacity was limited by its own users'
+  interference.
+
+The whole design got harder, not easier, with each generation, and 4G threw
+it out. LTE, 5G and Wi-Fi all use [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s OFDM, where the echoes are
+undone by one complex division per subcarrier, with no fingers at all, and
+the channels have grown from 5 MHz to hundreds of MHz without anyone
+minding. The GPS way survives where it's genuinely the right tool:
+
+* many weak transmitters that must share one frequency and be *ranged* (GPS
+  itself);
+* hopping and hiding (Bluetooth, military links);
+* chirps that go very far on very little power
+  ([6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)'s LoRa).
 
 <details>
 <summary><b>Detail:</b> why the peak is a triangle two chips wide</summary>
 
 A chip is a square pulse. Slide a code past itself and the overlap of each
-chip with itself falls linearly to zero over one chip on either side: the
-autocorrelation of one chip is a triangle two chips wide, and an [m-sequence](https://en.wikipedia.org/wiki/Maximum_length_sequence)'s
-other chips add up to almost nothing ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)). A GPS receiver tracks the peak
-with an *early* and a *late* correlator, half a chip either side: when the
-two are equal, it's centred, and the slope of the triangle's sides turns a
-timing error into a difference it can steer by. That's a delay-locked loop,
-the timing loop of [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier) in another form.
+chip with itself falls linearly to zero over one chip on either side. So
+the autocorrelation of one chip is a triangle two chips wide, and an [m-sequence](https://en.wikipedia.org/wiki/Maximum_length_sequence)'s
+other chips add up to almost nothing ([1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)).
+
+A GPS receiver tracks the peak with an *early* and a *late* correlator,
+half a chip either side. When the two are equal, it's centred, and the
+slope of the triangle's sides turns a timing error into a difference it
+can steer by. That's a delay-locked loop, the timing loop of [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier) in another form.
 
 </details>
 
 **Try this:**
 
-- The *near-far problem*: make one user much louder (`--power2 15`). At what
-  ratio does the quiet one disappear under the loud one's leftover
+- **Make one user much louder** (`--power2 15`), the *near-far problem*. At
+  what ratio does the quiet one disappear under the loud one's leftover
   correlation? (In simulation: fine at +12 dB, lost at +15.) Mobile phones
   control every handset's power for exactly this reason.
-- Bury both users deeper (`--snr -15`, `-20`): where does acquisition fail?
-  Then make each bit longer (fewer bits per loop, more chips per bit) and
-  watch the spreading gain buy it back.
-- Two boards: `python3 cdma.py /dev/ttyUSB0 /dev/ttyUSB1`. The delays now
-  include where B's record started in A's loop, but their *difference* is
-  still 300.4 chips.
-- learnSDR's [lesson 23](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson23.md) receives real GPS with an RTL-SDR at 2.046 MS/s,
-  exactly two samples per chip. With the RF parts of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio) and a GPS
-  antenna, this board's ADC could take the same samples at an IF; `cdma.py`'s
-  acquisition is already the right algorithm, with a search over Doppler
-  added.
+- **Bury both users deeper** (`--snr -15`, `-20`): where does acquisition
+  fail? Then make each bit longer (fewer bits per loop, more chips per bit)
+  and watch the spreading gain buy it back.
+- **Use two boards**: `python3 cdma.py /dev/ttyUSB0 /dev/ttyUSB1`. The
+  delays now include where B's record started in A's loop, but their
+  *difference* is still 300.4 chips.
+- **Read** learnSDR's [lesson 23](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson23.md): it receives real GPS with an RTL-SDR at
+  2.046 MS/s, exactly two samples per chip. With the RF parts of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
+  and a GPS antenna, this board's ADC could take the same samples at an IF.
+  `cdma.py`'s acquisition is already the right algorithm, with a search
+  over Doppler added.
 
 <!-- nav -->
 [← 6.05 The channel: sounding it, and equalizing it](6_05_the_channel.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.07 OFDM: the triumph of physics over math →](6_07_ofdm.md)

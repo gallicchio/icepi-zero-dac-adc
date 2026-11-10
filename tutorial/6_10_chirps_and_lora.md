@@ -792,7 +792,7 @@ the last section showed, every waveform has it.
 
 Radar engineers kill it with a window on the *receiver's* reference (a
 "mismatched filter"), not on the transmitted signal, which stays
-constant-envelope. `fig_compression.py` tries a Hamming window (one argument
+constant-envelope. [`fig_compression.py`](../dev/tools/comms/fig_compression.py) tries a Hamming window (one argument
 to `chirp.compress`), the dashed line:
 
 - sidelobes at −42.8 dB;
@@ -990,7 +990,7 @@ list):
 - 50 m adds the five-cell case;
 - 100 m would give ten, but the loss will eat it.
 
-`fig_radar.py PORT --stub 30` is written and waiting. The stub echo's
+[`fig_radar.py`](../dev/tools/comms/fig_radar.py) `PORT --stub 30` is written and waiting. The stub echo's
 amplitude (0.67 of the direct path from the T's 25 Ω junction, then −⅓ per
 further bounce) comes from a model of the T, whose source impedance is
 still to be measured.
@@ -1516,24 +1516,24 @@ a DAC you give nothing up.
 - `--kinds zc` and a root of 2 in the code: how does the double chirp's
   peak move under `--cfo 1`? (Twice as fast: the slope is *uB*/*T*.)
 - Find the SNR where the delay estimate first jumps off the bound, for each
-  waveform, with `fig_ranging.py --trials 30`. Why is the pulse's threshold
+  waveform, with [`fig_ranging.py`](../dev/tools/comms/fig_ranging.py) `--trials 30`. Why is the pulse's threshold
   30 dB higher?
 - Compare Hann, Blackman and no window against Hamming on the chirp's
   reference (the `window` argument of `chirp.compress`, as
-  `fig_compression.py` uses it): sidelobes, width and loss, as in
+  [`fig_compression.py`](../dev/tools/comms/fig_compression.py) uses it): sidelobes, width and loss, as in
   [1.06](1_06_fast_capture.md#106-fast-captures).
 - `lora.py --sf 10 --cfo 1`: one step is exactly one bin at SF 10. Then
   shorten the preamble to one chirp in the code and find the SNR where
   sync fails; real LoRa sends eight.
-- `fig_lora.py --records 200` fills in SF 10's low-error points.
+- [`fig_lora.py`](../dev/tools/comms/fig_lora.py) `--records 200` fills in SF 10's low-error points.
 - With a second board (`chirp.py PORT_A PORT_B`): the one-way delay now
   includes the two clocks' offset, which is
   [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)'s
   [time transfer](https://en.wikipedia.org/wiki/Time_transfer) with a
   chirp. Their 0.76 ppm frequency difference is 4.75 Hz at 6.25 MHz, a
   six-hundredth of a Doppler step. (`--cfo 1` fakes a crystal 488 ppm off.)
-- If you have the T and the stub: `fig_radar.py PORT --stub 30`, then
-  `--bw 2e6` and `--bw 12e6`. Then a 50 m stub, or the two in series.
+- If you have the T and the stub: [`fig_radar.py`](../dev/tools/comms/fig_radar.py) `PORT --stub 30`
+  (it runs two bandwidths itself). Then a 50 m stub, or the two in series.
 
 <!-- nav -->
 [← 6.09 Error-correcting codes](6_09_error_correcting_codes.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.11 The modem in the FPGA →](6_11_the_modem_in_the_fpga.md)
