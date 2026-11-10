@@ -5,8 +5,12 @@
 
 ![Four of this chapter's circuits: an RC low-pass, a quartz crystal, a quarter-wave stub, and an ultrasonic transmitter and receiver](img/exp_montage.png)
 
-**What you need first:** Chapter 1 through [1.08](1_08_lockin.md#108-a-lock-in-amplifier); each page names the instrument it uses.
-[4.01](4_01_a_faster_dac.md#401-a-faster-dac-plls) needs only [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis). Nothing here needs Chapters 2 or 3.
+**What you need first:**
+
+- [Chapter 1](1_00_circuits_from_code.md) through [1.08](1_08_lockin.md#108-a-lock-in-amplifier); each page names the instrument it uses
+- for [4.01](4_01_a_faster_dac.md#401-a-faster-dac-plls), only [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis)
+
+Nothing here needs Chapters 2 or 3.
 
 Chapters 1 to 3 built instruments out of logic: a function generator, a
 digitizer, a [lock-in amplifier](https://en.wikipedia.org/wiki/Lock-in_amplifier) that is also a [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)), and a spectrum
@@ -16,20 +20,23 @@ sound, data on a beam of light, and a feedback loop. First, [4.01](4_01_a_faster
 the DAC's speed with one of the FPGA's [phase-locked loops](https://en.wikipedia.org/wiki/Phase-locked_loop). Then come the
 experiments.
 
-Sections [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) to [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) are experiments for the instruments you've built. Each
-needs only the designs and scripts from Chapters 1–3, a few components, and
-SMA-to-pin adapters (or a small board with two SMA jacks) to connect them.
-Each comes with the numbers to expect, worked out in advance, so that a
-measurement that disagrees is itself a finding. Every circuit starts at the
-DAC, drawn as a source behind the ~50 Ω source resistance the module's output
-appears to have ([1.08](1_08_lockin.md#measuring-with-it)), and ends at the ADC's
-high-impedance input.
+Sections [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) to [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) are experiments for the instruments you've built. Each one:
+
+- needs only the designs and scripts from Chapters 1–3, a few components,
+  and SMA-to-pin adapters (or a small board with two SMA jacks) to connect
+  them;
+- comes with the numbers to expect, worked out in advance, so that a
+  measurement that disagrees is itself a finding;
+- starts at the DAC, drawn as a source behind the ~50 Ω source resistance
+  the module's output appears to have ([1.08](1_08_lockin.md#measuring-with-it)),
+  and ends at the ADC's high-impedance input.
 
 > [!NOTE]
-> The experiments of [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) to [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) are designed but **not yet tried**, apart
-> from timing the crystal against the laptop's clock in [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) and one transducer pair in
-> [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz), swept and used as a modem link without being moved: their numbers are
-> predictions, not measurements. If you do one, you're the first.
+> The experiments of [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) to [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) are designed but **not yet tried**: their numbers
+> are predictions, not measurements. The exceptions are timing the crystal
+> against the laptop's clock in [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference), and one transducer pair in
+> [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz), swept and used as a modem link without being moved. If you
+> do one, you're the first.
 
 | experiment | what you learn | parts | uses |
 | --- | --- | --- | --- |

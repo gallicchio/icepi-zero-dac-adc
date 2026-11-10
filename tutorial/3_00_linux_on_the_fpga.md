@@ -7,15 +7,19 @@
 
 <sub>Tux: Larry Ewing (lewing@isc.tamu.edu) and The GIMP; SVG by Simon Budig and Garrett LeSage, via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Tux.svg).</sub>
 
-**What you need first:** to *run* Linux, only [1.01](1_01_led_counter.md#101-a-counter-on-the-leds) (loading a bitstream) and [2.00](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga)'s
-tool install: [3.01](3_01_booting_linux.md#301-booting-linux) boots prebuilt images. To understand the driver ([3.02](3_02_a_driver.md#302-a-driver)), the registers
-of [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)–[2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral); to build it all yourself ([3.03](3_03_building_linux.md#303-building-linux-yourself)), Chapter 2.
+**What you need first:**
+
+- to *run* Linux, only [1.01](1_01_led_counter.md#101-a-counter-on-the-leds) (loading a bitstream) and [2.00](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga)'s
+  tool install: [3.01](3_01_booting_linux.md#301-booting-linux) boots prebuilt images
+- to understand the driver ([3.02](3_02_a_driver.md#302-a-driver)), the registers
+  of [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)–[2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)
+- to build it all yourself ([3.03](3_03_building_linux.md#303-building-linux-yourself)), [Chapter 2](2_00_a_processor_on_the_fpga.md)
 
 The top of the ladder is Linux on the FPGA, controlling the hardware the way
-Linux controls any hardware: through files. By the end of this chapter,
-you'll be able to set up a function generator under Linux, which is running on
-the FPGA itself, by typing the following commands (at the board's own shell,
-logged in as root: a `#` prompt means that throughout Chapter 3;
+Linux controls any hardware: through files. By the end of this chapter you'll
+set up a function generator from Linux, running on the FPGA itself, by typing
+these at the board's own shell (logged in as root: a `#` prompt means that
+throughout Chapter 3, and
 [0.01](0_01_how_to_use_this_tutorial.md#where-does-a-command-run) has the table of
 prompts):
 
@@ -60,12 +64,15 @@ peripherals around the Linux CPU, with the SD-card slot added.
 
 Building all of that takes a Linux computer the better part of an hour the
 first time, and about 5 GB of tools ([Buildroot](https://en.wikipedia.org/wiki/Buildroot), Java and Scala for the
-CPU). So the bitstream and the Linux
-files are in [`src/linux/prebuilt/`](../src/linux/prebuilt/), built exactly as
-[3.03](3_03_building_linux.md#303-building-linux-yourself) describes, and [3.01](3_01_booting_linux.md#301-booting-linux) and [3.02](3_02_a_driver.md#302-a-driver) use them. They need
-nothing beyond what you installed in [1.00](1_00_circuits_from_code.md#100-circuits-from-code) and [2.00](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga) (`openFPGALoader` and
-`litex_term`), so they work on every laptop. [3.03](3_03_building_linux.md#303-building-linux-yourself)
-shows how to build them on your laptop, on Linux or in WSL.
+CPU). So:
+
+- The bitstream and the Linux files are prebuilt in
+  [`src/linux/prebuilt/`](../src/linux/prebuilt/), exactly as
+  [3.03](3_03_building_linux.md#303-building-linux-yourself) describes, and [3.01](3_01_booting_linux.md#301-booting-linux) and [3.02](3_02_a_driver.md#302-a-driver) use them. They need
+  nothing beyond what you installed in [1.00](1_00_circuits_from_code.md#100-circuits-from-code) and [2.00](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga) (`openFPGALoader` and
+  `litex_term`), so they work on every laptop.
+- [3.03](3_03_building_linux.md#303-building-linux-yourself) shows how to build
+  them on your laptop, on Linux or in WSL.
 
 | piece | built by | time | prebuilt |
 | --- | --- | --- | --- |

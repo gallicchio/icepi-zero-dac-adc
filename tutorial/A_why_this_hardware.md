@@ -73,23 +73,30 @@ proprietary Xilinx tools:
 
 ## Open, all the way down: good for learning with an AI
 
-Every layer of this system can be read but one: the FPGA's toolchain
-(Yosys, nextpnr, and the ECP5's bitstream as Project Trellis documented
-it), the CPU (VexRiscv, in SpinalHDL), the SoC (LiteX), Linux, the
-Icepi Zero's and the adapter's KiCad files, the converters' datasheets,
-and every design and script in this repository. The one is the converter
-module's own schematic, which its maker doesn't publish
+Every layer of this system can be read but one:
+
+- the FPGA's toolchain (Yosys, nextpnr, and the ECP5's bitstream as
+  Project Trellis documented it)
+- the CPU (VexRiscv, in SpinalHDL)
+- the SoC (LiteX)
+- Linux
+- the Icepi Zero's and the adapter's KiCad files
+- the converters' datasheets
+- every design and script in this repository
+
+The exception is the converter module's own schematic, which its maker
+doesn't publish
 ([Appendix D](D_coming_soon.md#open-to-the-copper-hardware-an-ai-can-read)
 says why that matters).
 
 Being able to read it all matters more now that students learn with an
-AI assistant beside them. An assistant can only reason about what it can read. Here it can
-follow a symptom from a Python script through the Verilog to the pin and
-the datasheet, as [Appendix C](C_how_it_was_tested.md) describes it doing
-while this tutorial was written. It can also run the tools itself: synthesize,
-simulate, load a board and measure, then change the design and try again.
-A closed toolchain or a closed board puts a wall in that loop at the point
-where it gets interesting. [Appendix D](D_coming_soon.md)'s board is open to
+AI assistant beside them. An assistant can only reason about what it can
+read. Here it can follow a symptom from a Python script through the Verilog
+to the pin and the datasheet, as [Appendix C](C_how_it_was_tested.md)
+describes it doing while this tutorial was written. It can also run the
+tools itself: synthesize, simulate, load a board and measure, then change
+the design and try again. A closed toolchain or a closed board puts a wall
+in that loop at the point where it gets interesting. [Appendix D](D_coming_soon.md)'s board is open to
 the copper, which takes the loop one step further.
 
 <!-- nav -->

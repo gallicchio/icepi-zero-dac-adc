@@ -11,12 +11,15 @@ capacitor charging. The filter runs on every sample, 25 million times a
 second, and its output leaves a few hundred nanoseconds after its input
 arrived. No laptop could do that.
 
-Chapter 6 did its signal processing in Python on recorded data, except in
+[Chapter 6](6_00_digital_communications.md) did its signal processing in Python on recorded data, except in
 [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga), which moved
-a modem into the FPGA. This chapter makes that move its subject: filters you
-design in scipy and reload while they run, converters that trade speed for
-bits, and a feedback loop whose speed is set by its latency. *Gateware* is
-the word for what runs in the FPGA
+a modem into the FPGA. This chapter makes that move its subject:
+
+- filters you design in scipy and reload while they run,
+- converters that trade speed for bits,
+- a feedback loop whose speed is set by its latency.
+
+*Gateware* is the word for what runs in the FPGA
 ([6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
 explains it).
 
@@ -24,25 +27,24 @@ explains it).
 [1.08](1_08_lockin.md#108-a-lock-in-amplifier), and a way to put a known
 signal into ADC IN and look at DAC OUT. There are three:
 
-- **A function generator and an oscilloscope.** The author's are an
-  ADALM2000 (an "M2k": a USB instrument with two 100 MS/s 12-bit scope
-  channels and two arbitrary waveform outputs, about $200): its W1 output
-  into ADC IN, DAC OUT into its channel 1. Every script in this chapter
-  has an `--m2k` flag that drives the sweep and reads the scope through
-  libm2k, and this is how the filter pages were measured. Any generator
-  and scope will do by hand.
-- **A second board.** Load [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
-  lock-in into board B, cable B's DAC OUT to A's ADC IN and A's DAC OUT to
-  B's ADC IN, and B sweeps A: a vector [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)) made of two $40
-  boards. It is the same `lockin.py --sweep` that measured the cable, and
-  it works: B swept [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s 2 MHz low-pass in A to within 0.33 dB rms of
+- **A function generator and an oscilloscope.** Any generator and scope
+  will do by hand. The author's are an ADALM2000 (an "M2k": a USB
+  instrument with two 100 MS/s 12-bit scope channels and two arbitrary
+  waveform outputs, about $200): **its W1 output into ADC IN, DAC OUT into
+  its channel 1**. Every script in this chapter has an `--m2k` flag that
+  drives the sweep and reads the scope through libm2k, and this is how the
+  filter pages were measured.
+- **A second board.** **Load [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
+  lock-in into board B**, **cable B's DAC OUT to A's ADC IN and A's DAC OUT
+  to B's ADC IN**, and B sweeps A: a vector [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)) made of two $40
+  boards. It is the same `lockin.py --sweep` that measured the cable. B
+  swept [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s 2 MHz low-pass in A to within 0.33 dB rms of
   the design (the M2k: 0.25).
-- **One board, looped back.** The filter's input can come from a
-  stimulus made inside the FPGA, an impulse, a step, white noise or a
-  tone, instead of the ADC; the DAC plays the output, the cable brings it
-  back, and the ADC records it. The [impulse response](https://en.wikipedia.org/wiki/Impulse_response) *is* the filter,
-  and its FFT is the frequency response. This is the way that needs
-  nothing but the loopback cable.
+- **One board, looped back.** This needs nothing but the loopback cable.
+  The filter's input comes from a stimulus made inside the FPGA (an
+  impulse, a step, white noise or a tone) instead of the ADC; the DAC plays
+  the output, the cable brings it back, and the ADC records it. The [impulse response](https://en.wikipedia.org/wiki/Impulse_response) *is* the filter,
+  and its FFT is the frequency response.
 
 | section | what | runs where |
 | --- | --- | --- |
@@ -54,17 +56,20 @@ signal into ADC IN and look at DAC OUT. There are three:
 | [7.06](7_06_control.md#706-control-at-the-speed-of-the-cable) | a PID loop in gateware, and latency as the thing that limits every fast control loop, from drones to laser locks to qubits | gateware |
 | [7.07](7_07_bigger_ideas.md#707-bigger-ideas-nmr-mri-and-qubits) | NMR, MRI and qubits: what this board can do with the pulsed NMR spectrometer you may already own, and what the cheapest real MRI looks like | priced, not built |
 
-The code is in `src/dsp/`, built with the same `make` as Chapter 5's
-(`make filter.bit`, `make load-filter`), and the figures in
-`dev/tools/dsp/`. Where a page's numbers were measured with the M2k, the
-figure says so; where they were computed, it says that.
+The code is in `src/dsp/`, built with the same `make` as [Chapter 5](5_00_two_boards.md)'s
+(`make filter.bit`, `make load-filter`). Each figure says whether its
+numbers were measured with the M2k or computed.
 
 > [!TIP]
-> **Where things run.** `*.sv` in `src/dsp/` is gateware; `*.py` beside it
-> is laptop Python talking over the UART (`$`); [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s loaders run as C in
-> the firmware (`adda>`), as MicroPython on the board (`>>>`), and as
-> Python on the laptop through LiteX's bridge. The `--m2k` flags are laptop
-> Python talking to the ADALM2000 over its own USB cable.
+> **Where things run.**
+>
+> - `*.sv` in `src/dsp/` is gateware.
+> - `*.py` beside it is laptop Python talking over the UART (`$`).
+> - [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s loaders run as C in the firmware (`adda>`), as
+>   MicroPython on the board (`>>>`), and as Python on the laptop through
+>   LiteX's bridge.
+> - The `--m2k` flags are laptop Python talking to the ADALM2000 over its
+>   own USB cable.
 
 <!-- nav -->
 [← 6.13 More ideas, and a radar chapter](6_13_more_ideas.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.01 FIR filters: the sliding dot product →](7_01_fir_filters.md)

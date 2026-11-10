@@ -5,14 +5,16 @@
 
 ![Above, this chapter's link: psk.py builds a waveform, the DAC plays it on a 6.25 MHz carrier, a coax carries it to the ADC, and psk.py finds the clock, the carrier and the bits. Below, the same link through the air: at each end a mixer with a local oscillator (an ADF4351 synthesizer), a band filter and an amplifier move the 6.25 MHz signal to and from 915 MHz between two antennas; the FPGA, the Python and the algorithms stay the same](img/hdr.png)
 
-Your phone, your Wi-Fi router and a GPS receiver do the same few things.
-They put bits on a carrier and shape them to stay in their band. They find
-the transmitter's clock and carrier, which nobody tells them. They undo
-what the channel did, and correct the bits it still got wrong. This
-chapter builds each of these with one board, a cable and Python on the
-laptop, then puts the whole modem into the FPGA
-([6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga)) and works out
-how far a text message would carry through the air
+Your phone, your Wi-Fi router and a GPS receiver do the same few things:
+
+- put bits on a carrier and shape them to stay in their band;
+- find the transmitter's clock and carrier, which nobody tells them;
+- undo what the channel did, and correct the bits it still got wrong.
+
+This chapter builds each of these with one board, a cable and Python on
+the laptop. Then it puts the whole modem into the FPGA
+([6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga)) and
+works out how far a text message would carry through the air
 ([6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)).
 
 The subtitle is a joke at software-defined radio's expense. The honest name
@@ -24,23 +26,39 @@ processor in the loop.
 
 **Gateware** is what you load into an FPGA: the configuration that wires
 its look-up tables and flip-flops into the circuit you described in
-SystemVerilog. It is not software, which runs on a processor (Chapter 2's
-VexRiscv, or the laptop). It is not firmware, which is software living in
-a microcontroller's flash (Chapter 2's `adda.c` is firmware). And it is not
-quite hardware, which is silicon and solder you cannot change. It is a
-description of hardware that becomes hardware at the flick of a
-bitstream. The people who build open FPGA designs for a living (the LiteX
-and Migen projects that Chapter 2 uses, M-Labs' ARTIQ control system for
-quantum experiments, the open SDR boards that ship "gateware" images) use
-the word to keep the three layers apart. When a page here says something
-runs "in gateware", the logic in the FPGA is doing it, one clock at a time.
+SystemVerilog. It is not:
+
+- software, which runs on a processor
+  ([Chapter 2](2_00_a_processor_on_the_fpga.md)'s VexRiscv, or the
+  laptop);
+- firmware, which is software living in a microcontroller's flash
+  (Chapter 2's `adda.c` is firmware);
+- quite hardware, which is silicon and solder you cannot change.
+
+It is a description of hardware that becomes hardware at the flick of a
+bitstream. The people who build open FPGA designs for a living use the
+word to keep the three layers apart: the LiteX and Migen projects that
+Chapter 2 uses, M-Labs' ARTIQ control system for quantum experiments,
+the open SDR boards that ship "gateware" images. When a page here says
+something runs "in gateware", the logic in the FPGA is doing it, one
+clock at a time.
 
 </details>
 
-**What you need first:** Chapter 1 through [1.08](1_08_lockin.md#108-a-lock-in-amplifier) (the loopback and the lock-in's
-cos/−sin are used on every page), and [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)'s FFT for [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math). One board is enough.
-The board runs [5.01](5_01_two_clocks.md#501-two-clocks)'s `awgcap.sv`, which you can load without reading Chapter 5
-(below). Nothing here needs Chapters 2, 3 or 4; [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga) borrows [5.05](5_05_fsk_modem.md#505-a-modem)'s modem as a pattern.
+**What you need first:**
+
+- [Chapter 1](1_00_circuits_from_code.md) through
+  [1.08](1_08_lockin.md#108-a-lock-in-amplifier): the loopback and the
+  lock-in's cos/−sin are used on every page.
+- [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)'s FFT, for
+  [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math).
+- One board. It runs [5.01](5_01_two_clocks.md#501-two-clocks)'s
+  `awgcap.sv`, which you can load without reading
+  [Chapter 5](5_00_two_boards.md) (below).
+
+Nothing here needs Chapters 2, 3 or 4;
+[6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga) borrows
+[5.05](5_05_fsk_modem.md#505-a-modem)'s modem as a pattern.
 
 > This chapter is a companion to **[learnSDR](https://github.com/gallicchio/learnSDR)**, a video course in
 > software-defined radio with GNU Radio, an RTL-SDR and a Pluto. learnSDR
@@ -68,12 +86,32 @@ The board runs [5.01](5_01_two_clocks.md#501-two-clocks)'s `awgcap.sv`, which yo
 <details>
 <summary>learnSDR's other lessons, which earlier chapters already did</summary>
 
-Earlier chapters already did learnSDR's other topics: complex numbers and
-what an SDR multiplies by (the lock-in, [1.08](1_08_lockin.md#108-a-lock-in-amplifier); lessons
-[3a](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson03a.md), [3b](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson03b.md), [4](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson04.md)), sampling and [aliasing](https://en.wikipedia.org/wiki/Aliasing) ([1.06](1_06_fast_capture.md#106-fast-captures); lesson [6](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson06.md)), the FFT and
-windows ([1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer); lesson [7](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson07.md)), two clocks that disagree ([5.01](5_01_two_clocks.md#501-two-clocks); lesson [9](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson09.md)), FSK
-([5.05](5_05_fsk_modem.md#505-a-modem); lesson [24](https://github.com/gallicchio/learnSDR/blob/main/lesson24_FSKhardware.grc)) and noise ([5.06](5_06_modem_and_noise.md#506-the-modem-against-noise); lesson [32](https://github.com/gallicchio/learnSDR/blob/main/lesson32b_noiseRXsim.grc)). On-off keying (lessons
-[5](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson05.md), [10](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson10.md), [11](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson11.md)) is BPSK with one of its two points at zero; it needs no section.
+Earlier chapters already did learnSDR's other topics:
+
+- complex numbers and what an SDR multiplies by: the lock-in,
+  [1.08](1_08_lockin.md#108-a-lock-in-amplifier); lessons
+  [3a](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson03a.md),
+  [3b](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson03b.md),
+  [4](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson04.md);
+- sampling and [aliasing](https://en.wikipedia.org/wiki/Aliasing):
+  [1.06](1_06_fast_capture.md#106-fast-captures); lesson
+  [6](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson06.md);
+- the FFT and windows:
+  [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer); lesson
+  [7](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson07.md);
+- two clocks that disagree: [5.01](5_01_two_clocks.md#501-two-clocks);
+  lesson [9](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson09.md);
+- FSK: [5.05](5_05_fsk_modem.md#505-a-modem); lesson
+  [24](https://github.com/gallicchio/learnSDR/blob/main/lesson24_FSKhardware.grc);
+- noise: [5.06](5_06_modem_and_noise.md#506-the-modem-against-noise);
+  lesson
+  [32](https://github.com/gallicchio/learnSDR/blob/main/lesson32b_noiseRXsim.grc).
+
+On-off keying (lessons
+[5](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson05.md),
+[10](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson10.md),
+[11](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson11.md))
+is BPSK with one of its two points at zero; it needs no section.
 
 </details>
 
@@ -118,18 +156,27 @@ signal in frequency doesn't change its shape, so the algorithms in this
 chapter don't care whether a cable or 3 m of air and two mixers sit between
 the DAC and the ADC.
 
-The carrier is 6.25 MHz: a quarter of the ADC's sampling rate, in the
-middle of its band, away from the converters' offsets near 0 Hz and 12.5 MHz, where the DAC's image (at 50 MHz minus the signal, which the ADC folds back onto it) is strongest. At a quarter of the sampling rate, mixing down
-is multiplying by 1, −*j*, −1, *j*, over and over.
+The carrier is 6.25 MHz, a quarter of the ADC's sampling rate:
+
+- it is in the middle of the ADC's band;
+- it is away from the converters' offsets near 0 Hz, and from 12.5 MHz,
+  where the DAC's image (at 50 MHz minus the signal, which the ADC folds
+  back onto it) is strongest;
+- at a quarter of the sampling rate, mixing down is multiplying by 1,
+  −*j*, −1, *j*, over and over.
 
 ## What runs where
 
-The FPGA's job is small: [5.01](5_01_two_clocks.md#501-two-clocks)'s `awgcap.sv` plays a 16384-sample waveform
-from the laptop over and over at 50 MS/s, and records 16384 samples at
-25 MS/s. Everything else, until [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga), is Python *on the laptop*, in
-`src/comms/`, talking to the board over the serial port, so every command
-in this chapter starts with the laptop's `$` ([0.01](0_01_how_to_use_this_tutorial.md#where-does-a-command-run) has the whole table of
-prompts):
+The FPGA's job is small: [5.01](5_01_two_clocks.md#501-two-clocks)'s
+`awgcap.sv` plays a 16384-sample waveform from the laptop over and over
+at 50 MS/s, and records 16384 samples at 25 MS/s. Everything else, until
+[6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga), is
+Python *on the laptop*, in `src/comms/`, talking to the board over the
+serial port. So every command in this chapter starts with the laptop's
+`$` ([0.01](0_01_how_to_use_this_tutorial.md#where-does-a-command-run)
+has the whole table of prompts).
+
+**Load `awgcap.sv`**, then run a modem with one board, two, or none:
 
 ```console
 $ cd src/twoboard && make load-awgcap        # one board, DAC OUT cabled to ADC IN
@@ -141,12 +188,13 @@ $ python3 psk.py --sim                       # no board: channel.py's model of o
 
 ![What runs where: the laptop (its shell's dollar prompt, CPython with numpy, litex_term, litex_server), the board under bare metal or LiteX (no prompt for awgcap.sv, the BIOS's litex prompt, the firmware's adda prompt), the same board under Linux (root's hash prompt, MicroPython's three chevrons), and a second board (B hash), with the USB and coax cables between them](img/comms_d_where.png)
 
-The model, `channel.py`, is the loopback of [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) in a function: 8-bit codes
-held for 20 ns each, a gentle low-pass, the measured delay, ADC =
-0.776 × DAC + 27.5, noise, and 8-bit codes again. It's close to the cable, but
-smoother: the real cable rings after a step, and its gain wanders by ±8% across
-the band. Every figure in this chapter says in its corner whether it is
-measured or simulated.
+The model, `channel.py`, is the loopback of
+[1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)
+in a function: 8-bit codes held for 20 ns each, a gentle low-pass, the
+measured delay, ADC = 0.776 × DAC + 27.5, noise, and 8-bit codes again.
+It's close to the cable, but smoother: the real cable rings after a
+step, and its gain wanders by ±8% across the band. Every figure in this
+chapter says in its corner whether it is measured or simulated.
 
 ![Left: a DAC step through 1 m of cable, measured in 1.07 and modelled: the same delay, but the model doesn't ring. Right: the gain against frequency, measured by [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s sounding and modelled: the model is flatter than the cable by about 8 percent](img/comms_channel.png)
 
@@ -325,12 +373,17 @@ convincing, in the order you'd want them:
 
 ## Going on the air
 
-To make this a radio, put a frequency converter at each end: a mixer with a
-local oscillator, a filter for the band, an amplifier, an antenna. The parts
-are cheap and common, because they're what radio amateurs and drone
-builders use. None of them was tried with this board, so treat this as a
-shopping list to check, not a recipe. Prices are what the linked pages said
-in October 2026:
+To make this a radio, put a frequency converter at each end:
+
+- a mixer with a local oscillator;
+- a filter for the band;
+- an amplifier;
+- an antenna.
+
+The parts are cheap and common, because they're what radio amateurs and
+drone builders use. **None of them was tried with this board:** treat
+this as a shopping list to check, not a recipe. Prices are what the
+linked pages said in October 2026:
 
 <details>
 <summary>The shopping list, with links and prices</summary>
@@ -348,11 +401,16 @@ in October 2026:
 
 </details>
 
-One catch: a mixer makes *both* the sum and the difference, LO ± 6.25 MHz,
-only 12.5 MHz apart. A filter for the whole 902–928 MHz band passes both. Put
-the LO so that one of them falls outside the band and gets filtered away, or
-use a higher intermediate frequency, or an *IQ mixer*, which cancels the
-unwanted one. The receiver has the mirror of the same problem: signals at
+One catch: a mixer makes *both* the sum and the difference,
+LO ± 6.25 MHz, only 12.5 MHz apart. A filter for the whole 902–928 MHz
+band passes both. Three ways out:
+
+- put the LO so that one of them falls outside the band and gets
+  filtered away;
+- use a higher intermediate frequency;
+- use an *IQ mixer*, which cancels the unwanted one.
+
+The receiver has the mirror of the same problem: signals at
 LO + 6.25 MHz and LO − 6.25 MHz both land on the same 6.25 MHz, so it
 needs the same care.
 

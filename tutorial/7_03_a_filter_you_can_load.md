@@ -1012,8 +1012,8 @@ cable returns it, and `C` records it aligned to the stimulus:
 **Known problem.** This mode passes against the cable model, but on the
 board, with the cable back, the impulse mode returns the low-pass's taps
 to the ADC's one-code resolution but one tap late, and the step and
-noise modes return nothing. Its alignment code is wrong, and it is the
-first "Try this". The sweeps above are the measurements this chapter
+noise modes return nothing. Its alignment code is wrong, and fixing it is
+a "Try this" below. The sweeps above are the measurements this chapter
 stands on.
 
 ## What it costs

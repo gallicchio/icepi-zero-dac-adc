@@ -47,7 +47,7 @@ record with what it sent at every lag:
 
 ![Ten chips of each waveform, held as played (rectangles) and filtered as a digital up-converter would make them (smooth, dashed); and the recorded spectra of all five, held and filtered, each drawn relative to its own in-band level so that the shapes compare: held, the four chipped waveforms are the same sinc with tails out to the band's edge, and the chirp, computed smooth rather than chipped, a flat band with skirts; filtered at the DAC, all five are one flat band B wide. Each panel's corner prints what the same peak swing at the DAC leaves of each waveform's power, relative to the held chirp: within 0.7 dB of it held, and 2.6 to 8 dB below it filtered, the single pulse 30 dB down either way](img/comms_waves.png)
 
-"Play a waveform" hides two choices, and this page always says which it
+"Play a waveform" hides three choices, and this page always says which it
 made:
 
 - **How the chips are shaped.**
@@ -778,7 +778,7 @@ only three ways:
 - the PAPR: 2.6 dB for ZC, 5.0 for the chirp (all of it at the wrap;
   unfiltered, it is 0 dB with skirts at −30), 7.7 and 8.0 for the codes, 30
   for the pulse;
-- what a frequency offset does (the next section);
+- what a frequency offset does ([Doppler](#doppler-a-bug-and-a-feature), below);
 - how many different ones can share a channel and ignore each other (ZC
   roots and Gold codes, the previous section).
 

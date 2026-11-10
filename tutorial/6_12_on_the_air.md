@@ -76,7 +76,7 @@ alphabet. It makes two honest simplifications:
   phase-continuous, which is most of the point.
 
 The real code's generator matrix is in WSJT-X's source, and swapping it in
-is the last "Try this".
+is a "Try this" at the end (**Real FT8**).
 
 <details>
 <summary>The whole file: <code>ft8.py</code></summary>
