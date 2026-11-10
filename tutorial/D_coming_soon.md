@@ -177,11 +177,11 @@ the day.  The boards, their generator, the handbooks and the night's record are 
 | board | tiles | jacks | layers | parts per board |
 | --- | --- | --- | --- | --- |
 | AMOD-P, passive | 13 | 27 | 2 | $17.07 |
-| AMOD-A, active, USB-C powered | 12 | 21 | 4 | $50.40 |
-| AMOD-N, the second passive board (Prompt 17) | 11 | 28 | 4 | $43.82 |
-| AMOD-C, conversion: power and data (Prompt 19) | 12 | 26 | 4 | $43.57 |
-| AMOD-M, motors and actuators (Prompt 19) | 11 | 18 | 4 | $35.98 |
-| AMOD-B, a brushless gimbal motor (Prompt 19) | 12 | 13 | 4 | $42.11 |
+| AMOD-A, active, USB-C powered | 12 | 21 | 4 | $49.73 |
+| AMOD-N, the second passive board (Prompt 17) | 11 | 28 | 4 | $43.91 |
+| AMOD-C, conversion: power and data (Prompt 19) | 12 | 26 | 4 | $43.93 |
+| AMOD-M, motors and actuators (Prompt 19) | 11 | 18 | 4 | $36.49 |
+| AMOD-B, a brushless gimbal motor (Prompt 19) | 12 | 13 | 4 | $42.45 |
 | RF-MOD, 915 MHz and 2.4 GHz | 10 | 24 | 4 | $66.51 |
 | Icepi Zero 2x12 adapter with a Pmod | | | 4 | three hand-soldered headers |
 
