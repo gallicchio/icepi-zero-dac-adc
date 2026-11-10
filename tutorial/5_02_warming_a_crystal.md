@@ -15,18 +15,19 @@ the time back home to a few seconds after weeks at sea, and a clock's rate
 changed with the weather. John Harrison's marine chronometer H4 (1761)
 solved it, in part with a bimetallic strip that corrected its balance spring
 for temperature ([Harrison](https://en.wikipedia.org/wiki/John_Harrison)). Quartz has the same
-problem, solved the same two ways: a wristwatch's 32,768 Hz crystal is cut so
-that its frequency is flattest near the temperature of a wrist, and a
-laboratory reference keeps its crystal in a small oven, held at one
-temperature
-([OCXO](https://en.wikipedia.org/wiki/Crystal_oven)).
+problem, solved the same two ways:
+
+- a wristwatch's 32,768 Hz crystal is cut so that its frequency is flattest
+  near the temperature of a wrist;
+- a laboratory reference keeps its crystal in a small oven, held at one
+  temperature ([OCXO](https://en.wikipedia.org/wiki/Crystal_oven)).
 
 > [!TIP]
 > **One board?** The heater works on any board, but you need something to
-> compare its crystal with. Without a second board, use the laptop's clock, as
-> [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) does with
-> `tick.v`: `warmup.sv` already sends a line every 2<sup>23</sup> of its own
-> clocks (0.168 s), so time-stamp those arrivals and fit ten minutes at a time.
+> compare its crystal with. Without a second board, **use the laptop's
+> clock**, as [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference) does with
+> `tick.v`. `warmup.sv` already sends a line every 2<sup>23</sup> of its own
+> clocks (0.168 s): time-stamp those arrivals and fit ten minutes at a time.
 > That is good to about a ppm, enough to see the 3 ppm drop below. (Not tried.)
 
 `warmup.sv` keeps playing a 1 MHz sine for the other board's lock-in to follow,
@@ -36,12 +37,13 @@ and adds two things:
   each scrambling its neighbours. Every flip-flop that toggles charges and
   discharges a little capacitance, and that energy ends up as heat. Send "H"
   to switch it on and "C" to switch it off.
-- **A thermometer.** The ECP5 has one built in, the *DTR* (digital temperature
-  readout). A pulse on `STARTPULSE` starts a reading, and `DTROUT` returns a
-  6-bit code. Lattice's table (FPGA-TN-02210) gives 1 °C steps only from 21 to
-  29 °C and from 80 to 89 °C. In between it jumps: code 29 is 29 °C, 30 is 40,
-  31 is 50, 32 is 60. So it's coarse, but it's on the die. For safety, the
-  heater switches itself off at code 33 (70 °C).
+- **A thermometer.** The ECP5 has one built in, the *DTR* (digital
+  temperature readout). A pulse on `STARTPULSE` starts a reading, and
+  `DTROUT` returns a 6-bit code. It's coarse, but it's on the die:
+  - Lattice's table (FPGA-TN-02210) gives 1 °C steps only from 21 to 29 °C
+    and from 80 to 89 °C.
+  - In between it jumps: code 29 is 29 °C, 30 is 40, 31 is 50, 32 is 60.
+  - For safety, the heater switches itself off at code 33 (70 °C).
 
 <details>
 <summary>The whole file: <code>warmup.sv</code></summary>
@@ -229,6 +231,10 @@ np.savez(a.out, lockin=np.array(L), heater=np.array(H), on=a.on, off=a.off)
 
 </details>
 
+**Build and load the two designs** (the heater into board A, the lock-in
+into board B), then **run the experiment**: 45 minutes, with the heater on
+from minute 10 to minute 25:
+
 ```bash
 make warmup.bit
 openFPGALoader -b icepi-zero --usb-serial-num DP0525BU warmup.bit
@@ -258,33 +264,42 @@ pieces:
 <summary><b>Detail:</b> which crystal moved?</summary>
 
 The frequency did not return to where it started, but settled 1.4 ppm lower.
-Which crystal moved? The laptop's clock can referee, roughly. B's lock-in sends a
-result every 2<sup>20</sup> of B's own samples, so the times they arrive at the laptop
-(`warmup_run.py` saves them) measure B's crystal against the laptop's clock. [NTP](https://en.wikipedia.org/wiki/Network_Time_Protocol)
-keeps that clock right only to about a ppm over ten minutes ([5.01](5_01_two_clocks.md#501-two-clocks)), but that
-is enough here. Against it, B stayed within 0.3 ppm of where it started,
-while A fell by 2.6 ppm and came back by only 0.8. So it was A that moved. Whether A's lasting offset is the
-crystal's own hysteresis or its board still cooling, one run can't tell.
+Which crystal moved?
+
+The laptop's clock can referee, roughly. B's lock-in sends a result every
+2<sup>20</sup> of B's own samples, so the times they arrive at the laptop
+(`warmup_run.py` saves them) measure B's crystal against the laptop's clock.
+[NTP](https://en.wikipedia.org/wiki/Network_Time_Protocol) keeps that clock right only to about a ppm over ten minutes
+([5.01](5_01_two_clocks.md#501-two-clocks)), but that is enough here. Against it:
+
+- B stayed within 0.3 ppm of where it started;
+- A fell by 2.6 ppm and came back by only 0.8.
+
+So it was A that moved. Whether A's lasting offset is the crystal's own
+hysteresis or its board still cooling, one run can't tell.
 
 </details>
 
 So a degree or two of warming, from a hand, a draught, or the module's own
 power, moves these crystals by about a ppm. That is the likely reason the
 boards measured −3.30 and −1.70 ppm in the afternoon and +0.06 and −0.65 ppm
-in the evening, with their modules fitted and running. Laboratory oscillators fix this by keeping the
-crystal at a constant temperature in an *oven* (an OCXO), or by measuring its
-temperature and correcting for it (a TCXO).
+in the evening, with their modules fitted and running.
+
+Laboratory oscillators fix this in one of two ways:
+
+- keep the crystal at a constant temperature in an *oven* (an OCXO);
+- measure its temperature and correct for it (a TCXO).
 
 **Try this:**
 
-- Fit the warming curve with two exponentials. What are the two time
+- **Fit the warming curve** with two exponentials. What are the two time
   constants, and what are the two parts of the board they belong to?
-- Make a TCXO. Run the heater at several duty cycles, fit frequency against
-  the DTR code, and let the laptop correct the lock-in's reference for the
-  measured temperature. How much of the wander is left?
-- Use the heater as an oven. Switch it on and off to hold the DTR code
-  constant (a thermostat in SystemVerilog), and see how much steadier the crystal
-  becomes.
+- **Make a TCXO.** Run the heater at several duty cycles, fit frequency
+  against the DTR code, and let the laptop correct the lock-in's reference
+  for the measured temperature. How much of the wander is left?
+- **Use the heater as an oven.** Switch it on and off to hold the DTR code
+  constant (a thermostat in SystemVerilog), and see how much steadier the
+  crystal becomes.
 
 <!-- nav -->
 [← 5.01 Two clocks](5_01_two_clocks.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.03 What time is it over there? →](5_03_time_transfer.md)

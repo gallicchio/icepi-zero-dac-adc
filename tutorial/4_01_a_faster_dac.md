@@ -431,7 +431,7 @@ $ python3 lockin.py --fclk 100e6 -f 40e6
 **How can an ADC at 25 MS/s measure 40 MHz?** It aliases 40 MHz down to
 10 MHz, but the reference table is looked up at exactly the same instants, so
 the reference aliases identically and still matches. (This is [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
-first Try-this, taken further.)
+"Go above Nyquist", taken further.)
 
 Here are sweeps through the 16.5 cm cable at both DAC rates:
 

@@ -6,16 +6,18 @@
 ![Board A's DAC drives a tuned loop, board B's ADC listens with another, a metre away; an estimate of the signal at B against distance](img/radio_intro.png)
 
 [5.05](5_05_fsk_modem.md#505-a-modem)'s modem sends text through a cable. Take the cable away, put a loop of
-wire on each end, and it's a radio. Two things have to change. The receiver
-must hear signals hundreds of times weaker, so it needs a much narrower
-filter. And the transmitter has to stay on one small patch of spectrum, both
-so the narrow receiver can find it and because radio is regulated.
+wire on each end, and it's a radio. Two things have to change:
+
+- **The receiver** must hear signals hundreds of times weaker, so it needs
+  a much narrower filter.
+- **The transmitter** has to stay on one small patch of spectrum, both so
+  the narrow receiver can find it and because radio is regulated.
 
 > [!NOTE]
-> `radio.sv` was tested through a cable on one board, down to a signal
-> smaller than one ADC code (below). **The antennas haven't been built yet**:
-> the loops, the range and the field-strength estimates on this page are
-> calculations. If you build them, you're the first.
+> **The antennas haven't been built yet**: the loops, the range and the
+> field-strength estimates on this page are calculations. If you build them,
+> you're the first. `radio.sv` itself was tested through a cable on one
+> board, down to a signal smaller than one ADC code (below).
 
 ## A narrower modem
 
@@ -164,7 +166,8 @@ endmodule
 
 ## Try it with a cable first
 
-On one board, looped back, through the 101.5 cm cable:
+**Loop one board back** through the 101.5 cm cable, load `radio.sv` and
+count the errors:
 
 ```console
 $ cd src/twoboard
@@ -173,9 +176,12 @@ $ python3 modem_ber.py /dev/ttyUSB0 --bytes 10000 --baud 9600
 10000 bytes sent, 10000 received; 0 bit errors in 80000 bits: BER 0.00e+00
 ```
 
-`modem_ber.py` is [5.06](5_06_modem_and_noise.md#506-the-modem-against-noise)'s error counter. With the full transmitter (`AMP` =
-100 DAC codes), there were no errors in 80,000 bits at 4800, 9600 and 19,200
-baud. Then the same test with the transmitter turned down, at 9600 baud:
+`modem_ber.py` is [5.06](5_06_modem_and_noise.md#506-the-modem-against-noise)'s error counter. With the full transmitter
+(`AMP` = 100 DAC codes), there were no errors in 80,000 bits at 4800, 9600
+and 19,200 baud.
+
+**Turn the transmitter down** (load the builds in the table) and repeat at
+9600 baud:
 
 | transmitter | built with | at the ADC | errors in 80,000 bits |
 | --- | --- | --- | --- |
@@ -223,18 +229,24 @@ IN:
 
 <img src="img/stack_radio.png" alt="Seen from above: board A's DAC OUT, the right SMA, drives the transmitting loop; board B's ADC IN, the left SMA, gets the receiving loop" width="800">
 
-**Tune them with the lock-in.** Put both loops on one board, the
-transmitting one on its DAC and the receiving one on its ADC, 20 cm apart and
-facing each other. Load [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s `lockin.sv` and sweep across the band:
-`python3 lockin.py --sweep 6e6 7.5e6 -n 60 --linear`. Adjust one trimmer, then
-the other, until the peak sits at 6.78 MHz. You've built a [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical));
-this is what it's for.
+**Tune them with the lock-in:**
 
-**What to expect.** Loop A's 61 mA, at 1 m on the common axis, makes a field
-that induces about 2.6 mV in loop B, which the receiving loop's *Q* of 30
-turns into about 80 mV: two ADC codes, enough (the figure at the top). At
-2 m, a quarter of a code: probably too little. Turn one loop by 90° and the
-coupling vanishes: the field lines no longer thread it.
+1. Put both loops on one board, the transmitting one on its DAC and the
+   receiving one on its ADC, 20 cm apart and facing each other.
+2. Load [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s `lockin.sv` and sweep across the band:
+   `python3 lockin.py --sweep 6e6 7.5e6 -n 60 --linear`.
+3. Adjust one trimmer, then the other, until the peak sits at 6.78 MHz.
+
+You've built a [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)); this is what it's for.
+
+**What to expect:**
+
+- **At 1 m** on the common axis, loop A's 61 mA makes a field that induces
+  about 2.6 mV in loop B. The receiving loop's *Q* of 30 turns that into
+  about 80 mV: two ADC codes, enough (the figure at the top).
+- **At 2 m**, a quarter of a code: probably too little.
+- **Turn one loop by 90°** and the coupling vanishes: the field lines no
+  longer thread it.
 
 **Or buy the receiving antenna.** An *active* loop, made for listening to
 shortwave, has an amplifier built in. The MLA-30+ (about $40; 0.5 to 30 MHz,
@@ -242,11 +254,11 @@ powered from USB, with an SMA plug) goes straight into board B's ADC, and
 should hear board A's home-made loop from much further away.
 
 **A link has two ends, but this one only talks one way.** Each board also
-transmits all the time (an idle line is a steady 1, the 6.7875 MHz tone), and
-a receiver beside its own transmitter would hear nothing else. So load
-`radio.sv` into both boards, but give board A only the transmitting loop and
-board B only the receiving one. Real radios solve this with widely separated
-frequencies and sharp filters, or by taking turns.
+transmits all the time (an idle line is a steady 1, the 6.7875 MHz tone),
+and a receiver beside its own transmitter would hear nothing else. So **load
+`radio.sv` into both boards**, but give board A only the transmitting loop
+and board B only the receiving one. Real radios solve this with widely
+separated frequencies and sharp filters, or by taking turns.
 
 ## The rules
 
@@ -264,20 +276,20 @@ Anything that radiates is regulated, and the limits depend on your country:
 - **Elsewhere**, look up your country's rules for unlicensed low-power
   devices.
 
-These are estimates, not measurements: keep the transmitter turned down, and
-the loops small.
+These are estimates, not measurements: **keep the transmitter turned down,
+and the loops small.**
 
 **Try this:**
 
-- Measure the signal against distance, with the LED meter or by loading
+- **Measure the signal against distance**, with the LED meter or by loading
   `capture.sv` into board B and finding the tone's amplitude in an FFT
   ([1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)). Does it fall by 60 dB per decade?
-- Make the link two-way by taking turns: let each transmitter go quiet when
-  its laptop's line has been idle for a few milliseconds. Then both boards can
-  have both loops, on one frequency.
-- `LOGTAU` sets the average. Make it 12 (164 µs): a quarter of the noise
-  bandwidth, so in a noisy room it should hear signals half as large, while
-  the highest baud rate falls by four. Does it?
+- **Make the link two-way by taking turns**: let each transmitter go quiet
+  when its laptop's line has been idle for a few milliseconds. Then both
+  boards can have both loops, on one frequency.
+- **Raise `LOGTAU`**, which sets the average, from 10 to 12 (164 µs): a
+  quarter of the noise bandwidth, so in a noisy room it should hear signals
+  half as large, while the highest baud rate falls by four. Does it?
 
 <!-- nav -->
 [← 5.06 The modem against noise](5_06_modem_and_noise.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [5.08 A 3D show on an oscilloscope →](5_08_xy_show.md)

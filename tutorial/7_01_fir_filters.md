@@ -67,7 +67,7 @@ taps:
 | 0 | sixteen 16s (÷256 = 1/16 each) | the moving average | 0: ×16 is a shift |
 | 1 | `[0 0 3 9 20 32 42 46 42 32 20 9 3 0 0]` | `firwin(15, 2e6, fs=25e6)` × 256: the windowed-sinc low-pass at 2 MHz | 5 |
 | 2 | `[−256 512 −256]` | the edge detector | 0: shifts again |
-| 3 | `[2 6 4 −17 −42 −25 37 73 37 −25 −42 −17 4 6 2]` | `firwin(15, [3e6, 5e6], pass_zero=False)`: a band-pass | 6 |
+| 3 | `[2 6 4 −17 −42 −25 37 73 37 −25 −42 −17 4 6 2]` | `firwin(15, [3e6, 5e6], pass_zero=False, fs=25e6)`: a band-pass | 6 |
 
 Yosys turns a multiply by a power of two into wiring. That is why the
 moving average and the edge detector cost no multiplier at all, and why
