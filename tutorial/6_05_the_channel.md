@@ -5,26 +5,32 @@
 
 ![Measured cable with a simulated one-symbol echo, QPSK at 10 dB: the equalizer's taps creeping to their least-squares values; the error power falling for LMS, NLMS and the decision-feedback equalizer; the channel's magnitude, its zero-forcing inverse peaking in the notches and the MMSE weights turning down there; the constellation before, after LMS and after the DFE; and the eye before, after LMS and after dividing by H(f)](img/comms_equalize.png)
 
-Everything so far assumed the cable did nothing but delay the signal and
-scale it. It very nearly does; that's why a metre of coax is a good place to
-learn. But a cable is a *filter*, and so is the air between two antennas,
-and the difference between the two is only how bad a filter. This page
-measures the cable, then adds the one thing a short cable lacks, an echo,
-and undoes it two ways: the hard way, with a filter that learns, and the
-easy way, which is the reason [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s OFDM runs the world.
+So far we assumed the cable only delays the signal and scales it. It very
+nearly does, which is why a metre of coax is a good place to learn. But a
+cable is a *filter*, and so is the air between two antennas: they differ
+only in how bad a filter they are. On this page you:
+
+* measure the cable (*sound* it);
+* add the one thing a short cable lacks, an echo;
+* undo the echo two ways: the hard way, with a filter that learns, and the
+  easy way, which is the reason [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s OFDM runs the world.
 
 ![Computed: a channel as convolution in time and multiplication in frequency: a pulse through taps with a main tap and a small echo comes out with its echo, and a flat spectrum times a comb of notches every f_s over D gives a notched one. Below, the two cures: a trained FIR equalizer with a decision and an error fed back to its taps, and OFDM's one complex division per subcarrier by H of f_k, which a pilot symbol measures](img/comms_d_channel.png)
 
 ## A channel is a filter
 
 Whatever you send, *x*(*t*), comes out as *y*(*t*) = ∫ *h*(τ) *x*(*t* − τ) dτ:
-a *convolution* with the channel's [impulse response](https://en.wikipedia.org/wiki/Impulse_response) *h*, or in frequency
-*Y*(*f*) = *H*(*f*) *X*(*f*), a multiplication. [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) already measured *h*[*n*]
-through the cable: nothing for six samples, most of the signal in one, a
-little ringing. That *h* is the whole story. Every symbol you send arrives
-smeared by it, on top of its smeared neighbours (*intersymbol
-interference*), and because the channel is linear and doesn't change from
-one symbol to the next, you can measure *h* once and undo it.
+a *convolution* with the channel's [impulse response](https://en.wikipedia.org/wiki/Impulse_response) *h*. In frequency it
+is a multiplication, *Y*(*f*) = *H*(*f*) *X*(*f*).
+
+[1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) already measured *h*[*n*] through the cable: nothing for
+six samples, most of the signal in one, a little ringing. That *h* is the
+whole story:
+
+* Every symbol you send arrives smeared by *h*, on top of its smeared
+  neighbours (*intersymbol interference*).
+* The channel is linear and doesn't change from one symbol to the next, so
+  you can measure *h* once and undo it.
 
 ## Sounding it, three ways
 
@@ -36,8 +42,10 @@ one symbol to the next, you can measure *h* once and undo it.
 2. **A step.** Difference successive samples of the averaged step.
 3. **Divide.** The loop repeats, so any known signal's spectrum sits exactly
    on the FFT's bins, and *H*(*f*) = *Y*(*f*)/*X*(*f*) is one complex division per
-   bin. [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s multitone covers the whole band; the [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) frame of [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)
-   sounds its own band, 5.2–7.3 MHz, with no help.
+   bin. Two known signals:
+   * [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s multitone covers the whole band;
+   * the [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) frame of [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)
+     sounds its own band, 5.2–7.3 MHz, with no help.
 
 <details>
 <summary>The whole file: <code>sound.py</code></summary>
@@ -324,6 +332,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Load `awgcap.sv` and cable DAC OUT to ADC IN**, then run `sound.py`:
+
 ```console
 $ python3 sound.py                      # awgcap.sv loaded, DAC OUT cabled to ADC IN
 h[n] by mseq:     delay  6 samples, main tap 0.786; h[0..11] = [-0.001 -0.001 -0.001 -0.001 -0.002  0.039  0.786 -0.071  0.017  0.006 -0.002  0.001]
@@ -336,41 +346,53 @@ H(f) by psk:      |H|   -   at 1 MHz, 0.776 at 6.25 MHz,   -   at 11 MHz; delay 
 
 ![Measured, one board looped back: the cable's impulse response three ways (m-sequence, step, multitone) with 1.07's saved measurement; its magnitude against frequency three ways with 6.07's saved sounding; its phase, a straight line; and its group delay, flat at about 240 ns](img/comms_sound.png)
 
-Three methods, one cable. The m-sequence and the step agree on a main tap
-of 0.76–0.79 at six samples (the 3% between them is [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s slight
-nonlinearity, which one measures with an edge and the other with a code).
-The multitone's *h* looks different, and it's instructive why: the true
-delay is 5.7 samples, between two ADC samples, and a method that works
-through the FFT draws the [sinc](https://en.wikipedia.org/wiki/Sinc_function) that a fractional delay really is, 0.54 and
-0.44 on neighbouring samples with ripples either side, where the
-[cross-correlation](https://en.wikipedia.org/wiki/Cross-correlation), which only ever asks "how much at lag *n*", rounds it to
-one tap. Same channel, two honest pictures. The phase is a straight line
-whose slope is the delay; the group delay, −dφ/d(2π*f*), is flat at 219–239 ns
-across the band, and the gain rises by 7% from 1 to 11 MHz, the ±8% wander
-of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)'s model comparison.
+Three methods, one cable:
+
+* **The m-sequence and the step** agree on a main tap of 0.76–0.79 at six
+  samples. The 3% between them is [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s slight nonlinearity,
+  which one measures with an edge and the other with a code.
+* **The multitone's *h* looks different**, and it's instructive why. The
+  true delay is 5.7 samples, between two ADC samples. A method that works
+  through the FFT draws the [sinc](https://en.wikipedia.org/wiki/Sinc_function) that a fractional delay really is: 0.54
+  and 0.44 on neighbouring samples, with ripples either side. The
+  [cross-correlation](https://en.wikipedia.org/wiki/Cross-correlation) only ever asks "how much at lag *n*", so it rounds
+  the delay to one tap. Same channel, two honest pictures.
+* **The phase** is a straight line whose slope is the delay. The group
+  delay, −dφ/d(2π*f*), is flat at 219–239 ns across the band.
+* **The gain** rises by 7% from 1 to 11 MHz, the ±8% wander of
+  [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)'s model comparison.
 
 ## An echo: a T with an open stub
 
 A metre of good coax is too kind a channel to learn equalization on. The
-cheap way to make a bad one is an SMA T at the DAC with a length of cable
-hanging off its third arm and nothing on the far end. The forward wave at
-the T meets two 50 Ω lines in parallel, 25 Ω: two thirds of the voltage goes
-on into each branch and a third reflects back to the DAC. The stub's share
-travels to the open end, reflects there with the same sign (zero current,
-so the voltage doubles), and comes back after τ = 2*L*/*v*, 9.6 ns per metre of
-RG-316 (velocity factor 0.695); at the T it again splits two thirds forward,
-a third back down the stub. So the ADC gets the direct wave, then echoes of
-2/3, −2/9, +2/27, … at τ, 2τ, 3τ, each paying the cable's loss twice. With
-*z* = e<sup>−*j*2π*f*τ</sup> and ρ the round-trip loss,
+cheap way to make a bad one is an SMA T at the DAC, with a length of cable
+hanging off its third arm and nothing on the far end:
+
+1. At the T, the wave from the DAC meets two 50 Ω lines in parallel, 25 Ω.
+   Two thirds of the voltage goes on into each branch, and a third reflects
+   back to the DAC.
+2. The stub's share travels to the open end and reflects there with the
+   same sign (zero current, so the voltage doubles).
+3. It comes back to the T after τ = 2*L*/*v*, 9.6 ns per metre of RG-316
+   (velocity factor 0.695).
+4. At the T it again splits: two thirds forward, a third back down the
+   stub.
+
+So the ADC gets the direct wave, then echoes of 2/3, −2/9, +2/27, … at τ,
+2τ, 3τ, each paying the cable's loss twice. With *z* = e<sup>−*j*2π*f*τ</sup> and ρ
+the round-trip loss,
 
   *H*(*f*) = (2/3) (1 + ρ*z*) / (1 + ρ*z*/3).
 
 *H* is smallest where ρ*z* = −1: at *f* = 1/(2τ), 3/(2τ), 5/(2τ), …, a *comb of
 notches* 1/τ apart. That is [4.05](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub)'s "an odd number of quarter waves" again:
-the time-domain echo and the frequency-domain stub are the same object. The
-loss fills the notches in (the bottom is (2/3)(1 − ρ)/(1 − ρ/3), so a
-notch's depth measures the cable's loss), and at DC the stub is invisible,
-as it must be. `echo.py` holds the model and prints the menu:
+the time-domain echo and the frequency-domain stub are the same object.
+
+* The loss fills the notches in. The bottom of a notch is
+  (2/3)(1 − ρ)/(1 − ρ/3), so a notch's depth measures the cable's loss.
+* At DC the stub is invisible, as it must be.
+
+`echo.py` holds the model and prints the menu:
 
 <details>
 <summary>The whole file: <code>echo.py</code></summary>
@@ -521,45 +543,57 @@ open stub on a T, velocity factor 0.695, 0.100 dB/m at 10 MHz (9.6 ns per metre,
 ```
 
 > [!NOTE]
-> No stub was at hand when this was written, so from here on the echo is
-> *added in software* to the real cable's record: a reflection of size *a*
-> arriving one symbol late, which is what 67 m of stub would do if cable had
-> no loss. The scripts take a real stub (`--stub 0`) the moment one is
-> plugged in; a 25 m reel of RG-58 on a T is the one to buy, because its
-> third notch lands on the 6.25 MHz carrier, 15 dB deep.
+> From here on the echo is *added in software* to the real cable's record: a
+> reflection of size *a* arriving one symbol late, which is what 67 m of stub
+> would do if cable had no loss. With a real stub plugged in, the scripts
+> measure it directly (`--stub 0`). A 25 m reel of RG-58 on a T is the one
+> to buy: its third notch lands on the 6.25 MHz carrier, 15 dB deep.
 
 ![Measured cable with simulated stubs: the impulse response and the comb of notches for 5, 10 and 25 metre stubs; the bit error rate at 10 dB against the echo's size, with and without an equalizer; and the constellation and eye at echoes of 0.3, 0.67 and 0.9 of the signal](img/comms_echo.png)
 
-In baseband the echo carries the carrier's phase, e<sup>−*j*2π*f*<sub>c</sub>τ</sup>. The
-carrier makes exactly four cycles per symbol here, so a whole-symbol echo
-arrives in phase: each received symbol is *z*<sub>*k*</sub> = *s*<sub>*k*</sub> + *a* *s*<sub>*k*−1</sub>, four
-points become sixteen, and the margin to a decision boundary shrinks from
-0.707 to 0.707(1 − *a*). With no noise there are no errors even at *a* = 0.9;
-at *E*<sub>b</sub>/*N*<sub>0</sub> = 10 dB a plain slicer goes from no errors through 6 × 10<sup>−4</sup>
-(*a* = 0.3) and 2 × 10<sup>−2</sup> (*a* = 0.67) to 4 × 10<sup>−2</sup> (*a* = 0.9). [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
-receiver does worse still: the Gardner detector is biased by correlated
-symbols, and the [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) faces a sixteen-point constellation it was
-never told about.
+In baseband the echo carries the carrier's phase, e<sup>−*j*2π*f*<sub>c</sub>τ</sup>. Here the
+carrier makes exactly four cycles per symbol, so a whole-symbol echo
+arrives in phase. Each received symbol is *z*<sub>*k*</sub> = *s*<sub>*k*</sub> + *a* *s*<sub>*k*−1</sub>:
+
+* four points become sixteen;
+* the margin to a decision boundary shrinks from 0.707 to 0.707(1 − *a*).
+
+With no noise there are no errors, even at *a* = 0.9. At
+*E*<sub>b</sub>/*N*<sub>0</sub> = 10 dB a plain slicer goes from no errors to a bit error rate of:
+
+* 6 × 10<sup>−4</sup> at *a* = 0.3,
+* 2 × 10<sup>−2</sup> at *a* = 0.67,
+* 4 × 10<sup>−2</sup> at *a* = 0.9.
+
+[6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s receiver does worse still: the Gardner detector is biased by
+correlated symbols, and the [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) faces a sixteen-point
+constellation it was never told about.
 
 ## Undoing it in the frequency domain: divide by *H*
 
 The obvious fix is to divide: *W*(*f*) = 1/*H*(*f*) restores the signal exactly.
-It also multiplies the noise by 1/|*H*|<sup>2</sup>, which is enormous in a notch.
-For a one-symbol echo the average noise gain is 1/(1 − *a*<sup>2</sup>): 2.6 dB at
-*a* = 0.67, 7.2 dB at 0.9. Add the echo's own share of the received energy,
-10 log(1 + *a*<sup>2</sup>) = 1.6 dB, and this *zero-forcing* equalizer should lose
-4.2 dB: a predicted error rate of 2.9 × 10<sup>−3</sup> at 10 dB, and 3.3 × 10<sup>−3</sup>
-measured. A perfect notch (a lossless stub) has no inverse at all; the loss
-is what makes it invertible, and the noise then decides how far to go.
+But it also multiplies the noise by 1/|*H*|<sup>2</sup>, which is enormous in a notch.
+For a one-symbol echo this *zero-forcing* equalizer loses:
 
-The right answer is Wiener's: *W* = *H*<sup>*</sup> *S* / (|*H*|<sup>2</sup> *S* + *N*), which is
-zero forcing times "the fraction of what you received that is signal".
-Where the channel has buried the signal under the noise, don't dig. This
-*MMSE* equalizer needs the noise spectrum, and the record gives it away:
-the signal repeats every loop, so it lives on the even bins of a
-two-loop FFT and the odd bins hold noise alone. One line, `W = (1/H) * (1 −
-N/P)`, and the error rate at 10 dB halves (1.4 × 10<sup>−3</sup> against 3.3 × 10<sup>−3</sup>);
-at 0 dB zero forcing is worse than doing nothing and MMSE is not.
+* the average noise gain, 1/(1 − *a*<sup>2</sup>): 2.6 dB at *a* = 0.67, 7.2 dB at 0.9;
+* plus the echo's own share of the received energy, 10 log(1 + *a*<sup>2</sup>) = 1.6 dB.
+
+At *a* = 0.67 that is 4.2 dB, which predicts an error rate of 2.9 × 10<sup>−3</sup>
+at 10 dB; the measured rate is 3.3 × 10<sup>−3</sup>. A perfect notch (a lossless
+stub) has no inverse at all. The loss is what makes it invertible, and the
+noise then decides how far to go.
+
+The right answer is Wiener's: *W* = *H*<sup>*</sup> *S* / (|*H*|<sup>2</sup> *S* + *N*). That is zero
+forcing times "the fraction of what you received that is signal": where
+the channel has buried the signal under the noise, don't dig.
+
+This *MMSE* equalizer needs the noise spectrum, and the record gives it
+away. The signal repeats every loop, so in a two-loop FFT it lives on the
+even bins, and the odd bins hold noise alone. It takes one line,
+`W = (1/H) * (1 − N/P)`, and:
+
+* at 10 dB the error rate halves (1.4 × 10<sup>−3</sup> against 3.3 × 10<sup>−3</sup>);
+* at 0 dB zero forcing is worse than doing nothing, and MMSE is not.
 
 ## Undoing it in the time domain: a filter that learns
 
@@ -569,16 +603,23 @@ tap down the gradient of the squared error:
 
   *e*<sub>*k*</sub> = *d*<sub>*k*</sub> − *y*<sub>*k*</sub>,  *w*<sub>*i*</sub> ← *w*<sub>*i*</sub> + μ *e*<sub>*k*</sub> *x*<sup>*</sup><sub>*k*−*i*</sub>.
 
-It needs a reference *d*<sub>*k*</sub>: a training sequence the receiver knows (a
-modem's handshake; here the frame's 32-symbol unique word, and the first two
-records in full), and between trainings its own decisions, which is fine
-while most of them are right. Each mode of the input's correlation matrix
-settles with a time constant 1/(μλ); stability needs μ < 2/(*N* *P*<sub>*x*</sub>); and
-the *misadjustment*, the excess error the dithering taps leave, is about
-μ*NP*<sub>*x*</sub>/2, so μ buys speed with a noise floor. The inverse of a one-tap
-echo is the infinite series 1, −*a*, *a*<sup>2</sup>, …, so a linear equalizer needs
-taps spanning several echo delays (33 here, at two per symbol) and the
-truncation sets a floor. Through the cable, with the echo added:
+It needs a reference *d*<sub>*k*</sub>:
+
+* during training, a sequence the receiver knows: a modem's handshake, or
+  here the frame's 32-symbol unique word, and the first two records in full;
+* between trainings, its own decisions, which is fine while most of them
+  are right.
+
+The step μ buys speed with a noise floor:
+
+* each mode of the input's correlation matrix settles with a time constant 1/(μλ);
+* stability needs μ < 2/(*N* *P*<sub>*x*</sub>);
+* the *misadjustment*, the excess error the dithering taps leave, is about
+  μ*NP*<sub>*x*</sub>/2.
+
+The inverse of a one-tap echo is the infinite series 1, −*a*, *a*<sup>2</sup>, …, so a
+linear equalizer needs taps spanning several echo delays (33 here, at two
+per symbol), and cutting the series short sets a floor.
 
 <details>
 <summary>The whole file: <code>equalize.py</code></summary>
@@ -1032,6 +1073,9 @@ if __name__ == "__main__":
 
 </details>
 
+**Run it through the cable**, with a one-symbol echo of size 0.67 added and
+noise at *E*<sub>b</sub>/*N*<sub>0</sub> = 10 dB:
+
 ```console
 $ python3 equalize.py --echo 1:0.67 --ebn0 10
 QPSK at 1.562 Msymbol/s, measured, echo 1 symbol late, size 0.67; echo 1.00 symbols late (640 ns); equalizer: 33 taps, 2 per symbol, 3 feedback, mu 0.3, 2 training records
@@ -1045,20 +1089,23 @@ sync: frame starts at sample 8203, phase -128 deg
   divide by H(f), MMSE, then 6.02's loops:    10 errors in   3840 bits, MER   9.6 dB
 ```
 
-Two things about that table. The equalizer here *replaces* [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s loops: the
-unique word gives the timing to a sixteenth of a symbol and the phase in one
-correlation, as a burst modem (Wi-Fi) does, and the taps absorb the rest.
-That works because the taps are spaced at half a symbol: a *fractionally
-spaced* equalizer sees the whole band and can move the sampling instant
-itself; a symbol-spaced one sees only the spectrum folded at the symbol
-rate, and a sampling-phase error can put a null in the folded spectrum that
-no tap can undo (`--spacing 1` to see it fail). And the **DFE**, the
-*decision-feedback equalizer*, wins: feed the past *decisions* back through
-their own taps, *y*<sub>*k*</sub> = Σ *w*<sub>*i*</sub> *x*<sub>*k*−*i*</sub> − Σ *b*<sub>*j*</sub> *d*<sub>*k*−*j*</sub>, and since a decision is
-clean, subtracting the echo it causes adds no noise. For a one-tap echo the
-DFE needs one feedback tap and loses only the echo's 1.6 dB. Its weakness is
-that a wrong decision is fed back and breeds more; at low *E*<sub>b</sub>/*N*<sub>0</sub> its
-curve crosses above the plain LMS one.
+**The equalizer *replaces* [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s loops.** The unique word gives
+the timing to a sixteenth of a symbol and the phase in one correlation, as
+a burst modem (Wi-Fi) does, and the taps absorb the rest. That works
+because the taps are spaced at half a symbol:
+
+* a *fractionally spaced* equalizer sees the whole band and can move the
+  sampling instant itself;
+* a symbol-spaced one sees only the spectrum folded at the symbol rate, and
+  a sampling-phase error can put a null in the folded spectrum that no tap
+  can undo. Run with `--spacing 1` to see it fail.
+
+**The DFE wins.** The *decision-feedback equalizer* feeds the past
+*decisions* back through their own taps, *y*<sub>*k*</sub> = Σ *w*<sub>*i*</sub> *x*<sub>*k*−*i*</sub> − Σ *b*<sub>*j*</sub> *d*<sub>*k*−*j*</sub>.
+A decision is clean, so subtracting the echo it causes adds no noise. For a
+one-tap echo the DFE needs one feedback tap and loses only the echo's
+1.6 dB. Its weakness: a wrong decision is fed back and breeds more, so at
+low *E*<sub>b</sub>/*N*<sub>0</sub> its curve crosses above the plain LMS one.
 
 ![Measured cable with a simulated one-symbol echo: bit error rate against Eb/N0 for 6.02's loops, a plain slicer, LMS and the DFE (left), and for zero-forcing and MMSE division by H(f) (right), against theory without the echo](img/comms_equalize_ber.png)
 
@@ -1066,48 +1113,57 @@ curve crosses above the plain LMS one.
 <summary><b>Detail:</b> where the sync lands, and what the taps really converge to</summary>
 
 The unique-word correlation that finds the frame is itself a channel
-sounding, |*c*(τ)| ≈ |*g*(τ) + *a g*(τ − *T*)|, so with a one-symbol echo it
+sounding, |*c*(τ)| ≈ |*g*(τ) + *a g*(τ − *T*)|. So with a one-symbol echo it
 lands 0.3 symbol *between* the two paths (sample 8203, not 8198). Seen from
-there the symbol-spaced channel is [−0.07, 0.23, 0.86, 0.32, −0.04], and the
-least-squares taps at offsets −1..+3 are [−0.79, 1.78, −0.90, 0.57, −0.39]:
-the equalizer needs taps *before* the main one as well as after. Only a
+there:
+
+* the symbol-spaced channel is [−0.07, 0.23, 0.86, 0.32, −0.04];
+* the least-squares taps at offsets −1..+3 are [−0.79, 1.78, −0.90, 0.57, −0.39].
+
+The equalizer needs taps *before* the main one as well as after. Only a
 sampler sitting exactly on the direct path would see the tidy 1, −*a*, *a*<sup>2</sup>,
-−*a*<sup>3</sup>. `wiener()` solves for those taps in one matrix inversion, which is
-what RLS creeps towards and LMS crawls towards.
+−*a*<sup>3</sup>. `wiener()` solves for those taps in one matrix inversion: what RLS
+creeps towards and LMS crawls towards.
 
 </details>
 
 ## One tap per subcarrier
 
-Dividing by *H*(*f*) was one complex divide per bin, and it worked because the
-record was periodic: a circular convolution is a product of FFTs. [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s
-OFDM makes *every symbol* periodic with a [cyclic prefix](https://en.wikipedia.org/wiki/Cyclic_prefix), so every symbol is
-equalized by one divide per subcarrier, measured from a pilot, with no
-training sequence, no convergence, no μ, no misadjustment, and the MMSE
-version is the same divide with the Wiener factor. That is why Wi-Fi, LTE,
-digital TV and DSL are OFDM, and why [6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)'s CDMA lost: a rake receiver
-is a DFE's worth of trouble for every echo, and the echoes multiply with the
-bandwidth. (The single-carrier frequency-domain equalizer that
-`equalize.py`'s `fd` receivers are is exactly what LTE's uplink does.)
+Dividing by *H*(*f*) was one complex divide per bin. It worked because the
+record was periodic, and a circular convolution is a product of FFTs.
+[6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s OFDM makes *every symbol* periodic with a [cyclic prefix](https://en.wikipedia.org/wiki/Cyclic_prefix), so every
+symbol is equalized by one divide per subcarrier, measured from a pilot:
+
+* no training sequence, no convergence, no μ, no misadjustment;
+* the MMSE version is the same divide with the Wiener factor.
+
+That is why Wi-Fi, LTE, digital TV and DSL are OFDM, and why
+[6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)'s CDMA lost: a rake receiver is a DFE's worth of trouble for
+every echo, and the echoes multiply with the bandwidth. (`equalize.py`'s
+`fd` receivers are a single-carrier frequency-domain equalizer, exactly
+what LTE's uplink does.)
 
 **Try this:**
 
-- `--spacing 1` against `2`: shift the sync by four samples (add 4 to
-  `t0` in `sync()`) and watch the symbol-spaced equalizer fail and the
-  fractionally spaced one not notice.
-- Raise `--mu` until the LMS diverges (about 2 in `equalize.py`'s units);
-  lower it and time the convergence. Then replace it with `wiener()` on one
-  record: one solve instead of thousands of nudges. What does that cost?
-- `--echo 0.375:0.9` puts a 20 dB notch on the carrier (what the 25 m stub
-  does): zero forcing 242 errors, MMSE 104, the DFE 15 in 7624 bits at 10 dB.
-- `--nsym 2048 --stub 10`: at 6.25 Msymbol/s a 10 m stub is as bad as the
-  one-symbol echo ([6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s receiver 35% errors, LMS 0.7%, the DFE 0.06%).
-- With a real stub: measure its notch depth with `sound.py` and solve
+- **Shift the sync by four samples** (add 4 to `t0` in `sync()`) and
+  compare `--spacing 1` with `2`: the symbol-spaced equalizer fails, and the
+  fractionally spaced one doesn't notice.
+- **Raise `--mu`** until the LMS diverges (about 2 in `equalize.py`'s
+  units). Lower it and time the convergence. Then replace it with
+  `wiener()` on one record: one solve instead of thousands of nudges. What
+  does that cost?
+- **Run `--echo 0.375:0.9`**, a 20 dB notch on the carrier (what the 25 m
+  stub does). At 10 dB, in 7624 bits: zero forcing makes 242 errors, MMSE
+  104, the DFE 15.
+- **Run `--nsym 2048 --stub 10`:** at 6.25 Msymbol/s a 10 m stub is as bad
+  as the one-symbol echo. Errors: [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s receiver 35%, LMS 0.7%,
+  the DFE 0.06%.
+- **With a real stub**, measure its notch depth with `sound.py` and solve
   (2/3)(1 − ρ)/(1 − ρ/3) for ρ: the cable's loss, from an echo.
-- PySDR's [multipath fading chapter](https://pysdr.org/content/multipath_fading.html)
-  is the wireless version of this page, with the Rayleigh fading a cable
-  cannot make; its [sync chapter](https://pysdr.org/content/sync.html) has the
-  same equalizer ideas in a few lines of numpy.
+- **Read** PySDR's [multipath fading chapter](https://pysdr.org/content/multipath_fading.html):
+  the wireless version of this page, with the Rayleigh fading a cable
+  cannot make. Its [sync chapter](https://pysdr.org/content/sync.html) has
+  the same equalizer ideas in a few lines of numpy.
 
 <!-- nav -->
 [← 6.04 MSK and GMSK: constant envelope](6_04_msk_and_gmsk.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.06 Spread spectrum, the GPS way →](6_06_spread_spectrum.md)

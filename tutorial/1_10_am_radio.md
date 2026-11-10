@@ -7,17 +7,22 @@
 
 [Amplitude modulation](https://en.wikipedia.org/wiki/Amplitude_modulation) is
 how radio began: the first broadcasts, in the 1920s, were AM, and so is the
-[crystal radio](https://en.wikipedia.org/wiki/Crystal_radio) you may have built, with its coil, germanium diode and
-earpiece. This page puts an AM radio station and an AM radio receiver in one
-FPGA design, built from things you already have: the DDS of
-[1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) for the
-transmitter, the lock-in's multiplication of
-[1.08](1_08_lockin.md#108-a-lock-in-amplifier) for the receiver, and
-[1.05](1_05_adc_to_python.md#105-adc-samples-to-python)'s stream to the laptop's
-speaker. With the loopback cable, the laptop plays Ode to Joy, sent and
-received by your FPGA (the figure above, measured). With a short wire on
-DAC OUT, an ordinary AM radio should play it too; with a long wire on ADC
-IN, the laptop should hear real stations.
+[crystal radio](https://en.wikipedia.org/wiki/Crystal_radio) you may have
+built, with its coil, germanium diode and earpiece.
+
+This page puts an AM radio station and an AM receiver in one FPGA design,
+built from parts you already have:
+
+- **the transmitter**: the DDS of [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis);
+- **the receiver**: the lock-in's multiplication from [1.08](1_08_lockin.md#108-a-lock-in-amplifier);
+- **the sound**: [1.05](1_05_adc_to_python.md#105-adc-samples-to-python)'s stream to the laptop's speaker.
+
+What you'll hear:
+
+- **with the loopback cable**, the laptop plays Ode to Joy, sent and received
+  by your FPGA (the figure above is a measurement);
+- **with a short wire on DAC OUT**, an ordinary AM radio should play it too;
+- **with a long wire on ADC IN**, the laptop should hear real stations.
 
 ## How AM works
 
@@ -27,30 +32,34 @@ A station sends a *carrier*, a sine at its frequency *f*<sub>c</sub> (here
 $$ s(t) = A\,[1 + m\,a(t)]\cos(2\pi f_c t), $$
 
 with −1 ≤ *a* ≤ 1 and a *modulation depth* *m* < 1, so the amplitude never
-reaches zero. The amplitude, the *envelope*, is a copy of the sound. In
-frequency, a tone *a* = cos 2π*f*<sub>a</sub>*t* puts two *sidebands* beside
-the carrier, at *f*<sub>c</sub> ± *f*<sub>a</sub>, each *m*/2 of its
-amplitude, so a station carrying sound up to 5 kHz is 10 kHz wide, and AM
-stations sit 10 kHz apart (9 kHz in Europe).
+reaches zero. That amplitude, the *envelope*, is a copy of the sound.
+
+In frequency, a tone *a* = cos 2π*f*<sub>a</sub>*t* puts two *sidebands*
+beside the carrier, at *f*<sub>c</sub> ± *f*<sub>a</sub>, each with *m*/2 of
+the carrier's amplitude. So a station carrying sound up to 5 kHz is 10 kHz
+wide, and AM stations sit 10 kHz apart (9 kHz in Europe).
 
 A receiver has two jobs: pick one station out of all of them, and recover its
-envelope. The lock-in of [1.08](1_08_lockin.md#108-a-lock-in-amplifier) already
-does most of it. Multiply by cos and −sin at the station's frequency
-*f*<sub>rx</sub>, and the station lands at 0 Hz, its sound around it, while a
-station 10 kHz away lands at 10 kHz. A low-pass filter that keeps 0 to 4 kHz
-then keeps one station and rejects the rest, and the two products, I and Q,
-give the envelope as √(I<sup>2</sup> + Q<sup>2</sup>), whatever the station's
-phase.
+envelope. The lock-in of [1.08](1_08_lockin.md#108-a-lock-in-amplifier)
+already does most of this:
+
+- **Multiply** by cos and −sin at the station's frequency *f*<sub>rx</sub>.
+  That station lands at 0 Hz, with its sound around it; a station 10 kHz away
+  lands at 10 kHz.
+- **Low-pass filter**, passing 0 to 4 kHz: this keeps the one station and
+  rejects the rest.
+- **Take the envelope**: the two products, I and Q, give it as
+  √(I<sup>2</sup> + Q<sup>2</sup>), whatever the station's phase.
 
 ## The design
 
 [`am_radio.sv`](../src/verilog/am_radio.sv) is both:
 
 - **The transmitter** is a DDS carrier, as in [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis),
-  multiplied by 1 + 0.8 *a*(*t*). The sound comes from inside the FPGA: a music
-  box that plays Beethoven's Ode to Joy (public domain, and recognizable
-  anywhere) from a table of notes, each one plucked and dying away, or a
-  steady 1 kHz test tone.
+  multiplied by 1 + 0.8 *a*(*t*). The sound comes from inside the FPGA:
+  - a music box that plays Beethoven's Ode to Joy from a table of notes, each
+    one plucked and dying away, or
+  - a steady 1 kHz test tone.
 - **The receiver** is a *digital down-converter*, the front end of every
   software-defined radio:
 
@@ -61,7 +70,7 @@ phase.
 2. **A [CIC filter](https://en.wikipedia.org/wiki/Cascaded_integrator%E2%80%93comb_filter)**
    (*cascaded integrator–comb*), the cheapest filter there is: three running
    sums at 25 MS/s, then three differences at 25 kS/s, keeping 1 sample in
-   1000. No multiplications at all, just additions, which is why every
+   1000. It uses only additions, no multiplications, which is why every
    digital radio uses one first. Its numbers grow by 3 × log<sub>2</sub>1000
    ≈ 30 bits, so its registers are 45 bits wide.
 3. **A [FIR filter](https://en.wikipedia.org/wiki/Finite_impulse_response)**
@@ -72,19 +81,20 @@ phase.
    worked out one bit per clock.
 5. **The laptop** gets 25,000 envelope samples a second, two bytes each.
 
-The filters together pass the sound flat to within 1.1 dB up to 4 kHz, 3 dB
-down at 4.3 kHz. Here is how well the receiver ignores a station it isn't
-tuned to, measured with the transmitter sending a bare carrier and the
-receiver tuned further and further away:
+Together the filters pass the sound flat to within 1.1 dB up to 4 kHz, and
+are 3 dB down at 4.3 kHz. The plot below shows how well the receiver ignores
+a station it isn't tuned to: the transmitter sends a bare carrier, and the
+receiver is tuned further and further away.
 
 ![The receiver's response to a 1 MHz carrier against how far it is tuned off: flat within ±4 kHz, 63 dB down at 5 kHz, about 80 dB down from 6 to 20 kHz, with the CIC filter's alias lobes reaching −44 dB at ±21 kHz](img/am_selectivity.png)
 
-A station 10 kHz away comes through 80 dB weaker: that's the 8-bit ADC's
-own noise floor. The weak spots are the lobes at ±21 and ±29 kHz. The CIC
-keeps only every 1000th sample, so signals near 25 kHz from the tuned
-frequency fold back onto it, and the CIC's own response there is only
-44 dB down. (A fourth CIC stage, or a second filter in front, would fix
-that: a Try-this below.)
+- **A station 10 kHz away** comes through 80 dB weaker: that's the 8-bit
+  ADC's own noise floor.
+- **The weak spots** are the lobes at ±21 and ±29 kHz. The CIC keeps only
+  every 1000th sample, so signals near 25 kHz from the tuned frequency fold
+  back onto it, and the CIC's own response there is only 44 dB down. A fourth
+  CIC stage, or a second filter in front, would fix that (see **Try this**
+  below).
 
 <details>
 <summary>The whole file: <code>am_radio.sv</code></summary>
@@ -677,17 +687,20 @@ endmodule
 
 </details>
 
-**Simulate it first.** `make sim-am_radio` runs
-[`am_radio_tb.sv`](../src/verilog/am_radio_tb.sv): the DAC looped back to the
-ADC in simulation, the melody's first note found at 329.62 Hz (E4 is
-329.63 Hz). [`am_check.py`](../src/verilog/am_check.py) goes much further, with
-a fast [Verilator](https://www.veripool.org/verilator/) model: 50 runs of the
-receiver, every output sample equal to a numpy model of the same arithmetic,
-and the filters' measured response equal to the theory.
+**Simulate it first:** `make sim-am_radio` runs
+[`am_radio_tb.sv`](../src/verilog/am_radio_tb.sv), which loops the DAC back to
+the ADC in simulation. It should find the melody's first note at 329.62 Hz
+(E4 is 329.63 Hz) and print `PASS`.
+
+[`am_check.py`](../src/verilog/am_check.py) goes much further, with a fast
+[Verilator](https://www.veripool.org/verilator/) model. It runs the receiver
+50 times and checks every output sample against a numpy model of the same
+arithmetic, and the filters' measured response against the theory. Run it
+with `python3 am_check.py` (about 2 minutes, no hardware needed).
 
 ## Try it with a cable
 
-[`am_radio.py`](../src/verilog/am_radio.py) is the laptop's half: it sends the
+[`am_radio.py`](../src/verilog/am_radio.py) is the laptop's half. It sends the
 frequencies and the gain, reads the envelope, and plays it with
 [1.05](1_05_adc_to_python.md#105-adc-samples-to-python)'s `play()`.
 
@@ -899,7 +912,8 @@ if __name__ == "__main__":
 
 </details>
 
-With the loopback cable from DAC OUT to ADC IN:
+**Connect the loopback cable** from DAC OUT to ADC IN, then **load the design
+and run the script**:
 
 ```console
 $ make load-am_radio
@@ -910,8 +924,8 @@ transmitting melody at 1.000000 MHz, receiving at 1.000000 MHz
 wrote am_radio.wav
 ```
 
-and the laptop plays Ode to Joy, sent and received through the cable. More,
-all measured:
+The laptop plays Ode to Joy, sent and received through the cable. More to
+try, with measured results:
 
 | | command | result |
 | --- | --- | --- |
@@ -919,62 +933,70 @@ all measured:
 | tuned 10 kHz away | `python3 am_radio.py --rx 1.01e6` | the station falls from 53.7 to 0.06 ADC codes, 59 dB |
 | at 7.2 MHz | `python3 am_radio.py --tx 7.2e6 --rx 7.2e6 --source tone` | the same, 54.8 codes |
 
-Tuned 10 kHz away, the melody fades by 59 dB, not the 80 of a bare carrier.
-That isn't the receiver: the DAC rounds the modulated carrier to 8 bits, and
-the rounding errors repeat with the sound, which puts faint copies of it
-tens of kilohertz to either side. Real transmitters add a little noise
-(*[dither](https://en.wikipedia.org/wiki/Dither)*) to break that up.
+Tuned 10 kHz away, the melody fades by only 59 dB, not the 80 dB of a bare
+carrier. The receiver isn't to blame. The DAC rounds the modulated carrier to
+8 bits, and the rounding errors repeat with the sound, which puts faint
+copies of it tens of kilohertz to either side. Real transmitters add a little
+noise (*[dither](https://en.wikipedia.org/wiki/Dither)*) to break that up.
 
 ## On the air: a real radio
 
 <img src="img/stack_am.png" alt="Seen from above: DAC OUT, the right SMA, to a short wire near an AM radio; ADC IN, the left SMA, from a long wire antenna" width="480">
 
-Find a quiet spot on an AM radio's dial, near the top of the band where
-stations are fewer (in the US, 1600–1700 kHz is often empty), set the
-transmitter there, and put a short wire on DAC OUT, a hand's width from the
-radio:
+> [!WARNING]
+> **Keep it tiny.** In the US, FCC Part 15 (§15.219) lets anyone run an
+> AM-band transmitter with no licence if
+>
+> - its final stage draws at most 100 mW,
+> - its antenna, feed line and ground lead together are at most 3 m long, and
+> - everything it sends outside 510–1705 kHz is at least 20 dB below its
+>   carrier.
+>
+> The DAC's output is far below 100 mW. **Keep the wire short**, and if you
+> can, **put a low-pass filter** (say 2 MHz) between DAC OUT and the wire, to
+> keep the DAC's images near 50 MHz out of the air. Other countries' rules
+> differ: look yours up.
+
+1. **Find a quiet spot on an AM radio's dial**, near the top of the band
+   where stations are fewer (in the US, 1600–1700 kHz is often empty).
+2. **Put a short wire on DAC OUT**, a hand's width from the radio.
+3. **Set the transmitter to that frequency**, for example 1650 kHz:
 
 ```console
 $ python3 am_radio.py --tx 1650e3 --source melody --no-play
 ```
 
-The radio should play Ode to Joy. (Not tried yet: the transmitter was tested
-only through a cable, as above.)
-
-> [!WARNING]
-> **Keep it tiny.** In the US, FCC Part 15 (§15.219) allows anyone to run an
-> AM-band transmitter with no licence if its final stage draws at most
-> 100 mW, its antenna, feed line and ground lead together are at most 3 m
-> long, and everything it sends outside 510–1705 kHz is at least 20 dB below
-> its carrier. The DAC's output is far below 100 mW; keep the wire short,
-> and if you can, put a low-pass filter (say 2 MHz) between DAC OUT and the
-> wire, so that the DAC's images near 50 MHz stay out of the air. Other
-> countries' rules differ: look yours up.
+The radio should play Ode to Joy. (Untested: so far the transmitter has only
+been tried through a cable.)
 
 ## Listening to real stations
 
-Put a long wire on ADC IN instead (5 to 20 m, as high as you can, outdoors
-if possible: see [1.06](1_06_fast_capture.md#106-fast-captures)'s Detail on
-antennas), and tune:
+**Put a long wire on ADC IN** instead: 5 to 20 m, as high as you can,
+outdoors if possible (see [1.06](1_06_fast_capture.md#106-fast-captures)'s
+Detail on antennas). Then **tune to a station**, for example 1070 kHz:
 
 ```console
 $ python3 am_radio.py --rx 1070e3 --seconds 30
 ```
 
-Mostly you'll hear talk radio and advertisements. But a strong local AM
-station is also what emergency broadcasting relies on: when the power is out
-and the mobile networks are down, a laptop on its battery, this board and a
-wire can still bring in the news. A weak or distant station needs more gain
-than the ADC's 39 mV steps give it: an amplifier before ADC IN (a
-*[low-noise amplifier](https://en.wikipedia.org/wiki/Low-noise_amplifier)* for 0.5–30 MHz) helps, and so does listening at night,
-when AM signals bounce off the ionosphere and travel hundreds of kilometres.
-(Not tried yet: the receiver was tested through a cable.)
+Mostly you'll hear talk radio and advertisements. But emergency broadcasting
+relies on strong local AM stations: when the power is out and the mobile
+networks are down, a laptop on its battery, this board and a wire can still
+bring in the news.
+
+A weak or distant station needs more gain than the ADC's 39 mV steps give
+it. Two things help:
+
+- an amplifier before ADC IN (a *[low-noise amplifier](https://en.wikipedia.org/wiki/Low-noise_amplifier)* for 0.5–30 MHz);
+- listening at night, when AM signals bounce off the ionosphere and travel
+  hundreds of kilometres.
+
+(Untested: so far the receiver has only been tried through a cable.)
 
 ## Your crystal radio, and this one
 
-A crystal radio, a coil, a capacitor, a germanium diode and a piezoelectric
-earpiece, does all of this with no power at all. The two make a good
-comparison:
+A crystal radio (a coil, a capacitor, a germanium diode and a piezoelectric
+earpiece) does all of this with no power at all. Here is how the two compare:
 
 | | crystal radio | this radio |
 | --- | --- | --- |
@@ -999,8 +1021,8 @@ worth hearing:
 - **[WWV](https://en.wikipedia.org/wiki/WWV_(radio_station)) and WWVH**, the
   US time stations, at 2.5, 5 and 10 MHz (and Canada's CHU at 3.33 and
   7.85 MHz): a voice announces the time every minute, over a tick each
-  second. They're AM, so this receiver hears them as it is, and a radio
-  clock from Colorado is a fine reference for [Chapter 5](5_00_two_boards.md#500-two-boards-on-one-laptop)'s
+  second. They're AM, so this receiver hears them as it is. A radio clock
+  from Colorado is a fine reference for [Chapter 5](5_00_two_boards.md#500-two-boards-on-one-laptop)'s
   crystals, if you account for the ionosphere's few milliseconds.
 - **Shortwave broadcasters** from other continents, mostly at night, in the
   bands around 6, 7.3, 9.6 and 11.8 MHz: also AM.
@@ -1008,32 +1030,38 @@ worth hearing:
   sideband* and in digital modes such as FT8 at 7.074 MHz. They need a
   different detector: [4.10](4_10_more_ideas.md#410-more-ideas-for-one-board)
   has the idea.
-- **Above 12.5 MHz** signals fold back into the same band ([aliasing](https://en.wikipedia.org/wiki/Aliasing),
+- **Above 12.5 MHz**, signals fold back into the same band ([aliasing](https://en.wikipedia.org/wiki/Aliasing),
   [1.06](1_06_fast_capture.md#106-fast-captures)). That's a nuisance without a
   filter, and a trick with one: with a band-pass filter around 27 MHz, the
   Citizens Band appears at 27 − 25 = 2 MHz, where this receiver can tune it.
-  FM broadcasting at 88–108 MHz is harder: nobody has measured how much of
-  a 100 MHz signal the module's input amplifier lets through to the ADC, the
-  sampling clock's jitter matters more at 100 MHz, and FM needs a different
-  detector (the rate of change of the phase, not the amplitude). An untried
-  project.
+- **FM broadcasting**, at 88–108 MHz, is harder, and an untried project:
+  - nobody has measured how much of a 100 MHz signal the module's input
+    amplifier lets through to the ADC;
+  - the sampling clock's jitter matters more at 100 MHz;
+  - FM needs a different detector (the rate of change of the phase, not the
+    amplitude).
 
 **Try this:**
 
-- Change the tune: the melody is a line of text in `am_radio.sv`, a letter
-  for each note's pitch and a digit for its length.
-- Make a "seek" button: sweep the receive frequency across the AM band in
-  10 kHz steps with the transmitter off and an antenna on ADC IN, record the
-  carrier level at each, and list the stations you can hear.
-- Fill in the alias lobes: add a fourth CIC stage, and measure the
+- **Change the tune.** The melody is a line of text in `am_radio.sv`: a
+  letter for each note's pitch and a digit for its length.
+- **Make a "seek" button.** With the transmitter off and an antenna on ADC
+  IN, sweep the receive frequency across the AM band in 10 kHz steps, record
+  the carrier level at each, and list the stations you can hear.
+- **Fill in the alias lobes.** Add a fourth CIC stage, and measure the
   selectivity again with `dev/tools/fig_am.py`.
-- Add dither to the transmitter (a little noise from an LFSR, like
+- **Add dither to the transmitter**: a little noise from an LFSR, like
   [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s,
-  added before the DAC rounds), and see whether the 59 dB becomes more.
+  added before the DAC rounds. Does the 59 dB improve?
 
-That's the end of Chapter 1. You've built a function generator, a
-digitizer, a [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)),
-a [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer) and a radio out of nothing but logic.
+That's the end of Chapter 1. Out of nothing but logic, you've built:
+
+- a function generator,
+- a digitizer,
+- a [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)),
+- a [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer),
+- and a radio.
+
 [Chapter 2](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga) puts
 a computer in the FPGA next to them.
 
