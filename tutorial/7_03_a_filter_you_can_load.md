@@ -7,13 +7,16 @@
 
 [7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product) and
 [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)
-baked their taps into the bitstream, so a new filter was a new build.
+baked their taps into the bitstream, so a new filter meant a new build.
 `filter.sv` keeps the arithmetic in gateware and moves the *numbers* to
-the laptop: sixteen feed-forward taps and four feedback taps, loaded over
-the [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter), designed by scipy in the line before. It also carries its own
-test signals, so that a filter can be measured by any of
-[7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)'s
-three ways, and this page measures it by the first.
+the laptop:
+
+- sixteen feed-forward taps and four feedback taps, designed by scipy
+  and loaded over the
+  [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter);
+- its own test signals, so a filter can be measured by any of
+  [7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)'s
+  three ways. This page measures it by the first.
 
 ## The design
 
@@ -23,23 +26,30 @@ Direct form I, as the lower diagram of
   *y*[*n*] = ( Σ<sub>*k*=0..15</sub> *b*<sub>*k*</sub> *x*[*n* − *k*] − Σ<sub>*k*=1..4</sub> *a*<sub>*k*</sub> *y*[*n* − *k*] ) / 8192,
 
 with every coefficient a signed 16-bit integer in *Q2.13*: the number
-times 8192, so |*c*| < 4 and the resolution is 1/8192, −78 dB. Twenty
-multiplies per sample, and the ECP5 has 28 hardware multipliers, so the
-design simply uses twenty of them in parallel (time-sharing ten over the
-two clocks would need a multiplexer each and buy nothing). The output
-state is kept in 18 bits with 8 below the ADC's step and saturates at
-±512 codes, the lessons of [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line).
+times 8192, so |*c*| < 4 and the resolution is 1/8192, −78 dB.
+
+- **Multipliers:** twenty multiplies per sample, and the ECP5 has 28
+  hardware multipliers, so the design simply uses twenty in parallel.
+  Time-sharing ten over the two clocks would need a multiplexer each and
+  buy nothing.
+- **Output state:** 18 bits, with 8 below the ADC's step, saturating at
+  ±512 codes: the lessons of
+  [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line).
 
 ![What filter.sv does between two ADC samples: 40 ns, two clocks of 20 ns, twenty multipliers; the feed-forward sum pipelined, and the feedback loop kept to one multiply and one add](img/dsp_d_clocks.png)
 
-The two clocks between samples are spent as the figure shows: the
-feed-forward half is pipelined (shift the delay line, sixteen products,
-four sums of four, one sum of four) and does not care how deep it is; the
-feedback half must close in one sample, so *a*<sub>1</sub> *y*[*n* − 1] is the
-one multiply that waits for the previous output, and the other three
-feedback terms, which depend on older outputs, are computed a sample
-early and pre-summed. Three samples of latency in all, 120 ns, the same
-whether the DAC plays the output or (for measuring) the input.
+The two clocks between samples are spent as the figure shows:
+
+- **The feed-forward half** is pipelined (shift the delay line, sixteen
+  products, four sums of four, one sum of four) and does not care how
+  deep it is.
+- **The feedback half** must close in one sample. So
+  *a*<sub>1</sub> *y*[*n* − 1] is the one multiply that waits for the
+  previous output. The other three feedback terms depend on older
+  outputs, so they are computed a sample early and pre-summed.
+
+**Latency:** three samples in all, 120 ns, the same whether the DAC plays
+the output or (for measuring) the input.
 
 <details>
 <summary>The whole file: <code>filter.sv</code></summary>
@@ -324,14 +334,19 @@ endmodule
 
 </details>
 
-The laptop talks a byte protocol at 1 Mbaud: `B` *k* *hi* *lo* sets a
-feed-forward tap, `A` *k* *hi* *lo* a feedback one, `S` picks the input (the
-ADC, a one-sample impulse every 2<sup>14</sup> samples, a step, white noise
-from a shift register, or a tone from a tuning word set with `F`), `O`
-picks what the DAC plays (the filter's output, or its input delayed the
-same three samples), and `C` records 16384 ADC samples, aligned to the
-stimulus, in [1.06](1_06_fast_capture.md#106-fast-captures)'s format. At
-power-up *b*<sub>0</sub> = 1 and everything else is 0: a wire.
+The laptop talks a byte protocol at 1 Mbaud:
+
+- `B` *k* *hi* *lo* sets a feed-forward tap; `A` *k* *hi* *lo* a
+  feedback one.
+- `S` picks the input: the ADC, a one-sample impulse every
+  2<sup>14</sup> samples, a step, white noise from a shift register, or a
+  tone from a tuning word set with `F`.
+- `O` picks what the DAC plays: the filter's output, or its input
+  delayed the same three samples.
+- `C` records 16384 ADC samples, aligned to the stimulus, in
+  [1.06](1_06_fast_capture.md#106-fast-captures)'s format.
+
+At power-up *b*<sub>0</sub> = 1 and everything else is 0: a wire.
 
 ## Designing, in scipy
 
@@ -870,6 +885,9 @@ if __name__ == "__main__":
 
 </details>
 
+**Load the filter** and design a 2 MHz low-pass. `--design-only` prints
+the design without sending it to the board:
+
 ```console
 $ cd src/dsp
 $ make load-filter
@@ -896,28 +914,38 @@ design: low-pass 2 MHz, 15 taps
     as quantized:       -0.1    -0.3    -1.2    -5.0   -12.1   -24.6   -54.2   -57.9   -81.7   -72.5   -58.6
 ```
 
-`filter.py` has a flag for each of the classic designs: `--lowpass`,
-`--highpass`, `--bandpass` (windowed sincs from `firwin`), `--moving`,
-`--edge`, `--rc` (the one-pole with its cutoff in hertz), `--butter ORDER
-FC` (an IIR from `scipy.signal.butter`) and raw `--b`/`--a` lists. Each
-prints the design, its quantized integers, and the response "as designed"
-and "as quantized" at eleven frequencies: the two agree to 0.1 dB in
-every passband and part company only deep in the stopband, where
-−78 dB of coefficient resolution is what you get. Try `--butter 4 200e3`
-and it will tell you that *a*<sub>2</sub> = 5.6 does not fit in Q2.13 and the
-quantized filter would be unstable: [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)'s
+`filter.py` has a flag for each of the classic designs:
+
+- `--lowpass`, `--highpass`, `--bandpass`: windowed sincs from `firwin`;
+- `--moving`, `--edge`;
+- `--rc`: the one-pole, with its cutoff in hertz;
+- `--butter ORDER FC`: an IIR from `scipy.signal.butter`;
+- `--b`, `--a`: raw lists.
+
+Each prints the design, its quantized integers, and the response "as
+designed" and "as quantized" at eleven frequencies. The two agree to
+0.1 dB in every passband and part company only deep in the stopband,
+where −78 dB of coefficient resolution is what you get.
+
+**Try `--butter 4 200e3`:** it warns that *a*<sub>2</sub> = 5.6 does not
+fit in Q2.13 and the quantized filter would be unstable:
+[7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)'s
 third lesson, in a warning.
 
 ## Measuring, three ways
 
-**With a function generator and a scope** (`--m2k`): the ADALM2000's W1
-plays a sine at each of forty frequencies into ADC IN and its scope reads
-DAC OUT, and |*H*| is the ratio of the DAC's amplitude with the filter to
-its amplitude with the input played straight through (`O` 1). That ratio
-cancels everything that is not the filter: the ADC's 25.4 codes per volt,
-the DAC's 30.7 mV per code, the DAC's own zero-order-hold droop (−3.6 dB
-at 12 MHz) and the generator's response. Frequencies above 12.5 MHz
-alias, so the sweep stops at 12:
+**With a function generator and a scope** (`--m2k`). **Connect** the
+ADALM2000's W1 to ADC IN and its scope to DAC OUT. W1 plays a sine at
+each of forty frequencies. |*H*| is the ratio of the DAC's amplitude
+with the filter to its amplitude with the input played straight through
+(`O` 1). That ratio cancels everything that is not the filter:
+
+- the ADC's 25.4 codes per volt;
+- the DAC's 30.7 mV per code;
+- the DAC's own zero-order-hold droop (−3.6 dB at 12 MHz);
+- the generator's response.
+
+Frequencies above 12.5 MHz alias, so the sweep stops at 12:
 
 ```console
 $ python3 filter.py --moving 16 --m2k -o ../../dev/data/dsp_moving.npz
@@ -934,21 +962,30 @@ $ python3 filter.py --moving 16 --m2k -o ../../dev/data/dsp_moving.npz
 measured - predicted |H|: 0.25 dB rms where the prediction is above -40 dB
 ```
 
-The moving average's first null lands at 1.49 MHz, where 25 MHz/16 says
-1.56 and the quantized design says 1.49; the −79 dB at 3.1 MHz is the
-measurement's floor (the ADC's eight bits put it near −60 dB, and a null
-reads whatever noise is left). The four filters in the figure came out
-0.25, 0.91, 0.12 and 0.06 dB rms from their designs. The oscilloscope
-panel is `--m2k --impulse`: the board's own one-sample impulse into the
-moving average, and the sixteen taps come out as a 640 ns pulse of
-64 × 30.7 mV/16, held 40 ns per tap, which is the [impulse response](https://en.wikipedia.org/wiki/Impulse_response) seen
+- **The first null** of the moving average lands at 1.49 MHz, where
+  25 MHz/16 says 1.56 and the quantized design says 1.49.
+- **The −79 dB at 3.1 MHz** is the measurement's floor: the ADC's eight
+  bits put it near −60 dB, and a null reads whatever noise is left.
+- **The four filters in the figure** came out 0.25, 0.91, 0.12 and
+  0.06 dB rms from their designs.
+
+The oscilloscope panel is `--m2k --impulse`: the board's own one-sample
+impulse into the moving average. The sixteen taps come out as a 640 ns
+pulse of 64 × 30.7 mV/16, held 40 ns per tap: the
+[impulse response](https://en.wikipedia.org/wiki/Impulse_response) seen
 rather than inferred.
 
-**With a second board** as the [network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical)) ([7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)): A runs this
-filter, B runs [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in, and the two are cross-cabled. The
-reference sweep is A playing its input straight through (`--out 1`, the
-same delay as the filter); then the filter goes in and the second sweep
-is divided by the first:
+**With a second board** as the
+[network analyzer](https://en.wikipedia.org/wiki/Network_analyzer_(electrical))
+([7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)).
+Board A runs this filter, board B runs
+[1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in, and the two
+are cross-cabled.
+
+1. **Reference sweep:** A plays its input straight through (`--out 1`,
+   the same delay as the filter).
+2. **Filter sweep:** the filter goes in (`--out 0`), and this sweep is
+   divided by the first:
 
 ```console
 A$ python3 filter.py $A --lowpass 2e6 --out 1
@@ -957,21 +994,27 @@ A$ python3 filter.py $A --lowpass 2e6 --out 0
 B$ python3 ../verilog/lockin.py --port $B --sweep 1e5 12e6 -n 40 -o lp.csv --ref thru.csv
 ```
 
-Where the design is above −20 dB, the 30 points are 0.33 dB rms from it
-(1.4 dB at worst, at 3.1 MHz) and 6° rms in phase; the stopband reads
-−40 dB at its highest, the lock-in's floor. Two $40 boards, and no
-instrument.
+- Where the design is above −20 dB, the 30 points are 0.33 dB rms from
+  it (1.4 dB at worst, at 3.1 MHz) and 6° rms in phase.
+- The stopband reads −40 dB at its highest: the lock-in's floor.
 
-**With one board, looped back** (`--measure impulse|step|noise`): the
+Two $40 boards, and no instrument.
+
+**With one board, looped back** (`--measure impulse|step|noise`). The
 stimulus is made inside the FPGA, the DAC plays the filter's output, the
-cable returns it, and `C` records it aligned to the stimulus; an impulse
-gives the taps directly, a step the integral, and noise the response by
-deconvolution against the shift register's known sequence. Written and
-checked against the cable model; on the board, with the cable back, the
-impulse mode returns the low-pass's taps to the ADC's one-code resolution
-but one tap late, and the step and noise modes return nothing: its
-alignment code is wrong, and it is the first "Try this". The sweeps above
-are the measurements this chapter stands on.
+cable returns it, and `C` records it aligned to the stimulus:
+
+- an impulse gives the taps directly;
+- a step gives the integral;
+- noise gives the response, by deconvolution against the shift
+  register's known sequence.
+
+**Known problem.** This mode passes against the cable model, but on the
+board, with the cable back, the impulse mode returns the low-pass's taps
+to the ADC's one-code resolution but one tap late, and the step and
+noise modes return nothing. Its alignment code is wrong, and it is the
+first "Try this". The sweeps above are the measurements this chapter
+stands on.
 
 ## What it costs
 
@@ -983,26 +1026,27 @@ are the measurements this chapter stands on.
 | clock | 99 MHz, passes at 50 |
 | latency | 3 samples, 120 ns |
 
-Twenty of twenty-eight multipliers for one filter at the full sample
-rate: that is the budget line every FPGA signal chain is drawn against,
-and the reason [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s
-SoC, which already used seven, ends up with one to spare.
+One filter at the full sample rate takes twenty of the twenty-eight
+multipliers. That is the budget line every FPGA signal chain is drawn
+against:
+[7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s
+SoC already used seven, so it ends up with one to spare.
 
 **Try this:**
 
-- `--bandpass 3e6 5e6 --m2k`, then `--butter 2 1e6 --m2k`: an FIR and an
-  IIR of about the same cost, and their phase (`--ch2`, with W1 also on
-  the scope's second channel).
-- `--b 0.0625 --a 1,-0.9375`: that is `iir_k4` exactly. Then
+- **Compare an FIR and an IIR** of about the same cost:
+  `--bandpass 3e6 5e6 --m2k`, then `--butter 2 1e6 --m2k`. For their
+  phase, add `--ch2`, with W1 also on the scope's second channel.
+- **Load `iir_k4` exactly:** `--b 0.0625 --a 1,-0.9375`. Then
   `--a 1,-0.99`: watch the dead zone and the ring.
-- Design a notch at 1 MHz (`iirnotch`) and put a 1 MHz sine plus a
+- **Design a notch** at 1 MHz (`iirnotch`) and put a 1 MHz sine plus a
   300 kHz square wave into it from W1.
-- Fix `--measure`: find the impulse in the capture by its peak, not by
-  the stimulus counter, and the step by its edge; then `--measure impulse`
-  for every design above against the sweeps.
-- Load the identity (`--b 1`) and `S` 3 (noise), `O` 0: the DAC plays
-  white noise; the scope's FFT is flat. Then any filter: the FFT is |*H*|
-  at a glance, which is the quickest filter measurement there is.
+- **Fix `--measure`:** find the impulse in the capture by its peak, not
+  by the stimulus counter, and the step by its edge. Then compare
+  `--measure impulse` for every design above against the sweeps.
+- **Load the identity** (`--b 1`) with `S` 3 (noise) and `O` 0: the DAC
+  plays white noise, and the scope's FFT is flat. Then load any filter:
+  the FFT is |*H*| at a glance, the quickest filter measurement there is.
 
 <!-- nav -->
 [← 7.02 IIR filters: feedback, and an RC in one line](7_02_iir_filters.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.04 The filter as a LiteX peripheral →](7_04_the_filter_as_a_litex_peripheral.md)

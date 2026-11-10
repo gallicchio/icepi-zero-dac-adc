@@ -14,30 +14,35 @@ character changes:
 Each sample, the output moves a fraction 1/2<sup>*K*</sup> of the way toward
 the input. That is a capacitor charging through a resistor, *RC* d*V*/d*t*
 = *V*<sub>in</sub> − *V*, discretized with one sample as the time step and τ =
-2<sup>*K*</sup> samples: the [impulse response](https://en.wikipedia.org/wiki/Impulse_response) is a decaying exponential (1/16)(15/16)<sup>*k*</sup>,
-the step response is 1 − *e*<sup>−*t*/τ</sup>, and the frequency response is within
-half a decibel of a real RC's 1/(1 + *jf*/*f*<sub>c</sub>) with *f*<sub>c</sub> =
-*f*<sub>s</sub>/(2π 2<sup>*K*</sup>), 249 kHz at *K* = 4, out to eight times the
-cutoff. It costs one register and a shift. Its impulse response is
-infinitely long, which is the name: an *infinite impulse response*
-filter, an IIR. The bargain is an RC for the price of one tap; the fine
-print is the rest of this page.
+2<sup>*K*</sup> samples:
+
+* the [impulse response](https://en.wikipedia.org/wiki/Impulse_response) is a decaying exponential (1/16)(15/16)<sup>*k*</sup>;
+* the step response is 1 − *e*<sup>−*t*/τ</sup>;
+* the frequency response is within half a decibel of a real RC's
+  1/(1 + *jf*/*f*<sub>c</sub>), with *f*<sub>c</sub> = *f*<sub>s</sub>/(2π 2<sup>*K*</sup>), 249 kHz at
+  *K* = 4, out to eight times the cutoff.
+
+It costs one register and a shift. Its impulse response is infinitely
+long, which is the name: an *infinite impulse response* filter, an IIR.
+The bargain is an RC for the price of one tap; the fine print is the rest
+of this page.
 
 ![Computed: the one-pole y += (x − y)/16: its impulse response, (1/16)(15/16) to the k, on the exponential e to the minus t over tau; its step response beside an RC charging, the dots on the curve; and its frequency response beside an RC's 1 over 1 plus j f over f c, together to 2 MHz](img/dsp_iir_intuition.png)
 
 <details>
 <summary><b>Detail:</b> where the digital RC and the real one part company</summary>
 
-Above about eight times the cutoff the digital one-pole stops falling:
-at *f*<sub>s</sub>/2 the real RC is 4 dB lower. The digital filter's response is
-α/|1 − (1 − α)*e*<sup>−*jω*</sup>|, with α = 1/2<sup>*K*</sup>, and *e*<sup>−*jω*</sup> goes
-round a circle while 1/(1 + *jf*/*f*<sub>c</sub>) keeps going down a line: every
-digital filter's response is periodic in *f*<sub>s</sub>, so it has to level off
-on the way to *f*<sub>s</sub>/2 and come back up. The RC's response at *f*<sub>s</sub>/2
-and beyond is also where the ADC aliases, so in practice the two are
-never compared there; but a student who expects −20 dB per decade for
-ever will be surprised, and the measured points in the figure show the
-flattening from 2 MHz up.
+Above about eight times the cutoff the digital one-pole stops falling: at
+*f*<sub>s</sub>/2 the real RC is 4 dB lower. The digital filter's response is
+α/|1 − (1 − α)*e*<sup>−*jω*</sup>|, with α = 1/2<sup>*K*</sup>. As the frequency rises,
+*e*<sup>−*jω*</sup> goes round a circle, while 1/(1 + *jf*/*f*<sub>c</sub>) keeps going
+down a line. Every digital filter's response is periodic in *f*<sub>s</sub>, so it
+has to level off on the way to *f*<sub>s</sub>/2 and come back up.
+
+The RC's response at *f*<sub>s</sub>/2 and beyond is also where the ADC aliases,
+so in practice the two are never compared there. But if you expect
+−20 dB per decade for ever you will be surprised: the measured points in
+the figure show the flattening from 2 MHz up.
 
 </details>
 
@@ -45,16 +50,18 @@ flattening from 2 MHz up.
 
 ![The IIR as a block diagram, computed: direct form I, the input through a delay line and the b taps into an adder, the output through its own delay line and the minus a taps back into the same adder; and the one-tap case, x minus y, times 1/16, plus y, with one delay in the loop](img/dsp_d_iir.png)
 
-`iir.sv` has two modes. Mode 0 is literally the line above, with one
-refinement that is the first lesson of IIR filters: the state *y* is kept
-with `GUARD` extra bits below the ADC's least significant bit, and only
-the output is rounded. Mode 1 is a second-order *resonator*, a band-pass
-whose two poles sit at a radius *r* and angle ±ω<sub>0</sub> inside the unit
-circle; its coefficients come from scipy's `iirpeak` for a centre
-frequency and a *Q*, and `iir.sv` computes them at build time from the
-parameters, so `make iir_peak F0=2e6 Q=10` is a 2 MHz resonator with a
-200 kHz bandwidth and the same coefficients, to the integer, that scipy
-prints.
+`iir.sv` has two modes:
+
+* **Mode 0** is literally the line above, with one refinement that is the
+  first lesson of IIR filters: the state *y* is kept with `GUARD` extra
+  bits below the ADC's least significant bit, and only the output is
+  rounded.
+* **Mode 1** is a second-order *resonator*: a band-pass whose two poles
+  sit at a radius *r* and angle ±ω<sub>0</sub> inside the unit circle. Its
+  coefficients come from scipy's `iirpeak` for a centre frequency and a
+  *Q*, and `iir.sv` computes them at build time from the parameters. So
+  `make iir_peak F0=2e6 Q=10` is a 2 MHz resonator with a 200 kHz
+  bandwidth, and the same coefficients, to the integer, that scipy prints.
 
 <details>
 <summary>The whole file: <code>iir.sv</code></summary>
@@ -212,6 +219,8 @@ endmodule
 
 </details>
 
+**Simulate it, build the bitstreams, and load the *K* = 4 one:**
+
 ```console
 $ cd src/dsp
 $ make sim-iir                     # the one-pole against 64 - 128 (15/16)^(n+1), and the resonator against scipy
@@ -221,19 +230,25 @@ $ make iir_peak F0=2e6 Q=10        # the resonator
 $ make load-iir_k4
 ```
 
-The simulation's numbers are the three lessons. The one-pole at *K* = 4
-tracks its integer model bit for bit and the exponential within a code.
-The same filter with `GUARD` = 0 **sticks at 49 codes** on a step to 64:
-fifteen codes short, because (64 − 49)/16 rounds to zero and the output
-can no longer move. That is the *dead zone*, and it is why IIR filters
-need more bits than their inputs: rounding inside a feedback loop is
-fed back too. And the resonator passes a 50-code sine at 2 MHz at 50.0
-codes and one at 4 MHz at 3.0 codes, −24.4 dB against scipy's −24.1.
+The simulation's numbers are the three lessons:
 
-On the board, with [7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product)'s
-300 kHz square wave from the ADALM2000 into ADC IN and `iir_k4` loaded,
-DAC OUT charges and discharges like a capacitor, with τ = 16 samples,
-640 ns:
+1. The one-pole at *K* = 4 tracks its integer model bit for bit, and the
+   exponential within a code.
+2. The same filter with `GUARD` = 0 **sticks at 49 codes** on a step to
+   64: fifteen codes short, because (64 − 49)/16 rounds to zero and the
+   output can no longer move. That is the *dead zone*, and it is why IIR
+   filters need more bits than their inputs: rounding inside a feedback
+   loop is fed back too.
+3. The resonator passes a 50-code sine at 2 MHz at 50.0 codes, and one at
+   4 MHz at 3.0 codes: −24.4 dB against scipy's −24.1.
+
+On the board:
+
+1. **Load `iir_k4`** (`make load-iir_k4`, above).
+2. **Put [7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product)'s 300 kHz square wave** from the ADALM2000 into
+   ADC IN.
+3. **Watch DAC OUT on the scope.** It charges and discharges like a
+   capacitor, with τ = 16 samples, 640 ns:
 
 ![Measured on the M2k: the 300 kHz, 1 V square wave through the one-pole y += (x − y)/16 (iir_k4), on the scope at DAC OUT: an RC's exponential rise and fall, tau = 640 ns](img/dsp_iir_scope.png)
 
@@ -251,60 +266,73 @@ and each is a line in `iir.sv`'s header:
    loop is a filter that has gone somewhere else entirely and may never
    come back.
 3. **The coefficients are poles.** Move *a*<sub>1</sub> by one least significant
-   bit and the pole's angle moves by 1/(2*r* sin ω<sub>0</sub>) radians: nothing
-   at 2 MHz (0.03% of the centre frequency per bit of a 16-bit
+   bit and the pole's angle moves by 1/(2*r* sin ω<sub>0</sub>) radians. At 2 MHz
+   that is nothing (0.03% of the centre frequency per bit of a 16-bit
    coefficient), but a 20 kHz resonator at 25 MS/s moves by *twice its own
-   frequency* per bit. Low-frequency poles are expensive in bits, which is
-   why audio IIRs run at audio rates and why a 4th-order Butterworth at
+   frequency* per bit. Low-frequency poles are expensive in bits. That is
+   why audio IIRs run at audio rates, and why a 4th-order Butterworth at
    200 kHz does not fit [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s
    16-bit coefficients at all (its `filter.py` will tell you so).
 
-And one thing the FPGA adds: a feedback loop cannot be pipelined past
+**And one thing the FPGA adds:** a feedback loop cannot be pipelined past
 its own period. *y*[*n* − 1] is needed to make *y*[*n*], which is needed
-one sample later, so however many multipliers you have, the loop must
+one sample later. So however many multipliers you have, the loop must
 close in the two clocks between samples. An FIR can be pipelined as deep
 as you like for free; an IIR at the full sample rate gets one multiply
-and one add per loop, and that is what
-[7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s design
-is built around.
+and one add per loop. [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s design is built around
+that.
 
 ## FIR or IIR?
 
 ![Computed: the 16-sample moving average (an FIR) and the one-pole with K = 4 (an IIR), two low-passes with the same 16-sample memory: the impulse responses, a box and an exponential; the same square wave with noise and a ramp through both; the FIR's response with its nulls and lobes against the one-pole's smooth slope; and the group delay, 7.5 samples at every frequency for the FIR, 15 samples at DC falling below zero near half the sample rate for the IIR](img/dsp_fir_vs_iir.png)
 
-Now the two can be compared. The figure puts
-[7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product)'s
-moving average beside this page's one-pole, two low-passes that remember
-about 16 samples. They smooth about equally. The FIR needs 16 taps (16
-multiply-adds per sample, though ×1/16 is a shift); the IIR needs one
-register and a shift, and an FIR could only imitate its exponential tail
-with ever more taps. But the FIR delays every frequency by the same 7.5
-samples (linear phase: its edges come out symmetric and unskewed), while
-the IIR delays low frequencies by 15 samples and high ones by almost
-nothing, which is exactly what an RC does to a square wave.
+The figure puts [7.01](7_01_fir_filters.md#701-fir-filters-the-sliding-dot-product)'s
+moving average beside this page's one-pole: two low-passes that remember
+about 16 samples. They smooth about equally.
 
-Use an IIR when you want an analog filter's *behaviour* (an RC, a
-resonator, a Butterworth) for nearly nothing, when a long memory matters
-(a 1 ms time constant is one register here and 100,000 taps as an FIR),
-and when the phase does not. Use an FIR when the shape in time matters,
-when you need linear phase, or when you cannot afford a loop that might
-latch up. Most real signal chains use both: an IIR to tame the big slow
-things, an FIR to shape the signal. [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
-lock-in was a boxcar (an FIR); [5.07](5_07_radio_link.md#507-a-radio-link)'s
-leaky average was this page's one-pole; [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga)'s
-loop filters were one-poles with the gains written as shifts.
+* **Cost.** The FIR needs 16 taps (16 multiply-adds per sample, though
+  ×1/16 is a shift). The IIR needs one register and a shift, and an FIR
+  could only imitate its exponential tail with ever more taps.
+* **Delay.** The FIR delays every frequency by the same 7.5 samples
+  (linear phase: its edges come out symmetric and unskewed). The IIR
+  delays low frequencies by 15 samples and high ones by almost nothing,
+  which is exactly what an RC does to a square wave.
+
+Use an IIR:
+
+* when you want an analog filter's *behaviour* (an RC, a resonator, a
+  Butterworth) for nearly nothing;
+* when a long memory matters (a 1 ms time constant is one register here
+  and 100,000 taps as an FIR);
+* when the phase does not matter.
+
+Use an FIR:
+
+* when the shape in time matters;
+* when you need linear phase;
+* when you cannot afford a loop that might latch up.
+
+Most real signal chains use both: an IIR to tame the big slow things, an
+FIR to shape the signal.
+
+* [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in was a boxcar
+  (an FIR).
+* [5.07](5_07_radio_link.md#507-a-radio-link)'s leaky average was this
+  page's one-pole.
+* [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga)'s loop
+  filters were one-poles with the gains written as shifts.
 
 **Try this:**
 
-- Build `iir_k6` and `iir_k6_g0` and put the same 1 V square wave into
-  both: watch the second one stop short of the top. Then a 10 mV square
-  wave: one of them does nothing at all.
-- `make iir_peak F0=500e3 Q=30` and ring it with the edge of a square
-  wave: count the cycles before it dies (about *Q*/π).
-- Change `GUARD` to 1, 2, 3 and measure the dead zone each time.
-- A two-pole low-pass (a biquad) by hand, with poles at *r* = 0.9 and
-  ±30°: what Q is that, and what happens to the step response as *r*
-  goes to 0.99?
+- **Build `iir_k6` and `iir_k6_g0`** and put the same 1 V square wave into
+  both: watch the second one stop short of the top. Then try a 10 mV
+  square wave: one of them does nothing at all.
+- **Run `make iir_peak F0=500e3 Q=30`** and ring it with the edge of a
+  square wave: count the cycles before it dies (about *Q*/π).
+- **Change `GUARD` to 1, 2, 3** and measure the dead zone each time.
+- **Design a two-pole low-pass (a biquad) by hand**, with poles at
+  *r* = 0.9 and ±30°: what Q is that, and what happens to the step
+  response as *r* goes to 0.99?
 
 <!-- nav -->
 [← 7.01 FIR filters: the sliding dot product](7_01_fir_filters.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.03 A filter you can load →](7_03_a_filter_you_can_load.md)

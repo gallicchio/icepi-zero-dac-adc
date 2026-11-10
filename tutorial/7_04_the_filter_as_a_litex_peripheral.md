@@ -7,16 +7,25 @@
 
 [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s filter
 has a byte protocol that the laptop and the gateware both had to get
-right by hand. Chapter 2 built a processor on the FPGA so that this kind
-of thing becomes a register: the processor, or the laptop through LiteX's
-bridge, or MicroPython on the board's own Linux, writes a number to an
-address and the gateware uses it 40 ns later. This page makes the filter
-a *peripheral* of [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)'s
-SoC, and the point is that nothing about the filter changes: the datapath
-of `filter.sv` becomes `filter_core.sv` with its settings as input ports,
-and the twenty-five control registers are the contract.
+right by hand.
+[Chapter 2](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga)
+built a processor on the FPGA so that this kind of setting becomes a
+register. Any of three writers puts a number at an address, and the
+gateware uses it 40 ns later:
+
+- the processor;
+- the laptop, through LiteX's bridge;
+- MicroPython, on the board's own Linux.
+
+This page makes the filter a *peripheral* of
+[2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)'s
+SoC. Nothing about the filter changes: the datapath of `filter.sv`
+becomes `filter_core.sv`, with its settings as input ports, and the
+twenty-five control registers are the contract.
 
 ## The contract
+
+**Build the SoC** and list the filter's registers:
 
 ```console
 $ cd src/riscv
@@ -34,25 +43,30 @@ $ litex_cli --csr-csv build/bone/csr.csv --regs --filter filter
 | +0x5c | `filter_dac_source` | 0 the DAC plays the function generator (Chapter 2 unchanged), 1 the filter; 0 also clears the state |
 | +0x60 | `filter_status` | bit 0 running, bit 1 clipped |
 
-Two things in that table are the lessons of the page. The DAC has one pin
-and two sources, so there is a multiplexer, and its reset value is why
-Chapter 2 did not notice a new peripheral had been added. And the status
-bits are what the gateware knows and software doesn't: `clipped` replaces
-[7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s LED, and
-turning `dac_source` off and on clears an IIR that has latched into
-saturation, which is how you recover from loading a pole outside the
-unit circle.
+Two things in that table are the lessons of the page:
+
+- **`filter_dac_source`.** The DAC has one pin and two sources, so there
+  is a multiplexer. Its reset value is why Chapter 2 did not notice that
+  a new peripheral had been added.
+- **`filter_status`.** The status bits are what the gateware knows and
+  software doesn't: `clipped` replaces
+  [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s LED.
+  Turning `dac_source` off and on clears an IIR that has latched into
+  saturation: that is how you recover from loading a pole outside the
+  unit circle.
 
 <details>
 <summary><b>Detail:</b> why the bank is pinned to the last slot</summary>
 
 LiteX allocates its CSR banks alphabetically, and "filter" sorts between
-"ctrl" and "funcgen". Left to itself it would have moved the function
-generator, the LEDs and the lock-in, and every address quoted in
-[2.06](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop) and
-[3.01](3_01_booting_linux.md#301-booting-linux) would have been wrong.
-One line in `adda_litex.py` pins the new bank to slot 31, nothing moves,
-and the moral of [2.06](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop), use names from `csr.csv`, is shown biting.
+"ctrl" and "funcgen". Left to itself, LiteX would have moved the
+function generator, the LEDs and the lock-in, and every address quoted
+in [2.06](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop)
+and [3.01](3_01_booting_linux.md#301-booting-linux) would have been
+wrong. One line in `adda_litex.py` pins the new bank to slot 31, so
+nothing moves. This is the moral of
+[2.06](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop)
+biting: use names from `csr.csv`.
 
 </details>
 
@@ -243,21 +257,29 @@ endmodule
 
 </details>
 
-`filter_core.sv` is `filter.sv` with the [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter) parser, the capture and the
-LEDs removed and the settings brought in as ports (`b_all`, `a_all`, `src`,
-`out_in`, `tone_word`, `enable`), plus `running` and `clipped` going out.
-The key line is unchanged: `pb[k] <= b[k] * xd[k]`, where *b*[*k*] is now a
-wire from a register that any processor can write. The seven-check
-testbench feeds it [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s
-own noise sequence and compares every output sample with `filter.py`'s
-bit-exact model: 2996 of 2996 identical, so the two pages' filters are
-the same filter by construction, not by intention.
+`filter_core.sv` is `filter.sv` with:
+
+- the
+  [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter)
+  parser, the capture and the LEDs removed;
+- the settings brought in as ports (`b_all`, `a_all`, `src`, `out_in`,
+  `tone_word`, `enable`);
+- `running` and `clipped` going out.
+
+The key line is unchanged: `pb[k] <= b[k] * xd[k]`, where *b*[*k*] is
+now a wire from a register that any processor can write. The seven-check
+testbench feeds it
+[7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s own
+noise sequence and compares every output sample with `filter.py`'s
+bit-exact model: 2996 of 2996 identical. The two pages' filters are the
+same filter by construction, not by intention.
 
 ## Three ways to load it
 
-**From the firmware**, at the `adda>` prompt, the way a student with
-nothing but a terminal sees a filter work ([2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)'s
-shell, with a `filter` command):
+**From the firmware**, at the `adda>` prompt: all you need is a
+terminal. It is
+[2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)'s shell, with
+a `filter` command:
 
 ```console
 $ litex_term --kernel=firmware/firmware.bin /dev/ttyUSB0
@@ -271,16 +293,19 @@ adda> filter a 1 -9000         # a pole outside the circle: "clipped"; off, on c
 adda> filter off               # back to the function generator
 ```
 
-Every command prints the whole state back. The firmware has three
-presets (`lowpass`, `edge`, `rc K`) because the CPU has no scipy; the
-numbers are the same integers `filter.py` prints.
+Every command prints the whole state back. The CPU has no scipy, so the
+firmware has three presets (`lowpass`, `edge`, `rc K`), with the same
+integers `filter.py` prints.
 
 **From the laptop over the bridge**, with no firmware at all
 ([2.06](2_06_registers_from_the_laptop.md#206-the-registers-from-the-laptop)'s
 `litex_server` and RemoteClient). `filter_remote.py` imports
-`filter.py`'s design functions, so every flag of [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load) works and the
-quantization is literally the same code. Measured on the bench, with the
-M2k's scope on DAC OUT and the filter's own tone as the input:
+`filter.py`'s design functions, so every flag of
+[7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load) works,
+and the quantization is literally the same code.
+
+**Connect the M2k's scope to DAC OUT.** The filter's own tone is the
+input:
 
 ```console
 $ openFPGALoader -b icepi-zero build/bone/gateware/icepi_zero.bit
@@ -314,12 +339,13 @@ a new design is one edited line and a rerun. This is the way to iterate.
 **From MicroPython on the board's Linux**, with `machine.mem32`
 ([3.01](3_01_booting_linux.md#301-booting-linux)'s way to a register
 without a driver). `make_linux.py` calls the same `add_adda()`, so the
-Linux SoC of [3.01](3_01_booting_linux.md#301-booting-linux) has the filter
-at the same address, and `/root/filter.py` takes the commands of the
-firmware, several per line, with no laptop and no scipy. Measured through
-the loopback cable, with [3.02](3_02_a_driver.md#302-a-driver)'s driver
-capturing DAC OUT and `out 1` (the filter's input, same delay) as the
-reference:
+Linux SoC of [3.01](3_01_booting_linux.md#301-booting-linux) has the
+filter at the same address. `/root/filter.py` takes the firmware's
+commands, several per line, with no laptop and no scipy.
+
+Measured through the loopback cable, with
+[3.02](3_02_a_driver.md#302-a-driver)'s driver capturing DAC OUT, and
+`out 1` (the filter's input, same delay) as the reference:
 
 ```console
 # micropython /root/filter.py lowpass src 4 tone 1000000 out 0 on
@@ -328,10 +354,14 @@ filter: b = -12 8 87 289 625 1020 1344 1470 1344 1020 625 289 87 8 -12 0
         src tone, out the output, tone 1000000 Hz; the DAC plays the filter, running
 ```
 
-Each point is `micropython /root/filter.py ... out 0 on`, then
-`sh /root/dump.sh` (a capture of DAC OUT through the cable, with `adda.ko`
-loaded), then the same with `out 1`; the laptop fits the tone's amplitude
-in both and takes the ratio.
+For each point:
+
+1. `micropython /root/filter.py ... out 0 on`;
+2. `sh /root/dump.sh`: a capture of DAC OUT through the cable, with
+   `adda.ko` loaded;
+3. the same with `out 1`;
+4. on the laptop, fit the tone's amplitude in both captures and take the
+   ratio.
 
 | filter, tone | through the cable | design |
 | --- | ---: | ---: |
@@ -350,13 +380,17 @@ in both and takes the ratio.
 | the laptop over the bridge | a few milliseconds | nothing: rerun the script | `litex_server`, numpy and scipy |
 | MicroPython on the board | microseconds | nothing | Linux booted, no scipy |
 
-And the chip: the SoC used 7 of the 28 multipliers (four in VexRiscv's
-multiplier, one in the function generator, two in the lock-in); the
-filter uses 20; **27 of 28**. A seventeenth tap, or a second filter, means
-time-sharing multipliers or building them from logic, which is the
-conversation every FPGA designer eventually has with the resource report.
-The firmware SoC fits at 69 MHz, the bridge SoC at 74, both with the
-filter.
+And the chip's multipliers:
+
+- the SoC used 7 of the 28: four in VexRiscv's multiplier, one in the
+  function generator, two in the lock-in;
+- the filter uses 20;
+- in all, **27 of 28**.
+
+A seventeenth tap, or a second filter, means time-sharing multipliers or
+building them from logic: the conversation every FPGA designer
+eventually has with the resource report. With the filter, the firmware
+SoC fits at 69 MHz and the bridge SoC at 74.
 
 ## How much code each one took
 
@@ -367,40 +401,46 @@ filter.
 | [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s byte-loadable `filter.sv` | 191, and `uart.sv`'s 64 | | `filter.py`, 414 lines of Python |
 | this page's `filter_core.sv` | 130, and 37 lines of Python declaring the 25 registers | about 180 lines of Verilog for the registers, and the whole SoC | the firmware's `filter` command, 66 lines of C; `filter_remote.py`, 98; MicroPython's `filter.py`, 62 |
 
-Lines are counted without comments or blank lines. The fixed filters are
-small because a parameter chooses the taps at build time and nothing can
-change them afterwards. Of `filter.sv`'s 191 lines, about 100 are the
-filter itself and its test signals; `filter_core.sv` keeps those 100
-almost unchanged.
+Lines are counted without comments or blank lines.
 
-The rest of `filter.sv` is what loading by bytes costs:
-50 lines of settings, command parser and serial-port wiring, which had to
-agree byte for byte with `filter.py`, plus 23 for the capture and 9 for
-the LEDs. In the peripheral that parser becomes 37 lines of register
-declarations, and LiteX writes the bus decoding: about 180 lines of
-generated Verilog in an SoC of 9430.
+- **The fixed filters are small** because a parameter chooses the taps
+  at build time, and nothing can change them afterwards.
+- **Of `filter.sv`'s 191 lines,** about 100 are the filter itself and
+  its test signals; `filter_core.sv` keeps those 100 almost unchanged.
+  The rest is what loading by bytes costs: 50 lines of settings, command
+  parser and serial-port wiring, which had to agree byte for byte with
+  `filter.py`, plus 23 for the capture and 9 for the LEDs.
+- **In the peripheral,** that parser becomes 37 lines of register
+  declarations, and LiteX writes the bus decoding: about 180 lines of
+  generated Verilog in an SoC of 9430.
 
-So the register-loadable filter is
-the *less* gateware to write and the easier to get right. You pay for it
-elsewhere: a processor and a bus, a build that takes minutes, seven of the
-28 multipliers spent before the filter starts, and Chapter 2's framework to
-learn first.
+So the register-loadable filter is the *less* gateware to write and the
+easier to get right. You pay for it elsewhere:
+
+- a processor and a bus;
+- a build that takes minutes;
+- seven of the 28 multipliers spent before the filter starts;
+- [Chapter 2](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga)'s
+  framework to learn first.
 
 **Try this:**
 
-- A third DAC source: a 2-bit `dac_source` and your own module. The mux is
-  one line; the registers are three.
-- A sample counter in `filter_status` so that software can measure the
-  25 MS/s itself (and notice when the clock is wrong).
-- Wire `filter_core`'s period start to the capture core's trigger, so the
-  bridge capture is aligned to the stimulus as [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s was (six lines), and
-  then `filter_remote.py --src 1 --capture` gives the [impulse response](https://en.wikipedia.org/wiki/Impulse_response)
+- **Add a third DAC source:** a 2-bit `dac_source` and your own module.
+  The mux is one line; the registers are three.
+- **Add a sample counter** to `filter_status`, so that software can
+  measure the 25 MS/s itself (and notice when the clock is wrong).
+- **Wire `filter_core`'s period start** to the capture core's trigger
+  (six lines), so the bridge capture is aligned to the stimulus as
+  [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s was.
+  Then `filter_remote.py --src 1 --capture` gives the
+  [impulse response](https://en.wikipedia.org/wiki/Impulse_response)
   through the loopback cable.
-- Add `filter/` to the [sysfs](https://en.wikipedia.org/wiki/Sysfs) driver of [3.02](3_02_a_driver.md#302-a-driver), so
-  `echo 8192 > /sys/.../b0` works. For the address to come from the device
-  tree instead of a script, add the filter's bank to the `reg` list of the
-  node that `make_linux.py` writes (it lists the function generator, the
-  capture unit, the lock-in and the buffer).
+- **Add `filter/`** to the [sysfs](https://en.wikipedia.org/wiki/Sysfs)
+  driver of [3.02](3_02_a_driver.md#302-a-driver), so
+  `echo 8192 > /sys/.../b0` works. For the address to come from the
+  device tree instead of a script, add the filter's bank to the `reg`
+  list of the node that `make_linux.py` writes (it lists the function
+  generator, the capture unit, the lock-in and the buffer).
 
 <!-- nav -->
 [← 7.03 A filter you can load](7_03_a_filter_you_can_load.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.05 Trading speed for bits →](7_05_trading_speed_for_bits.md)

@@ -5,24 +5,33 @@
 
 ![Measured, one board looped back: the bit error rate per information bit against Eb/N0 for uncoded QPSK, Hamming(7,4) with hard and soft decisions, and the K = 7 convolutional code with hard- and soft-decision Viterbi decoding, with the coding gain of each at one error in ten thousand; the Viterbi decoder's trellis on a small code with two flipped bits corrected; and a 40-symbol dropout that leaves a clump of wrong code bits unless the bits were interleaved](img/comms_ecc.png)
 
-[6.08](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are) said that uncoded [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) sits 8 dB from [Shannon's limit](https://en.wikipedia.org/wiki/Shannon%E2%80%93Hartley_theorem) and that the
-constellation is not to blame. This page closes some of that gap, with two
-codes a student can follow bit by bit, and measures what each buys through
-the cable. The idea is the same in both: send more bits than the message
-has, chosen so that the extra ones *constrain* the message, and let the
-receiver pick the message that fits what it heard best. Every bit that
-arrives wrong is then outvoted.
+[6.08](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are) said that uncoded [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) sits 8 dB from [Shannon's limit](https://en.wikipedia.org/wiki/Shannon%E2%80%93Hartley_theorem), and that the
+constellation is not to blame. This page closes some of that gap with two
+codes you can follow bit by bit, and measures what each buys through the
+cable. The idea is the same in both:
+
+* send more bits than the message has, chosen so that the extra ones
+  *constrain* the message;
+* let the receiver pick the message that best fits what it heard.
+
+Every bit that arrives wrong is then outvoted.
 
 ## Hamming's bad weekend
 
 In 1950 Richard Hamming's relay computer at Bell Labs would halt on a parity
 error and wait for Monday, and he got tired of it. His (7,4) code sends four
-data bits with three parity bits, at positions 1, 2 and 4 of a 7-bit word,
-each the parity of the data bits whose position numbers have that bit set.
-At the receiver the same three checks, recomputed, make a 3-bit *syndrome*,
-and the trick is that the syndrome *is the position of the wrong bit*:
-flip it back. Zero means nothing went wrong, any one error is corrected, and
-two errors are confidently mis-corrected:
+data bits and three parity bits in a 7-bit word:
+
+* the parity bits sit at positions 1, 2 and 4;
+* each is the parity of the data bits whose position numbers have that bit
+  set.
+
+At the receiver the same three checks, recomputed, make a 3-bit *syndrome*.
+The trick: the syndrome *is the position of the wrong bit*, so flip it back.
+
+* A syndrome of zero means nothing went wrong.
+* Any one error is corrected.
+* Two errors are confidently mis-corrected.
 
 <details>
 <summary>The whole file: <code>ecc.py</code></summary>
@@ -535,6 +544,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Run the demo** (no board needed):
+
 ```console
 $ python3 ecc.py --demo                 # no board
 Hamming(7,4).  Positions 1..7; parity bits at 1, 2, 4.
@@ -548,26 +559,36 @@ Hamming(7,4).  Positions 1..7; parity bits at 1, 2, 4.
 
 **Hard and soft.** The syndrome decoder works on bits the receiver has
 already decided. But the receiver knows more than the bits: a symbol that
-landed near a decision boundary is doubtful, one far from it is sure, and
-throwing that away before decoding is throwing away information. The *soft*
+landed near a decision boundary is doubtful, one far from it is sure.
+Throwing that away before decoding throws away information. The *soft*
 decoder keeps the symbol values, lists all sixteen code words, and picks the
-one nearest to what arrived. Measured below, that is worth 1.2 dB for
-this code and 2.4 for the next; the textbook rule is "about 2 dB for soft
-decisions", which is the asymptote.
+one nearest to what arrived.
+
+Measured below, soft decisions are worth 1.2 dB for this code and 2.4 dB for
+the next. The textbook rule, "about 2 dB for soft decisions", is the
+asymptote.
 
 ## A code with memory
 
 Hamming's code looks at four bits at a time. A *convolutional* code looks at
-every bit through a window: a shift register of *K* bits, and two parity
-outputs, each the XOR of a different subset of the register, so every input
-bit influences 2*K* output bits. The encoder is a [state machine](https://en.wikipedia.org/wiki/Finite-state_machine) with
-2<sup>*K*−1</sup> states, and its output is a path through a *trellis*. The
-receiver's job is to find the path that fits what arrived best, and Viterbi's
-algorithm (1967) does it without trying every path: at each step, for each
-state, add the cost of each incoming branch to its source's cost, compare
-the two arrivals, keep the cheaper (*add, compare, select*). A path that
-loses at any state can never win later, so only 2<sup>*K*−1</sup> survivors are
-ever kept, and at the end you trace the best one back:
+every bit through a window:
+
+* a shift register of *K* bits;
+* two parity outputs, each the XOR of a different subset of the register.
+
+So every input bit influences 2*K* output bits. The encoder is a [state machine](https://en.wikipedia.org/wiki/Finite-state_machine) with
+2<sup>*K*−1</sup> states, and its output is a path through a *trellis*.
+
+The receiver has to find the path that best fits what arrived. Viterbi's
+algorithm (1967) does it without trying every path. At each step, for each
+state:
+
+1. **add** the cost of each incoming branch to its source's cost;
+2. **compare** the two arrivals;
+3. **select** the cheaper.
+
+A path that loses at any state can never win later, so only 2<sup>*K*−1</sup>
+survivors are ever kept. At the end you trace the best one back:
 
 ```console
 A small convolutional code first: K = 3, generators 7 and 5 (octal), 4 states.
@@ -597,19 +618,23 @@ The real one: K = 7, generators 171 and 133, 64 states.
 ```
 
 The figure's top-right panel is that small trellis with the two flipped
-bits: the orange path is the one traced back, and every number is a path
-metric from the transcript. The real code, *K* = 7 with generators 171 and
-133 (octal), has 64 states and is the one Voyager launched with in 1977,
-that DVB-S, 802.11a and the new GPS civil signals use, and that `ecc.py`
-runs. Its
-`viterbi()` is twenty lines, and the three that matter are marked.
+bits. The orange path is the one traced back, and every number is a path
+metric from the transcript.
+
+The real code, *K* = 7 with generators 171 and 133 (octal), has 64 states.
+It is the code `ecc.py` runs, the one Voyager launched with in 1977, and
+the one DVB-S, 802.11a and the new GPS civil signals use. Its `viterbi()`
+is twenty lines, and the three that matter are marked.
 
 ## What a code buys
 
 A rate-*r* code spends 1/*r* code bits on every information bit, so its
-*E*<sub>b</sub>/*N*<sub>0</sub> must be counted per *information* bit: the K = 7 code's symbols
+*E*<sub>b</sub>/*N*<sub>0</sub> must be counted per *information* bit. The K = 7 code's symbols
 carry half the energy per code bit that uncoded ones do, and must still come
-out ahead. Through the cable, with noise added at the transmitter:
+out ahead.
+
+**With one board looped back**, run it first with no added noise, then
+with noise added at the transmitter (`--ebn0 3`):
 
 ```console
 $ python3 ecc.py                        # one board looped back, no added noise
@@ -624,12 +649,17 @@ QPSK at 1.562 Msymbol/s, Eb/N0 3.0 dB per information bit; one frame per scheme:
   conv K=7 r=1/2   rate 0.500, 474 information bits; channel: 81 of 960 code bits wrong (MER 4.3 dB);  hard: 0 wrong  soft: 0 wrong
 ```
 
-Read the second run across. At 3 dB per *information* bit the coded symbols
-carry less energy each, so the channel makes about *three* times as many raw
-errors for the codes (69 and 81 of 960) as for the uncoded frame (26, where
-the theory for 3 dB says 22). Hamming's hard decoder turns 69 into 19, its
-soft decoder into 7; the Viterbi decoder turns 81 into none. The sweep behind the figure's left panel, with 100 records per
-point and the coding gain read at one error in 10<sup>4</sup>:
+Read the second run across:
+
+* At 3 dB per *information* bit the coded symbols carry less energy each,
+  so the channel makes about *three* times as many raw errors for the codes
+  (69 and 81 of 960) as for the uncoded frame (26, where the theory for
+  3 dB says 22).
+* Hamming's hard decoder turns 69 into 19, its soft decoder into 7.
+* The Viterbi decoder turns 81 into none.
+
+The sweep behind the figure's left panel, with 100 records per point,
+gives the coding gain at one error in 10<sup>4</sup>:
 
 | code, decoder | coding gain at BER 10<sup>−4</sup> |
 | --- | ---: |
@@ -638,55 +668,69 @@ point and the coding gain read at one error in 10<sup>4</sup>:
 | K = 7 convolutional, Viterbi, hard decisions | +2.4 dB |
 | K = 7 convolutional, Viterbi, soft decisions | +4.8 dB |
 
-Two of those numbers are lessons. Hamming(7,4) with hard decisions buys
-nothing at 10<sup>−4</sup>: its asymptotic gain, 10 log<sub>10</sub> *r*(*t* + 1) = 0.6 dB for
-*t* = 1 correctable error at rate 4/7, is entirely spent paying for the
-three extra bits, and the "2 dB" that textbooks quote belongs to the
-*soft* decoder. And soft decisions beat hard ones by 1.2 dB for Hamming
-and 2.4 for the K = 7 code: its free distance is 10, so its asymptotic
-gains are 10 log<sub>10</sub>(5) = 7 dB soft and 4 dB hard, of which 10<sup>−4</sup>
-delivers 4.8 and 2.4; the asymptote is a long way down the curve. The
-uncoded points now sit on the theory line from 0 to 9 dB, which is what
-the receiver's three fixes were for.
+Two of those numbers are lessons:
+
+* **Hamming(7,4) with hard decisions buys nothing at 10<sup>−4</sup>.** Its
+  asymptotic gain, 10 log<sub>10</sub> *r*(*t* + 1) = 0.6 dB for *t* = 1
+  correctable error at rate 4/7, is entirely spent paying for the three
+  extra bits. The "2 dB" that textbooks quote belongs to the *soft* decoder.
+* **Soft decisions beat hard ones** by 1.2 dB for Hamming and 2.4 dB for
+  the K = 7 code. That code's free distance is 10, so its asymptotic gains
+  are 10 log<sub>10</sub>(5) = 7 dB soft and 4 dB hard, of which 10<sup>−4</sup>
+  delivers 4.8 and 2.4: the asymptote is a long way down the curve.
+
+The uncoded points now sit on the theory line from 0 to 9 dB, which is what
+the receiver's three fixes (below) were for.
 
 <details>
 <summary><b>Detail:</b> the receiver at the coded operating point</summary>
 
 A code lets a link run where the channel's own error rate is a few percent,
-0–3 dB per code bit, and there [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s loops misbehave: the [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) slips a
-quarter turn now and then (0.15 errors at 0 dB where theory says 0.079), and
-the Gardner loop jitters a tenth of a symbol and occasionally runs off. Three
-things in `ecc.py`'s receiver fix that, and every real link has them.
-*Acquire, then track*: the symbol timing is estimated in one shot from the
-whole record (Oerder and Meyr's estimator: the phase of the symbol-rate
-component of |*y*|<sup>2</sup>, one line), after which the loops only track and can be
-five times narrower. A *scrambler*: Hamming frames contain the all-zero and
-all-one code words a sixteenth of the time each, and long runs of equal bits
-upset the loops; XOR the code bits with [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s G1 before mapping and flip the
-soft values back after. And *pilots*: DVB-S2 inserts known symbols every so
-often for exactly this reason. With all three, the loops hold from 0 dB up,
-and the uncoded MER reads 42 dB on the cable where
-[6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
-wider loops read 38. The carrier phase is acquired feed-forward too, by
-raising the symbols to the fourth power (which wipes out the data and
-leaves four times the carrier phase, ambiguous by a quarter turn that the
-unique word resolves); the first version of this receiver did not do
-that, its narrow loop took more than 400 symbols to pull in from wherever
-the phase started, and its MER on the cable was 21.7 dB. The one-line fix
-is in `ecc.py`'s receiver, marked.
+0–3 dB per code bit. There [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s loops misbehave:
+
+* the [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) slips a
+  quarter turn now and then (0.15 errors at 0 dB where theory says 0.079);
+* the Gardner loop jitters a tenth of a symbol and occasionally runs off.
+
+Three things in `ecc.py`'s receiver fix that, and every real link has them:
+
+1. ***Acquire, then track.*** The symbol timing is estimated in one shot
+   from the whole record (Oerder and Meyr's estimator: the phase of the
+   symbol-rate component of |*y*|<sup>2</sup>, one line). After that the loops
+   only track, and can be five times narrower.
+2. **A *scrambler*.** Hamming frames contain the all-zero and all-one code
+   words a sixteenth of the time each, and long runs of equal bits upset
+   the loops. XOR the code bits with [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s
+   G1 before mapping, and flip the soft values back after.
+3. ***Pilots.*** DVB-S2 inserts known symbols every so often for exactly
+   this reason.
+
+With all three, the loops hold from 0 dB up, and the uncoded MER reads
+42 dB on the cable where [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
+wider loops read 38.
+
+The carrier phase is acquired feed-forward too, by raising the symbols to
+the fourth power. That wipes out the data and leaves four times the carrier
+phase, ambiguous by a quarter turn that the unique word resolves. Without
+it, the narrow loop took more than 400 symbols to pull in from wherever the
+phase started, and the MER on the cable was 21.7 dB. The one-line fix is in
+`ecc.py`'s receiver, marked.
 
 </details>
 
 ## Clumps
 
 A scratch on a CD, a fade on a radio link, a hand passing in front of
-[4.07](4_07_optical_link.md#407-an-optical-link)'s [photodiode](https://en.wikipedia.org/wiki/Photodiode): errors come in bursts, and a code that corrects one
+[4.07](4_07_optical_link.md#407-an-optical-link)'s [photodiode](https://en.wikipedia.org/wiki/Photodiode): errors come in bursts. A code that corrects one
 error in seven, or that needs the trellis to recover over a few constraint
-lengths, is helpless against forty wrong bits in a row. The cure is
-cheap: write the code bits into a table by rows and send them by columns
-(an *interleaver*), so that a burst at the receiver, read back by rows, is
-scattered into single errors far apart. `--burst 40` turns the DAC off for
-forty symbols in the middle of a frame:
+lengths, is helpless against forty wrong bits in a row.
+
+The cure is cheap, an *interleaver*: write the code bits into a table by
+rows and send them by columns. A burst at the receiver, read back by rows,
+is scattered into single errors far apart.
+
+**Run with `--burst 40`** to turn the DAC off for forty symbols in the
+middle of a frame:
 
 ```console
 $ python3 ecc.py --burst 40
@@ -699,58 +743,69 @@ a 40-symbol dropout (80 code bits) in each 480-symbol frame:
   conv K=7 r=1/2   interleaved          raw  41/960 wrong;  hard: 0 of 474 information bits wrong  soft: 0 of 474 information bits wrong
 ```
 
-The same forty wrong code bits, sent straight, cost the Viterbi decoder
-twelve to sixteen information bits: the clump is longer than the code's
-memory, and the trellis has nothing to go on for forty symbols. Scattered
-by the interleaver, the same forty errors land thirty bits apart (the
-figure's lower-right panel) and the decoder clears every one. Hamming's
-soft decoder goes from 22 wrong to 1 for the same reason: one error per
-seven-bit word is what it was built for, and the interleaver arranges
-exactly that.
+* **Sent straight**, the forty wrong code bits cost the Viterbi decoder
+  twelve to sixteen information bits. The clump is longer than the code's
+  memory, and the trellis has nothing to go on for forty symbols.
+* **Interleaved**, the same forty errors land thirty bits apart (the
+  figure's lower-right panel), and the decoder clears every one.
+* Hamming's soft decoder goes from 22 wrong to 1 for the same reason: one
+  error per seven-bit word is what it was built for, and the interleaver
+  arranges exactly that.
 
-CDs do this with two Reed–Solomon codes and an interleaver (CIRC) and
-survive a 2.5 mm scratch; GSM interleaves every speech frame over eight
-bursts; Voyager puts a Reed–Solomon code outside its Viterbi decoder
-(Forney's *concatenation*, 1966), because a Viterbi decoder's own errors
-come in bursts too.
+Real systems:
+
+* CDs use two Reed–Solomon codes and an interleaver (CIRC), and survive a
+  2.5 mm scratch.
+* GSM interleaves every speech frame over eight bursts.
+* Voyager puts a Reed–Solomon code outside its Viterbi decoder (Forney's
+  *concatenation*, 1966), because a Viterbi decoder's own errors come in
+  bursts too.
 
 ## A short history, with opinions
 
-Shannon promised in 1948; Hamming (1950) and Golay (1949) delivered half a
-decibel to two. Reed and Solomon (1960) brought in finite-field algebra and
-built the workhorse of every disc and tape since. Viterbi (1967) thought his
-algorithm was a teaching aid for a proof. Forney (1966) showed that two
-mediocre codes in series beat one good one. For twenty years after that the
-best practical systems sat 2–3 dB from the limit and the textbooks said that
-was about it. Then, at a conference in Geneva in 1993, Berrou, Glavieux and
-Thitimajshima showed *turbo codes* working half a decibel from Shannon, and
-the audience assumed a mistake. Three years later MacKay and Neal
-rediscovered Gallager's *low-density parity-check* codes from 1962, which do
-the same and had been ignored for thirty-four years because nobody could
-afford the decoder; they now run DVB-S2, Wi-Fi 6, 10-gigabit Ethernet and
-5G's data channels, and Arıkan's *polar codes* (2008), the first construction
-*proven* to reach capacity, carry 5G's control channels. The opinion: the
-forty-five-year gap between the promise and the delivery was a computing-cost
-gap, not a physics gap. The physics was done in 1948.
+Shannon promised in 1948. Then:
+
+* Hamming (1950) and Golay (1949) delivered half a decibel to two.
+* Reed and Solomon (1960) brought in finite-field algebra and built the
+  workhorse of every disc and tape since.
+* Viterbi (1967) thought his algorithm was a teaching aid for a proof.
+* Forney (1966) showed that two mediocre codes in series beat one good one.
+
+For twenty years after that the best practical systems sat 2–3 dB from the
+limit, and the textbooks said that was about it.
+
+* In 1993, at a conference in Geneva, Berrou, Glavieux and Thitimajshima
+  showed *turbo codes* working half a decibel from Shannon, and the
+  audience assumed a mistake.
+* Three years later MacKay and Neal rediscovered Gallager's *low-density
+  parity-check* codes from 1962. They do the same, and had been ignored for
+  thirty-four years because nobody could afford the decoder. They now run
+  DVB-S2, Wi-Fi 6, 10-gigabit Ethernet and 5G's data channels.
+* Arıkan's *polar codes* (2008), the first construction *proven* to reach
+  capacity, carry 5G's control channels.
+
+The opinion: the forty-five-year gap between the promise and the delivery
+was a computing-cost gap, not a physics gap. The physics was done in 1948.
 
 **Try this:**
 
-- Replace the fourth-power phase estimate with the unique word's
+- **Replace the fourth-power phase estimate** with the unique word's
   correlation angle: no ambiguity, and it works for 8PSK too.
-- `--ber 0:9 --bnt-timing 0.01 --bnt-carrier 0.02`: [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s loop bandwidths
+- **Run `--ber 0:9 --bnt-timing 0.01 --bnt-carrier 0.02`**: [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s loop bandwidths
   instead of the narrow ones. Watch the gains shrink, and say why.
-- A rate-⅓ code (generators 133, 171, 165), then *puncture* it to rate ¾ by
-  leaving out code bits in a pattern, as 802.11a does. What does each cost
-  and buy?
-- Add a CRC to each frame and count *frame* errors: a code is only as good
-  as your ability to tell when it failed.
-- Change the interleaver's rows and find the burst length that beats it.
-- The Golay (24,12) code by brute force over 4096 code words; then an LDPC
-  code from a library on [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s QAM-256, which carried 74 Mbit/s with one
-  bit in 455 wrong: the code should make it error-free.
-- PySDR's [channel coding chapter](https://pysdr.org/content/channel_coding.html)
-  is the next page to read: it goes on to LDPC and turbo codes with the
-  same honesty about what a code buys.
+- **Try a rate-⅓ code** (generators 133, 171, 165), then *puncture* it to
+  rate ¾ by leaving out code bits in a pattern, as 802.11a does. What does
+  each cost and buy?
+- **Add a CRC to each frame** and count *frame* errors: a code is only as
+  good as your ability to tell when it failed.
+- **Change the interleaver's rows** and find the burst length that beats it.
+- **Decode the Golay (24,12) code** by brute force over 4096 code words.
+  Then put an LDPC code from a library on [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s QAM-256, which
+  carried 74 Mbit/s with one bit in 455 wrong: the code should make it
+  error-free.
+- **Read PySDR's [channel coding chapter](https://pysdr.org/content/channel_coding.html)**
+  next: it goes on to LDPC and turbo codes with the same honesty about what
+  a code buys.
 
 <!-- nav -->
 [← 6.08 Shannon's limit, and how far from it you are](6_08_shannons_limit.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.10 Chirps, Zadoff–Chu and LoRa: ranging, and radar on a cable →](6_10_chirps_and_lora.md)
