@@ -5,13 +5,19 @@
 
 ![capture.sv recording a 1.1 MHz sine at 25 MS/s: a dot every 40 ns](img/capture_top.png)
 
-[1.05](1_05_adc_to_python.md#105-adc-samples-to-python) threw away 499 samples out of every 500. To see
-what the ADC sees at its full 25 MS/s, record a burst of samples into the
-FPGA's own memory as fast as they come, then send them to the laptop at the
-serial port's leisurely pace. Every fast digitizer has to make this choice:
-a very fast link to the computer, short bursts, or doing the processing on
-the FPGA and sending only answers. This section does bursts; the lock-in of
-[1.08](1_08_lockin.md#108-a-lock-in-amplifier) does the processing.
+[1.05](1_05_adc_to_python.md#105-adc-samples-to-python) threw away 499 samples out of every 500. To see what the ADC
+sees at its full 25 MS/s:
+
+1. record a burst of samples into the FPGA's own memory, as fast as they
+   come;
+2. then send them to the laptop at the serial port's leisurely pace.
+
+Every fast digitizer has to choose between:
+
+* a very fast link to the computer;
+* short bursts (this section);
+* doing the processing on the FPGA and sending only answers (the lock-in of
+  [1.08](1_08_lockin.md#108-a-lock-in-amplifier)).
 
 ## Three new pieces
 
@@ -19,12 +25,12 @@ the FPGA and sending only answers. This section does bursts; the lock-in of
 that it's only ever written and read one address at a time, and maps it onto
 8 of the chip's 56 block RAMs instead of 131,072 flip-flops.
 
-**The serial receiver.** The laptop needs to say "go", so this design uses
-`uart_rx` from [`uart.sv`](../src/verilog/uart.sv) too. The receiver shows a
-pattern you'll meet again. `rx` comes from a chip with its own clock, so it
-can change at any moment, including exactly on our clock edge. That can leave
-a flip-flop undecided for a while (*[metastability](https://en.wikipedia.org/wiki/Metastability_(electronics))*). Two flip-flops in a row
-give it a full clock period to settle before anything depends on it.
+**The serial receiver.** The laptop needs to say "go", so this design also
+uses `uart_rx` from [`uart.sv`](../src/verilog/uart.sv). It shows a pattern you'll meet
+again: `rx` comes from a chip with its own clock, so it can change at any
+moment, even exactly on our clock edge. That can leave a flip-flop undecided
+for a while (*[metastability](https://en.wikipedia.org/wiki/Metastability_(electronics))*). Two flip-flops in a row give it a full
+clock period to settle before anything depends on it.
 
 **A [state machine](https://en.wikipedia.org/wiki/Finite-state_machine).** The design is always in one of three *states*, and what
 it does on each clock depends on which:
@@ -147,10 +153,10 @@ module capture (
 endmodule
 ```
 
-The `case` statement says what happens in each state on each clock. Notice
-that `mem[addr] <= sample` and `tx_data <= mem[addr]` are the *only* ways the
-memory is touched: one write port and one read port, which is what lets Yosys
-use a block RAM.
+The `case` statement says what happens in each state on each clock.
+`mem[addr] <= sample` and `tx_data <= mem[addr]` are the *only* ways the
+memory is touched: one write port and one read port. That is what lets
+Yosys use a block RAM.
 
 The command is a single hex digit, `D`. The FPGA keeps one sample in every
 2<sup>D</sup>, so the sample rate is 25 MS/s ÷ 2<sup>D</sup>: 16384 samples
@@ -169,10 +175,13 @@ and `a`–`f` makes the glitch harmless.
 ## Simulate it first
 
 Hardware is slow to debug: all you can see is pins. A *testbench* is
-SystemVerilog that wraps your design in a fake world and runs on your laptop,
-in the Icarus Verilog simulator. This one plays both the ADC, which counts up
-by one on every clock edge, 25 ns late like the real one, and the laptop,
-which sends `0` and checks that the samples coming back count up too:
+SystemVerilog that wraps your design in a fake world and runs on your
+laptop, in the Icarus Verilog simulator. This one plays both:
+
+* the ADC, which counts up by one on every clock edge, 25 ns late like the
+  real one;
+* the laptop, which sends `0` and checks that the samples coming back count
+  up too:
 
 <!-- file: src/verilog/capture_tb.sv -->
 ```systemverilog
@@ -228,9 +237,13 @@ module capture_tb;
 endmodule
 ```
 
-Testbenches use parts of the language that don't make hardware: `#1000`
-waits 1000 ns, `$display` prints, and `initial` blocks run once, top to
-bottom, like a program.
+Testbenches use parts of the language that don't make hardware:
+
+* `#1000` waits 1000 ns;
+* `$display` prints;
+* `initial` blocks run once, top to bottom, like a program.
+
+**Run the simulation**:
 
 ```console
 $ make sim-capture
@@ -240,10 +253,11 @@ $ make sim-capture
 34 samples received, 0 not one more than the one before
 ```
 
-The first sample is 109, not 0, because the fake ADC has been counting since
-time zero, and the capture starts only once the command has arrived. Only 34
-samples come back because the simulation stops after 1 ms of simulated time;
-sending all 16384 would take 0.16 s.
+* The first sample is 109, not 0, because the fake ADC has been counting
+  since time zero, and the capture starts only once the command has
+  arrived.
+* Only 34 samples come back because the simulation stops after 1 ms of
+  simulated time; sending all 16384 would take 0.16 s.
 
 ## The laptop side
 
@@ -324,12 +338,15 @@ if __name__ == "__main__":
 
 <img src="img/stack_funcgen.png" alt="Seen from above: a function generator into ADC IN, the left SMA" width="400">
 
-A function generator goes into ADC IN, the left-hand SMA with the USB
-connectors toward you. (`capture.sv` leaves the DAC alone, so with the
-loopback cable still in from [1.05](1_05_adc_to_python.md#105-adc-samples-to-python)
-you'll see a flat line, not a signal. Plug the generator in, or wait for
+**Connect a function generator to ADC IN**, the left-hand SMA with the USB
+connectors toward you. `capture.sv` leaves the DAC alone, so with the
+loopback cable still in from [1.05](1_05_adc_to_python.md#105-adc-samples-to-python) you'll see a flat line,
+not a signal. Plug the generator in, or wait for
 [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc),
-where the DAC plays something.)
+where the DAC plays something.
+
+Then load the design and record, at the full 25 MS/s and at 1/16 of it
+(`-d 4`):
 
 ```console
 $ make load-capture
@@ -346,10 +363,12 @@ calibration from [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do):
 
 The lower panel is the [sampling theorem](https://en.wikipedia.org/wiki/Nyquist%E2%80%93Shannon_sampling_theorem) in action. At 12.5 MS/s (`-d 1`) the
 [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency) is 6.25 MHz, and a 10.1 MHz input is indistinguishable
-from 12.5 − 10.1 = 2.4 MHz: the samples lie exactly on the real waveform
-(grey) and trace out the alias (orange). Nothing in the digital data can tell
-the two apart. That's why real digitizers put an *anti-aliasing* low-pass
-filter in front of the ADC. There's none on this module and none was added:
+from 12.5 − 10.1 = 2.4 MHz. The samples lie exactly on the real waveform
+(grey) and trace out the alias (orange): nothing in the digital data can
+tell the two apart.
+
+That's why real digitizers put an *anti-aliasing* low-pass filter in front
+of the ADC. There's none on this module and none was added:
 [aliasing](https://en.wikipedia.org/wiki/Aliasing) is easier to respect once it has bitten you, and
 [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s Try this and
 [1.10](1_10_am_radio.md#110-an-am-radio) put it to work.
@@ -358,12 +377,17 @@ filter in front of the ADC. There's none on this module and none was added:
 <summary><b>Detail:</b> what would it take to hook the ADC to an antenna and capture all the radio around you?</summary>
 
 At 25 MS/s, the ADC sees everything from 0 to 12.5 MHz at once. That band is
-full of radio: AM broadcasting (0.53–1.7 MHz), shortwave broadcasting from
-other continents (the 49, 41, 31 and 25 m bands, around 6, 7.3, 9.6 and
-11.8 MHz), radio amateurs (1.8, 3.5, 7 and 10.1 MHz), and the [WWV](https://en.wikipedia.org/wiki/WWV_(radio_station)) time
-signals from Colorado at 2.5, 5 and 10 MHz. Cell phones, Wi-Fi and FM radio
-are 8 to 500 times higher in frequency, out of reach without a mixer that
-moves them down first (which is what an RTL-SDR dongle's tuner chip does).
+full of radio:
+
+* AM broadcasting (0.53–1.7 MHz);
+* shortwave broadcasting from other continents (the 49, 41, 31 and 25 m
+  bands, around 6, 7.3, 9.6 and 11.8 MHz);
+* radio amateurs (1.8, 3.5, 7 and 10.1 MHz);
+* the [WWV](https://en.wikipedia.org/wiki/WWV_(radio_station)) time signals from Colorado at 2.5, 5 and 10 MHz.
+
+Cell phones, Wi-Fi and FM radio are 8 to 500 times higher in frequency, out
+of reach without a mixer that moves them down first (which is what an
+RTL-SDR dongle's tuner chip does).
 
 Four things stand between a wire and a picture of all of it:
 
@@ -376,12 +400,14 @@ Four things stand between a wire and a picture of all of it:
    you want, exactly as the 10.1 MHz sine did above. A 7-pole LC filter at
    about 11 MHz, home-made or bought, goes between the antenna and the LNA.
 3. **Somewhere to put 200 Mbit/s.** The ADC makes 25 million bytes a second;
-   the serial port carries 100 thousand. So either capture bursts, as this
-   page does, and look at their spectrum ([1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer) does this), or do the work in
-   the FPGA and send only the answer: an FFT spectrum (also [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)), or one
-   station, picked out by multiplying by cos and −sin as the lock-in does,
-   filtered, and sent as audio through [1.05](1_05_adc_to_python.md#105-adc-samples-to-python)'s stream. That last one is an AM
-   radio receiver, entirely in logic.
+   the serial port carries 100 thousand. So either
+   * capture bursts, as this page does, and look at their spectrum
+     ([1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer) does this), or
+   * do the work in the FPGA and send only the answer: an FFT spectrum (also
+     [1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)), or one station, picked out by multiplying by cos and
+     −sin as the lock-in does, filtered, and sent as audio through
+     [1.05](1_05_adc_to_python.md#105-adc-samples-to-python)'s stream. That last one is an AM radio receiver,
+     entirely in logic.
 4. **Dynamic range.** 8 bits is about 48 dB between the biggest signal that
    fits and one code. A strong station sets the gain, and anything 50 dB
    weaker is lost under it. (An FFT gains back some: each bin of a
@@ -389,10 +415,10 @@ Four things stand between a wire and a picture of all of it:
    receivers for this band use 14- or 16-bit ADCs.
 
 The antenna itself is the easy part: 5 to 20 m of wire, as high as you can
-get it, outdoors if possible, because indoors at these frequencies is full
-of noise from switching power supplies and LED lamps. A long wire collects
-static, so give it a 1 MΩ resistor to ground at the SMA, and never connect
-it during a thunderstorm.
+get it, outdoors if possible (indoors at these frequencies is full of noise
+from switching power supplies and LED lamps). A long wire collects static,
+so **give it a 1 MΩ resistor to ground** at the SMA, and **never connect it
+during a thunderstorm**.
 
 None of this has been tried with this board yet. It's a good project.
 
@@ -400,14 +426,16 @@ None of this has been tried with this board yet. It's a good project.
 
 **Try this:**
 
-- Measure the ADC's calibration yourself: DC in from a power supply at several
-  voltages, `capture.py`, and fit code against volts.
-- Fit a sine to a capture (as in the figure) and compute the residual. How
-  many *effective* bits does this 8-bit ADC have? (Ideal quantization noise
-  is 1/√12 of a code, rms.) How does it change between 100 kHz and 10 MHz?
-- Add a trigger: in `RECORD`, don't start filling memory until the sample
-  crosses mid-scale going upward, so that repeated captures line up like a
-  scope's.
+- **Measure the ADC's calibration yourself**: feed in DC from a power
+  supply at several voltages, record each with `capture.py`, and fit code
+  against volts.
+- **Fit a sine to a capture** (as in the figure) and compute the residual.
+  How many *effective* bits does this 8-bit ADC have? (Ideal quantization
+  noise is 1/√12 of a code, rms.) How does it change between 100 kHz and
+  10 MHz?
+- **Add a trigger**: in `RECORD`, don't start filling memory until the
+  sample crosses mid-scale going upward, so that repeated captures line up
+  like a scope's.
 
 <!-- nav -->
 [← 1.05 ADC samples to Python](1_05_adc_to_python.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.07 Closing the loop: the DAC talks to the ADC →](1_07_closing_the_loop.md)

@@ -5,12 +5,14 @@
 
 ![loopback.sv: a DAC step comes back through the cable 6 samples, 240 ns, later](img/loopback_step_top.png)
 
-Connect the DAC output to the ADC input with a coax cable. (The measurements
-here used two RG-316 cables, 101.5 cm and 16.5 cm long.) `loopback.sv` is
-`capture.sv` plus a DAC that plays a pattern tied to the sample counter `n`.
-The recording always starts at `n` = 0, so you know exactly which sample each
-DAC change happened at, and you can watch it come back into the ADC: scaled,
-shifted, and late. By how much is what this section measures.
+**Connect the DAC output to the ADC input** with a coax cable. (The
+measurements here used two RG-316 cables, 101.5 cm and 16.5 cm long.)
+
+`loopback.sv` is `capture.sv` plus a DAC that plays a pattern tied to the
+sample counter `n`. The recording always starts at `n` = 0, so you know
+exactly which sample each DAC change happened at. You can watch it come
+back into the ADC scaled, shifted and late; this section measures by how
+much.
 
 <!-- file: src/verilog/loopback.sv -->
 ```systemverilog
@@ -260,7 +262,7 @@ if __name__ == "__main__":
 
 ## How long is the round trip?
 
-`make load-loopback`, then:
+**Run `make load-loopback`**, then record the square wave, mode `s`:
 
 ```console
 $ python3 loopback.py s
@@ -270,14 +272,17 @@ the DAC stepped up at sample 512; the ADC crossed half-way at sample 518
 ![loopback.sv: a DAC step comes back 6 samples later; interleaved at 20 ns](img/loopback_step.png)
 
 The DAC changed at sample 512 and the ADC reports it at sample 518: **6
-samples, 240 ns**, the same on all 16 edges of the record. That has two
-answers to "how long does a new DAC value take to reach the ADC?" The signal
-itself takes about **32 ns** to get from the DAC's output to the ADC's
-sampling point, plus 4.6 ns per metre of cable. But from the FPGA writing a
-DAC word to the FPGA reading the ADC's measurement of it takes **5 to 6 ADC
-samples** (200–240 ns), and two thirds of that is the ADC's pipeline. For a
-feedback loop built in the FPGA, those 6 samples are the delay that limits
-how fast the loop can be ([4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)).
+samples, 240 ns**, the same on all 16 edges of the record. So "how long does
+a new DAC value take to reach the ADC?" has two answers:
+
+* **The analog signal** takes about **32 ns** to get from the DAC's output
+  to the ADC's sampling point, plus 4.6 ns per metre of cable.
+* **FPGA to FPGA**, from writing a DAC word to reading the ADC's
+  measurement of it, takes **5 to 6 ADC samples** (200–240 ns). Two thirds
+  of that is the ADC's pipeline.
+
+For a feedback loop built in the FPGA, those 6 samples are the delay that
+limits how fast the loop can be ([4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)).
 
 <details>
 <summary><b>Detail:</b> where the 240 ns go</summary>
@@ -297,20 +302,25 @@ From the datasheets, and from the measurements in this section and [1.08](1_08_l
 <details>
 <summary><b>Detail:</b> finer than one sample, and why the two cables differ</summary>
 
-The ADC samples only every 40 ns, but the pattern repeats exactly, so you can
-shift it and sample again. Mode `t` makes every DAC change 20 ns later.
-Interleaving the `s` and `t` records (lower panel above) gives the step
-response at 20 ns spacing: *equivalent-time sampling*, the trick behind every
-sampling oscilloscope. The step arrives about 35 ns after the DAC latches it,
-overshoots, and rings for ~100 ns. The short cable delivers it a few ns sooner
-and with more overshoot, probably because the two cables load the DAC's
-output differently at the tens-of-MHz frequencies that make up a fast edge.
+The ADC samples only every 40 ns, but the pattern repeats exactly, so you
+can shift it and sample again:
+
+1. Record mode `s`.
+2. Record mode `t`, which makes every DAC change 20 ns later.
+3. Interleave the two records (lower panel above).
+
+That gives the step response at 20 ns spacing: *equivalent-time sampling*,
+the trick behind every sampling oscilloscope. The step arrives about 35 ns
+after the DAC latches it, overshoots, and rings for ~100 ns. The short cable
+delivers it a few ns sooner and with more overshoot, probably because the
+two cables load the DAC's output differently at the tens-of-MHz frequencies
+that make up a fast edge.
 
 </details>
 
 ## The whole transfer curve in one capture
 
-Mode `r` plays DAC codes 0 to 255, 64 samples each:
+**Record mode `r`**, which plays DAC codes 0 to 255, 64 samples each:
 
 ```console
 $ python3 loopback.py r
@@ -319,12 +329,14 @@ ADC code at DAC codes 0, 128, 255: 27.02 126.00 225.00
 
 ![loopback.sv: ADC code vs DAC code](img/loopback_stairs.png)
 
-ADC = 0.776 × DAC + 27.5. The slope agrees within 0.3% with the two
-calibrations in [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do), which were made separately with an
-external instrument: (30.7 mV/code) × (25.35 codes/V) = 0.778. The residual is
-the ADC's rounding to whole codes and nothing more. Notice too that, with a
-steady input, the ADC's output doesn't flicker at all: its noise is well below
-one code.
+The fit is ADC = 0.776 × DAC + 27.5:
+
+* The slope agrees within 0.3% with the two calibrations in [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do),
+  which were made separately with an external instrument:
+  (30.7 mV/code) × (25.35 codes/V) = 0.778.
+* The residual is the ADC's rounding to whole codes and nothing more.
+* With a steady input, the ADC's output doesn't flicker at all: its noise is
+  well below one code.
 
 ## An impulse response from noise
 
@@ -349,10 +361,12 @@ the loop's [impulse response](https://en.wikipedia.org/wiki/Impulse_response).
 This particular LFSR, started from all ones, is **G1, the shift register in
 every GPS satellite**, used there for the same reason. A GPS receiver finds
 each satellite, and how late its signal arrives, by cross-correlating what
-it hears with a copy of the code, and a sharp autocorrelation peak means a
+it hears with a copy of the code; a sharp autocorrelation peak means a
 sharp time. (Each satellite XORs G1 with a second register's output, delayed
 by an amount of its own, to make its personal 1023-chip *[C/A code](https://en.wikipedia.org/wiki/GPS_signals#Coarse/Acquisition_code)*: that's
 how a receiver tells the satellites apart.)
+
+**Record mode `p`**; `loopback.py` turns the record into the impulse response:
 
 ```console
 $ python3 loopback.py p
@@ -368,23 +382,27 @@ ringing. This is the cable loop as the FPGA sees it, sample by sample:
 exactly what you need to design a digital controller or an equalizer around
 it.
 
-
 <details>
 <summary><b>Detail:</b> a slightly non-linear loop</summary>
 
 The circles are a check: the same impulse response, from mode `s` instead,
 as the differences between successive samples of the averaged step. The two
-nearly agree, but not quite (0.74 against 0.79 at *k* = 6). The
-cross-correlation assumes the loop is *linear*: twice the input, twice the
-output, and responses simply add. Through the 16.5 cm cable it is, and the
-two methods agree to 1%. Through the 101.5 cm cable, a linear model of the
-record leaves 11 codes rms unexplained, against 0.5 for the short cable: a
-single LO between two HIs reads 66, where the step predicts 47, while a single
-HI reads about what the step predicts. The cable itself is linear; what isn't
-is an amplifier at one end of it, seeing the long cable's different load at
-the tens of MHz in a fast edge, and treating a short dip differently from a
-short pulse. Which amplifier, and why a dip, isn't known yet: a puzzle worth
-chasing, and a reminder to check a method's assumptions with a second method.
+nearly agree, but not quite (0.74 against 0.79 at *k* = 6).
+
+The cross-correlation assumes the loop is *linear*: twice the input, twice
+the output, and responses simply add.
+
+* Through the 16.5 cm cable it is, and the two methods agree to 1%.
+* Through the 101.5 cm cable, a linear model of the record leaves 11 codes
+  rms unexplained, against 0.5 for the short cable. A single LO between two
+  HIs reads 66, where the step predicts 47, while a single HI reads about
+  what the step predicts.
+
+The cable itself is linear. What isn't is an amplifier at one end of it,
+seeing the long cable's different load at the tens of MHz in a fast edge,
+and treating a short dip differently from a short pulse. Which amplifier,
+and why a dip, isn't known yet: a puzzle worth chasing, and a reminder to
+check a method's assumptions with a second method.
 
 </details>
 
@@ -407,16 +425,17 @@ within 1%; towards 12.5 MHz they part ways.)
 
 **Try this:**
 
-- Build an oscillator out of the loop: inverting feedback with a gain above
-  1, `dac_d <= 128 - 2 * (sample - 128)` (clipped to 0..255), and record the
-  result with `loopback.py`'s `record()`. Predict what you'll see from the
-  6-sample delay first. (What you'll find: the pattern repeats every 12
-  samples, but it isn't one oscillation. Each sample depends only on the one 6
-  samples earlier, so you get *six independent oscillators*, interleaved. Feed
-  back the average of the last 4 samples instead and they lock into one
-  near-square wave at 1.685 MHz, a period of 14.8 samples. Can you predict that
-  number?)
-- Use the impulse response to cancel the ringing: send the DAC a
+- **Build an oscillator out of the loop**: inverting feedback with a gain
+  above 1, `dac_d <= 128 - 2 * (sample - 128)` (clipped to 0..255). Predict
+  what you'll see from the 6-sample delay first, then record the result
+  with `loopback.py`'s `record()`.
+
+  What you'll find: the pattern repeats every 12 samples, but it isn't one
+  oscillation. Each sample depends only on the one 6 samples earlier, so you
+  get *six independent oscillators*, interleaved. Feed back the average of
+  the last 4 samples instead and they lock into one near-square wave at
+  1.685 MHz, a period of 14.8 samples. Can you predict that number?
+- **Cancel the ringing** using the impulse response: send the DAC a
   pre-distorted step (an [FIR filter](https://en.wikipedia.org/wiki/Finite_impulse_response) that inverts `h`) and see how clean the
   edge gets.
 
