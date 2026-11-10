@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check qpsk_modem.sv against modem_fpga_model.py, in simulation: no hardware needed.
 
-    python3 qpsk_modem_check.py                 # all the tests: about a minute
+    python3 qpsk_modem_check.py                 # all the tests: about two minutes
     python3 qpsk_modem_check.py --ppm 2000 --cfo -9500 --noise 3   # the offsets of test 3
     python3 qpsk_modem_check.py --plot          # ...and plot the loops, Verilog against model
     python3 qpsk_modem_check.py --bytes 50      # shorter

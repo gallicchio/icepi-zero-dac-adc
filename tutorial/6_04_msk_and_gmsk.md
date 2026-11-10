@@ -5,16 +5,20 @@
 
 ![Measured, one board looped back: the spectra of six waveforms at 1.5625 Mbit/s on one axis, QPSK with square pulses, QPSK with root-raised-cosine pulses, continuous-phase FSK, MSK, GMSK with BT 0.5 and 0.3, with their 99-percent bandwidths; then the same after a hard limiter, where QPSK's sidelobes have grown back by 20 dB and the constant-envelope ones have not moved](img/comms_msk_spectrum.png)
 
-The amplifier in a phone is a switch. A transistor that is either hard on or
-hard off wastes almost nothing (class C, D, E: 70–90% efficient), and a
-battery-powered radio wants exactly that; a transistor asked to reproduce a
-waveform faithfully (class A, AB) burns most of the battery as heat. But a
-switch has no amplitude to offer: whatever you put in, the output is a
-constant-amplitude signal with the input's zero crossings. Only the *phase*
-survives. So if you want the cheap amplifier, you need a modulation that
-puts everything in the phase and keeps the amplitude constant. That is what
-MSK and GMSK are, and why GSM, Bluetooth, Zigbee, DECT, ships' AIS and deep
-space use them. learnSDR skipped this; it shouldn't have.
+The amplifier in a phone is a switch:
+
+- A transistor that is either hard on or hard off wastes almost nothing
+  (class C, D, E: 70–90% efficient). A battery-powered radio wants exactly
+  that.
+- A transistor asked to reproduce a waveform faithfully (class A, AB) burns
+  most of the battery as heat.
+
+But a switch has no amplitude to offer: whatever you put in, the output is
+a constant-amplitude signal with the input's zero crossings. Only the
+*phase* survives. So the cheap amplifier needs a modulation that puts
+everything in the phase and keeps the amplitude constant. That is what MSK
+and GMSK are, and why GSM, Bluetooth, Zigbee, DECT, ships' AIS and deep
+space use them.
 
 ![Computed: the bits 1 1 0 1 0 0 1 four ways. (a) 5.05's FSK: 6.25 MHz for a 1 and 3.125 MHz for a 0, the frequency switching at bit edges with the phase continuous. (b) MSK's phase trellis: the phase turns +90 degrees for a 1 and −90 for a 0, continuously. (c) The same MSK as I and Q: half-sine pulses two bits long, Q's one bit after I's. (d) The amplitude: constant for MSK, wobbling and dipping to zero for QPSK with root-raised-cosine pulses](img/comms_d_msk.png)
 
@@ -27,58 +31,72 @@ changes and never touches its phase, so the phase is an integral,
 
 and an integral can't jump: each bit turns the phase by π*h* and nothing
 else happens. The number *h*, the *modulation index*, is the two tones'
-spacing in units of the bit rate: [5.05](5_05_fsk_modem.md#505-a-modem) used *h* = 2 (four and two cycles per
-bit), Sunde's FSK is *h* = 1, and *h* = ½, the two tones only half a bit rate
-apart, is **minimum-shift keying**. "Minimum" because that is as close as two
-tones can be and still be told apart by a coherent receiver: over one bit,
+spacing in units of the bit rate:
+
+- [5.05](5_05_fsk_modem.md#505-a-modem) used *h* = 2 (four and two cycles per bit).
+- Sunde's FSK is *h* = 1.
+- *h* = ½, the two tones only half a bit rate apart, is **minimum-shift
+  keying**.
+
+"Minimum" because that is as close as two tones can be and still be told
+apart by a coherent receiver: over one bit,
 ∫cos(2π*f*<sub>1</sub>*t*) cos(2π*f*<sub>2</sub>*t*) d*t* is zero when 2Δ*f T* is a whole number,
 so Δ*f* = 1/2*T*, *h* = ½. A non-coherent receiver, which doesn't know the
 phase ([5.05](5_05_fsk_modem.md#505-a-modem)'s energy detector), needs Δ*f T* itself whole: *h* = 1 at least.
 Bluetooth's basic rate sits at *h* ≈ 0.32, not orthogonal at all, which its
-cheap receiver tolerates because the error rate it wants is modest. **GMSK**
-smooths the frequency step with a Gaussian filter of bandwidth *B* so that
-each bit's quarter turn is spread over about three bits (*BT* = 0.3 in GSM,
-0.5 in Bluetooth LE), which narrows the spectrum further at the price of
-some intersymbol interference.
+cheap receiver tolerates because the error rate it wants is modest.
+
+**GMSK** smooths the frequency step with a Gaussian filter of bandwidth *B*,
+so that each bit's quarter turn is spread over about three bits (*BT* = 0.3
+in GSM, 0.5 in Bluetooth LE). That narrows the spectrum further, at the
+price of some intersymbol interference.
 
 ![Theory, from msk.py: the frequency pulse of one bit, rectangular for MSK and Gaussian for GMSK at BT 0.5 and 0.3, and its integral, every bit turning the phase by 90 degrees; the phase trellis for a bit pattern, MSK's straight and GMSK's smoothed, against CPFSK's steeper h = 1; the same MSK as half-sine pulses on I and Q, with the OQPSK and trellis constructions agreeing to one part in ten to the fourteenth; the envelope the amplifier must follow, constant for MSK against the wobble of QPSK and the spikes of OFDM; and the correlation of two tones over one bit against their spacing, zero at h = ½ coherently and h = 1 non-coherently](img/comms_msk_phase.png)
 
-You can hear this. `msk.py --play` sends the same bits at 1200 baud
-through the laptop's speaker five ways: FSK from two switched oscillators
-(the phase jumps at every bit edge, and every jump is a click), CPFSK with
-the phase kept, MSK, GMSK, and square-pulse BPSK. The clicks are the
-sidelobes: a jump in the waveform spreads energy everywhere. 1200 baud at
-1200 and 2200 Hz is the Bell 202 modem of the 1980s and APRS today, sent
-through a voice radio's microphone jack.
+**You can hear this.** `msk.py --play` sends the same bits at 1200 baud
+through the laptop's speaker five ways:
+
+1. FSK from two switched oscillators: the phase jumps at every bit edge,
+   and every jump is a click
+2. CPFSK, with the phase kept
+3. MSK
+4. GMSK
+5. square-pulse BPSK
+
+The clicks are the sidelobes: a jump in the waveform spreads energy
+everywhere. 1200 baud at 1200 and 2200 Hz is the Bell 202 modem of the
+1980s, and APRS today, sent through a voice radio's microphone jack.
 
 ## Two views of one signal
 
-Here is the fact that makes MSK special. Follow the phase trellis: at every
-bit boundary the phase sits on one of four values, and it moves ±90° per
-bit. Write the phase at the boundaries as *e*<sub>*k*</sub> *j*<sup>*k*</sup> (*e*<sub>*k*</sub> = ±1),
+The fact that makes MSK special is in the phase trellis: at every bit
+boundary the phase sits on one of four values, and it moves ±90° per bit.
+Write the phase at the boundaries as *e*<sub>*k*</sub> *j*<sup>*k*</sup> (*e*<sub>*k*</sub> = ±1),
 and the straight line between boundaries becomes
 
   *s*(*t*) = *e*<sub>*k*</sub> *j*<sup>*k*</sup> cos(π*t*′/2*T*) + *e*<sub>*k*+1</sub> *j*<sup>*k*+1</sup> sin(π*t*′/2*T*):
 
-a half-sine pulse two bits long on I for even *k*, on Q for odd *k*, the
-two offset by one bit. **MSK is offset [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) with half-sine pulses**, and
+a half-sine pulse two bits long, on I for even *k* and on Q for odd *k*,
+the two offset by one bit. So **MSK is offset [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) with half-sine pulses**, and
 I<sup>2</sup> + Q<sup>2</sup> = cos<sup>2</sup> + sin<sup>2</sup> = 1 is why its envelope is constant. `msk.py` builds
 the signal both ways and finds them equal to one part in 10<sup>14</sup>.
 (IEEE 802.15.4, the Zigbee radio, specifies "O-QPSK with half-sine pulse
-shaping", which is MSK under another name.) The one subtlety: the data in
-the trellis view are the *slopes* (which way the phase turned), in the
-OQPSK view the *nodes* (where it sits). GSM converts one to the other
-before the modulator (*precoding*); without it a coherent receiver has to
-multiply two node decisions and pays a factor of two in errors, as
-differential coding did in [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier).
+shaping": MSK under another name.)
+
+The one subtlety: the data are the *slopes* in the trellis view (which way
+the phase turned), but the *nodes* in the OQPSK view (where it sits). GSM
+converts one to the other before the modulator (*precoding*). Without it a
+coherent receiver has to multiply two node decisions and pays a factor of
+two in errors, as differential coding did in [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier).
 
 ## Spectra: smoothness sets the fall-off
 
-A waveform with steps (square-pulse QPSK) has a spectrum that falls as
-1/*f*<sup>2</sup>; MSK's waveform is continuous but its *frequency* steps, so
-1/*f*<sup>4</sup>; GMSK has no corners at any order and falls faster than any
-power. Measured through the cable, with the limiter that is the point of
-the page:
+The smoother the waveform, the faster its spectrum falls off:
+
+- A waveform with steps (square-pulse QPSK) falls as 1/*f*<sup>2</sup>.
+- MSK's waveform is continuous but its *frequency* steps, so
+  1/*f*<sup>4</sup>.
+- GMSK has no corners at any order and falls faster than any power.
 
 Everything on this page is one file:
 
@@ -811,6 +829,9 @@ if __name__ == "__main__":
 
 </details>
 
+**Measure the spectra** through the cable, with the limiter that is the point of
+the page. Load `awgcap.sv` ([5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)) and cable DAC OUT to ADC IN:
+
 ```console
 $ python3 msk.py --spectra               # awgcap.sv loaded, DAC OUT cabled to ADC IN
 waveform (1.5625 Mbit/s)         PAPR    as sent: 99% band  outside +-R    hard-limited: 99% band  outside +-R
@@ -828,21 +849,26 @@ envelope wins. QPSK with root-raised-cosine pulses is the narrowest signal
 in the table, 0.58 bit rates for 99% of its power, against MSK's 1.18 and
 GMSK's 0.91. (Carson's rule, 2(Δ*f* + *f*<sub>m</sub>), gets *h* = 1 right and is
 30% pessimistic for MSK; and *h* = 1 FSK wastes half its power in two carrier
-lines, visible at 5.47 and 7.03 MHz.) The win is the second half of the
-table. **PAPR**, the peak-to-average power ratio, is 3.6 dB for QPSK-RRC,
-10 dB for OFDM and exactly 0 for every constant-envelope waveform. Put each
-through a hard limiter (done in Python before the DAC, so the cable then
-carries exactly what a saturated amplifier would radiate): QPSK's sidelobes
-grow back by 22 dB and its 99% band quadruples, while MSK and GMSK don't
-move by a tenth of a decibel, and all of them still decode without an
-error. A linear amplifier must be backed off by the PAPR, so at the same
-peak power the constant-envelope signal also carries 3.6 dB more. That is
-the whole argument for GSM and Bluetooth, for why EDGE's 8PSK and
-Bluetooth EDR's π/4-DQPSK forced linear amplifiers into phones, why Wi-Fi
-and LTE radios run their amplifiers at a few percent efficiency with
-predistortion, and why LTE's uplink was deliberately made single-carrier
-(SC-FDMA, 2–3 dB less PAPR) to spare the phone's battery. ([6.03](6_03_qam.md#603-qam-more-bits-per-symbol) met the
-same number from the DAC's side.)
+lines, visible at 5.47 and 7.03 MHz.)
+
+The win is the second half of the table:
+
+- **PAPR**, the peak-to-average power ratio, is 3.6 dB for QPSK-RRC, 10 dB
+  for OFDM and exactly 0 for every constant-envelope waveform.
+- Each waveform also goes through a hard limiter, done in Python before the
+  DAC, so the cable carries exactly what a saturated amplifier would
+  radiate. QPSK's sidelobes grow back by 22 dB and its 99% band
+  quadruples, while MSK and GMSK don't move by a tenth of a decibel. All
+  of them still decode without an error.
+- A linear amplifier must be backed off by the PAPR, so at the same peak
+  power the constant-envelope signal also carries 3.6 dB more.
+
+That is the whole argument for GSM and Bluetooth. It is also why EDGE's
+8PSK and Bluetooth EDR's π/4-DQPSK forced linear amplifiers into phones,
+why Wi-Fi and LTE radios run their amplifiers at a few percent efficiency
+with predistortion, and why LTE's uplink was deliberately made
+single-carrier (SC-FDMA, 2–3 dB less PAPR) to spare the phone's battery.
+([6.03](6_03_qam.md#603-qam-more-bits-per-symbol) met the same number from the DAC's side.)
 
 <details>
 <summary><b>Detail:</b> what a real limiter would add, and why the one here acts on the envelope</summary>
@@ -858,20 +884,26 @@ is a gentler amplifier (Rapp's model, saturating over an octave).
 
 ## Two receivers
 
-**Coherent (MSK is BPSK in disguise).** Matched-filter with the half sine,
-then turn the signal back a quarter turn per bit: every trellis node lands
-on the real axis, and the de-rotated pulse is Nyquist (zero at ±*T* from the
-cosine, ±2*T* from the pulse), so the real part is a BPSK eye with no
-intersymbol interference. The imaginary part carries the neighbours' leak,
+**Coherent (MSK is BPSK in disguise).**
+
+1. Matched-filter with the half sine.
+2. Turn the signal back a quarter turn per bit: every trellis node lands
+   on the real axis.
+
+The de-rotated pulse is Nyquist (zero at ±*T* from the cosine, ±2*T* from
+the pulse), so the real part is a BPSK eye with no intersymbol
+interference. The imaginary part carries the neighbours' leak,
 (*e*<sub>*k*+1</sub> − *e*<sub>*k*−1</sub>)/π, which is why the MER printed below is modest
 while the error rate is BPSK's. [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s Gardner loop runs on the real part,
 and the [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) uses a reference that knows about the leak (Simon's
-OQPSK loop). One thing is new: this receiver's timing detector is *not*
+OQPSK loop).
+
+One thing is new: this receiver's timing detector is *not*
 rotation-invariant (I and Q swap under a 90° turn, which is the same thing
-as one bit of timing), so the chicken-and-egg problem is back, and MSK
-solves it with a trick of its own. Square the signal: 2φ advances ±180° per
-bit, so *z*<sup>2</sup> is two pure tones at 2Δ*f* ± *R*/2 whose frequencies give the
-carrier offset and the bit rate, and whose phases give the carrier phase
+as one bit of timing). So the chicken-and-egg problem is back, and MSK
+solves it with a trick of its own: **square the signal**. 2φ advances ±180°
+per bit, so *z*<sup>2</sup> is two pure tones at 2Δ*f* ± *R*/2. Their frequencies give
+the carrier offset and the bit rate; their phases give the carrier phase
 and the bit timing. De Buda's synchronizer, 1972, in one FFT:
 
 ```console
@@ -886,17 +918,21 @@ unique words at bits [-1, 515], turned by [0, 0] x 180 deg
 
 The two lines found a 3052 Hz carrier offset to a hertz and a 0.78% rate
 offset to three digits before any loop ran; the loops then had 2 Hz and
-3 ppm left to find. (At a quarter-rate carrier the real signal's mirror
-image squared lands on the same bins, so `msk.py` low-passes before
-squaring: a trap worth a sentence.)
+3 ppm left to find. (A trap: at a quarter-rate carrier the real signal's
+mirror image squared lands on the same bins, so `msk.py` low-passes
+before squaring.)
 
-**Non-coherent (a Bluetooth chip).** Band-pass as wide as the bit rate,
-then the *discriminator*: angle(*z*[*n*] *z*<sup>*</sup>[*n*−1]) summed over a bit is the
-phase change, ±90°, and the sign is the bit. No carrier loop at all; a
-carrier offset only shifts the output's mean. learnSDR's [lesson 24](https://github.com/gallicchio/learnSDR/blob/main/lesson24_FSKhardware.grc) uses
+**Non-coherent (a Bluetooth chip).**
+
+1. Band-pass as wide as the bit rate.
+2. The *discriminator*: angle(*z*[*n*] *z*<sup>*</sup>[*n*−1]) summed over a bit is the
+   phase change, ±90°, and the sign is the bit.
+
+No carrier loop at all: a carrier offset only shifts the output's mean.
+learnSDR's [lesson 24](https://github.com/gallicchio/learnSDR/blob/main/lesson24_FSKhardware.grc) uses
 exactly this block (GNU Radio's "Quadrature Demod"). It costs about 3.6 dB
-at a [bit error rate](https://en.wikipedia.org/wiki/Bit_error_rate) of 10<sup>−2</sup>, and below about 3 dB it falls off the *FM
-threshold*: noise makes whole-turn clicks and the error rate heads for a
+at a [bit error rate](https://en.wikipedia.org/wiki/Bit_error_rate) of 10<sup>−2</sup>. Below about 3 dB it falls off the *FM
+threshold*: noise makes whole-turn clicks, and the error rate heads for a
 half.
 
 ```console
@@ -917,13 +953,17 @@ unique words at bits [-1, 511], turned by [0, 0] x 180 deg
 
 ![Measured, one board looped back: MSK and GMSK through the receivers: the BPSK-view eye after the quarter-turn de-rotation, the phase-trellis eye, the squared signal's two lines, the constellation of the de-rotated nodes, and the loops at work](img/comms_msk_rx.png)
 
-**GMSK's price.** Spreading each bit's turn over three bits means the phase
-at a node is off by up to ±32° at *BT* = 0.3 (±19° at 0.5): intersymbol
-interference, on purpose. The simple coherent receiver loses 0.5 dB at
-*BT* = 0.3; the discriminator's eye closes to a quarter of MSK's and its error
-rate floors at a few percent. GSM gets the last decibel back with a
-Viterbi equalizer over the three-bit memory, the same algorithm as [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)'s
-decoder, which Laurent's 1986 decomposition makes possible: GMSK is, to a
+**GMSK's price.** Spreading each bit's turn over three bits leaves the
+phase at a node off by up to ±32° at *BT* = 0.3 (±19° at 0.5):
+intersymbol interference, on purpose.
+
+- The simple coherent receiver loses 0.5 dB at *BT* = 0.3.
+- The discriminator's eye closes to a quarter of MSK's, and its error rate
+  floors at a few percent.
+
+GSM gets the last decibel back with a Viterbi equalizer over the three-bit
+memory, the same algorithm as [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)'s
+decoder. Laurent's 1986 decomposition makes that possible: GMSK is, to a
 very good approximation, one amplitude-modulated pulse three bits long.
 
 ## Against theory
@@ -942,17 +982,21 @@ Measured, with noise added at the transmitter, at one error in a hundred
 | GMSK *BT* = 0.3, coherent, half-sine filter | 4.82 dB | +0.50 dB |
 | GMSK *BT* = 0.3, discriminator | never: the error rate floors at 5% | |
 
-The first row is the point of the chapter: a constant-envelope waveform
-with the bit error rate of BPSK, to within the measurement. The second is
-the "twice the errors" of the unprecoded receiver, worth 0.9 dB here (the
-dashed theory curve). The discriminator pays 3.6 dB for needing no carrier
-and lands near the non-coherent FSK curve, which is where a receiver that
-throws away the phase belongs. The Gaussian filter costs the coherent
-receiver 0.2 dB at *BT* = 0.5 and 0.5 dB at *BT* = 0.3, the ISI it was
-promised. And the discriminator on *BT* = 0.3 never gets below 5% at any
-*E*<sub>b</sub>/*N*<sub>0</sub>: with a quarter of an eye the ISI alone flips one bit
-in twenty, noise or no noise, which is the floor GSM's equalizer exists to
-remove.
+Row by row:
+
+- **Coherent, precoded** is the point of the chapter: a constant-envelope
+  waveform with the bit error rate of BPSK, to within the measurement.
+- **No precoding** is the "twice the errors" of the unprecoded receiver,
+  worth 0.9 dB here (the dashed theory curve).
+- **The discriminator** pays 3.6 dB for needing no carrier and lands near
+  the non-coherent FSK curve, which is where a receiver that throws away
+  the phase belongs.
+- **The Gaussian filter** costs the coherent receiver 0.2 dB at *BT* = 0.5
+  and 0.5 dB at *BT* = 0.3: the ISI it was promised.
+- **The discriminator on *BT* = 0.3** never gets below 5% at any
+  *E*<sub>b</sub>/*N*<sub>0</sub>. With a quarter of an eye the ISI alone flips one
+  bit in twenty, noise or no noise: the floor GSM's equalizer exists to
+  remove.
 
 ## Who uses it, and why
 

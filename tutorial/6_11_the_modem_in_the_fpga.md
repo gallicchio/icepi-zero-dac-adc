@@ -1391,9 +1391,10 @@ board. Its testbench:
 
 ```console
 $ cd src/twoboard
-$ python3 qpsk_modem_check.py              # about a minute
+$ python3 qpsk_modem_check.py              # about two minutes
 1. LOOPED BACK: 200 random bytes at 1 Mbaud, 180000 clocks (3.6 ms)
-   200 bytes came back, 0 bit errors; typed-to-echoed delay 28.1 to 36.0 us
+   180000 clocks: 703 frames sent, 5624 symbols received, locked = 1; bytes: 200 sent, 200 received (0 framing errors), 4 arrived as a frame loaded; the FIFO held at most 1; bytes left 490 to 512 clocks apart
+   200 bytes came back, 0 bit errors; typed-to-echoed delay 25.7 to 28.1 us
 
 2. THE TRANSMITTER, BIT FOR BIT: the DAC codes of test 1 against the model's,
    from the 703 frames the design sent (200 with a byte)
@@ -1402,10 +1403,20 @@ $ python3 qpsk_modem_check.py              # about a minute
 
 3. THE RECEIVER, BIT FOR BIT: the same DAC codes through the channel model, with the
    transmitter's clock +2000 ppm fast (carrier +12500 Hz, symbols +2000 ppm), a mixer error of -9500 Hz, noise 0.1 codes rms
+   181628 clocks: 709 frames sent, 5686 symbols received, locked = 1; bytes: 0 sent, 201 received (0 framing errors), 0 arrived as a frame loaded; the FIFO held at most 1; bytes left 490 to 59418 clocks apart
    symbols: Verilog 5686, model 5624; loop states identical: yes, all 5624
    frame lock at symbol 68; found +1990 ppm and +2994 Hz (mean of the last 500 symbols)
    200 bytes came back (model: 200), 0 bit errors (0 from the 0 bytes sent before the lock); bytes identical to the model's: yes
    MER over the last 1000 symbols 39.7 dB
+
+4. THE SERIAL PORT'S HAND-OFFS: 1500 bytes, the output FIFO shrunk to 2 bytes
+   back to back: 1500 sent, 1500 received, 0 bit errors; 24 bytes arrived in the clock a frame loaded;
+      the FIFO held at most 1; bytes left 490 to 512 clocks apart (they arrive every 500)
+   at every phase of the frame: 1500 sent, 1500 received, 0 bit errors; 6 bytes arrived in the clock a frame loaded;
+      the FIFO held at most 1; bytes left 490 to 512 clocks apart (they arrive every 501)
+
+5. A LAPTOP PORT AT 115,200 BAUD (the design's are 1,000,000): 39 of 40 bytes came back, 46 bit errors
+   (the 1 Mbaud receiver samples the slow line like a digitizer; see the page)
 
 PASS
 ```
