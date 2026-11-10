@@ -5,15 +5,17 @@
 
 ![The four waveforms of the LiteX function generator](img/funcgen.png)
 
-Now put Chapter 1's circuits into the SoC, where the CPU can reach them. This
-section adds a function generator; [2.04](2_04_capture_peripheral.md#204-a-capture-peripheral) and [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral) add a capture unit and a
+Now put [Chapter 1](1_00_circuits_from_code.md)'s circuits into the SoC,
+where the CPU can reach them. This section adds a function generator;
+[2.04](2_04_capture_peripheral.md#204-a-capture-peripheral) adds a capture
+unit and [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral) a
 lock-in. All three share the converters, so they're built from four small
 SystemVerilog *cores* in [`src/riscv/`](../src/riscv/), plus one Python file
 that connects them to the CPU.
 
 ## The cores
 
-The first core owns the converter pins. It's the clocking of [1.02](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac) and [1.04](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds),
+The first core, `adda_io.sv`, owns the converter pins. It's the clocking of [1.02](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac) and [1.04](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds),
 unchanged. (Its name, like `icepi_adda.lpf`'s, uses *adda* for *analog to
 digital and digital to analog*: the ADC and the DAC.)
 
@@ -55,9 +57,10 @@ module adda_io (
 endmodule
 ```
 
-The function generator is the DDS of [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis), with the tuning
-word, amplitude and waveform turned into *inputs*, so the CPU can change them
-while it runs:
+The function generator, `funcgen_core.sv`, is the DDS of
+[1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis), with the
+tuning word, amplitude and waveform turned into *inputs* so that the CPU can
+change them while it runs:
 
 <!-- file: src/riscv/funcgen_core.sv -->
 ```systemverilog
@@ -112,10 +115,13 @@ endmodule
 
 ## Registers: the Python glue
 
-`adda_litex.py` is the only new kind of code. For each core it declares the
-registers (CSRs), wires them to the core's ports with `Instance(...)`, and
-tells LiteX where the SystemVerilog files are. The function generator's
-wrapper is the whole idea in sixteen lines:
+`adda_litex.py` is the only new kind of code. For each core it
+
+- declares the registers (CSRs),
+- wires them to the core's ports with `Instance(...)`,
+- tells LiteX where the SystemVerilog files are.
+
+The function generator's wrapper is the whole idea in sixteen lines:
 
 ```python
 class FuncGen(LiteXModule):
@@ -137,13 +143,19 @@ class FuncGen(LiteXModule):
 ```
 
 `Instance("funcgen_core", i_tw=self.tw.storage, ...)` is a SystemVerilog
-module instance written in Python: `i_` marks an input port and `o_` an
-output. `self.tw.storage` is the register's value, which the CPU sets. LiteX
-also writes the C side for you: a function per register, like
-`funcgen_tw_write()`, in a header file. The capture and lock-in wrappers are
-the same pattern, for [2.04](2_04_capture_peripheral.md#204-a-capture-peripheral) and [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral), and
-`add_adda()` adds all three to an SoC, with the converter pins and the four
-SystemVerilog files:
+module instance written in Python:
+
+- `i_` marks an input port and `o_` an output;
+- `self.tw.storage` is the register's value, which the CPU sets.
+
+LiteX also writes the C side for you: a function per register, like
+`funcgen_tw_write()`, in a header file.
+
+The capture and lock-in wrappers, for
+[2.04](2_04_capture_peripheral.md#204-a-capture-peripheral) and
+[2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral), follow the same
+pattern. `add_adda()` adds all three to an SoC, with the converter pins and
+the four SystemVerilog files:
 
 <details>
 <summary>The whole file: <code>adda_litex.py</code></summary>
@@ -419,11 +431,12 @@ cd src/riscv
 python3 icepi_adda_soc.py --build --libc-mode full     # about 1.5 minutes
 ```
 
-(`--libc-mode full` gives C programs the whole standard library, including
-`atoi()` and `sqrtf()`, instead of LiteX's default minimal one.) The CPU and
+`--libc-mode full` gives C programs the whole standard library, including
+`atoi()` and `sqrtf()`, instead of LiteX's default minimal one. The CPU and
 SoC take about a third of the FPGA's logic and most of its block RAM.
-Everything lands in `build/icepi_zero/`. Look at its `csr.csv`, the new SoC's
-map:
+
+Everything lands in `build/icepi_zero/`. **Look at its `csr.csv`**, the new
+SoC's map:
 
 ```text
 csr_base,capture,0xf0000000,,
@@ -440,20 +453,21 @@ csr_register,funcgen_waveform,0xf0001008,1,rw
 memory_region,capture_buf,0x80000000,16384,io
 ```
 
-Notice that the LEDs moved, from 0xf0001000 in the stock SoC to 0xf0002000.
-LiteX hands out addresses as it builds, so always look them up in `csr.csv`
-(or let the generated C functions do it) rather than remembering them.
+The LEDs moved, from 0xf0001000 in the stock SoC to 0xf0002000. LiteX hands
+out addresses as it builds, so always look them up in `csr.csv` (or let the
+generated C functions do it) rather than remembering them.
 
 ## Drive it from the BIOS
 
-Load it, and connect a terminal (and a scope to the DAC output):
+**Load it** and **connect a terminal**, with a scope on the DAC output:
 
 ```bash
 python3 icepi_adda_soc.py --load
 litex_term /dev/ttyUSB0            # press Enter for the litex> prompt
 ```
 
-1 MHz is a tuning word of 0x051eb852:
+1 MHz is a tuning word of 0x051eb852. **Write it, and an amplitude of 64**,
+then read the registers back:
 
 ```
 litex> mem_write 0xf0001000 0x051eb852
@@ -463,10 +477,12 @@ Memory dump:
 0xf0001000  52 b8 1e 05 40 00 00 00 00 00 00 00              R...@.......
 ```
 
-The first write sets 1 MHz; the second sets the amplitude to 64/255, and the
-scope shows the sine shrink to a quarter of full scale (measured amplitude:
-0.956 V against 3.82 V at full scale). A store to an address, and the DDS in
-the FPGA changes frequency.
+- The first write sets 1 MHz.
+- The second sets the amplitude to 64/255: the scope shows the sine shrink
+  to a quarter of full scale (measured amplitude: 0.956 V against 3.82 V at
+  full scale).
+
+A store to an address, and the DDS in the FPGA changes frequency.
 
 ## A C program
 
@@ -484,16 +500,16 @@ static void funcgen_set(uint32_t hz, int amplitude, int wave)
 ```
 
 The whole program is printed at the end of [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral).
-Build it and send it to the board as in [2.02](2_02_c_on_the_cpu.md#202-c-on-the-cpu):
+**Build it and send it** to the board as in [2.02](2_02_c_on_the_cpu.md#202-c-on-the-cpu):
 
 ```bash
 cd firmware && make && cd ..            # -> firmware/firmware.bin, about 17 kB
 litex_term --kernel=firmware/firmware.bin /dev/ttyUSB0
 ```
 
-then `serialboot` at the `litex>` prompt. The firmware takes over the same
-terminal with a prompt of its own, `adda>`; from here on, `adda>` means the
-board's C program is listening:
+Then **type `serialboot`** at the `litex>` prompt. The firmware takes over
+the same terminal with a prompt of its own, `adda>`. From here on, `adda>`
+means the board's C program is listening:
 
 ```
 ADC/DAC peripherals on LiteX.  Type 'help'.

@@ -6,54 +6,61 @@
 ![Three kernels, computed: a 16-tap moving average, a 15-tap windowed sinc, and the edge detector minus one two minus one; for each, the taps, the kernel sliding along a square wave with noise and a ramp, and the frequency response in decibels](img/dsp_fir_intuition.png)
 
 A digital filter is a dot product that slides. Take the last *N* samples,
-multiply each by a number, add them up, and that is the output for this
-sample; next sample, shift everything along one and do it again:
+multiply each by a number, and add them up: that is the output for this
+sample. On the next sample, shift everything along by one and do it again:
 
   *y*[*n*] = Σ<sub>*k*</sub> *h*[*k*] *x*[*n* − *k*].
 
-The numbers *h*[*k*] are the *taps*, and because the output depends only
-on a finite stretch of the input the thing is a *finite impulse
-response* filter, an FIR. Everything a filter does is in the shape of
-its taps, and the three shapes in the figure are most of what you will
-ever need to know about them.
+The numbers *h*[*k*] are the *taps*. The output depends only on a finite
+stretch of the input, so this is a *finite impulse response* filter, an
+FIR. Everything a filter does is in the shape of its taps, and the three
+shapes in the figure are most of what you will ever need to know about
+them:
 
-- **A slowly varying hump** is a moving average with manners. Sixteen
-  taps of 1/16 are the plain moving average: every edge becomes a ramp 16
-  samples long, and the frequency response is a [sinc](https://en.wikipedia.org/wiki/Sinc_function) with nulls at
-  multiples of *f*<sub>s</sub>/16 = 1.56 MHz, so some frequencies vanish and
-  the ones between them leak through at −13 dB. Shape the hump as a
-  *windowed sinc* (the inverse transform of the brick wall you wanted,
-  truncated to 15 taps and tapered with a Hamming window) and for the
-  same cost you get a flat passband, −6 dB at the cutoff, and a stopband
-  that falls off a cliff: a sophisticated moving average, which is what
-  "low-pass filter" usually means.
+- **A slowly varying hump** is a moving average with manners.
+  - Sixteen taps of 1/16 are the plain moving average. Every edge becomes
+    a ramp 16 samples long. The frequency response is a
+    [sinc](https://en.wikipedia.org/wiki/Sinc_function) with nulls at
+    multiples of *f*<sub>s</sub>/16 = 1.56 MHz: some frequencies vanish,
+    and the ones between them leak through at −13 dB.
+  - Shape the hump as a *windowed sinc* instead: the inverse transform of
+    the brick wall you wanted, truncated to 15 taps and tapered with a
+    Hamming window. For the same cost you get a flat passband, −6 dB at the
+    cutoff, and a stopband that falls off a cliff. This sophisticated
+    moving average is what "low-pass filter" usually means.
 - **Rapidly changing taps** detect edges. [−1 2 −1] is the second
   difference: a ramp gives zero, a flat top gives zero, and only the
-  corners and the noise get through, with a response 4 sin<sup>2</sup>(π*f*/*f*<sub>s</sub>)
-  that rises as *f*<sup>2</sup> and reaches +12 dB at *f*<sub>s</sub>/2. It is a
-  high-pass, and in an image it would draw the outlines.
+  corners and the noise get through. Its response,
+  4 sin<sup>2</sup>(π*f*/*f*<sub>s</sub>), rises as *f*<sup>2</sup> and
+  reaches +12 dB at *f*<sub>s</sub>/2. It is a high-pass; in an image it
+  would draw the outlines.
 - **A symmetric kernel has linear phase.** If *h*[*k*] = *h*[*N* − 1 − *k*],
   every frequency is delayed by the same (*N* − 1)/2 samples, so a square
-  wave comes out rounded but not skewed. That is the FIR's great virtue
-  over the analog filters of [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits),
-  which cannot do it, and it is why anything whose *shape in time*
-  matters (pulses, edges, [6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping)'s
-  matched filter) is an FIR with symmetric taps. Its only sin is cost:
-  *N* multiplies per sample.
+  wave comes out rounded but not skewed. The analog filters of
+  [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) cannot do this.
+  It is the FIR's great virtue, and it is why anything whose *shape in
+  time* matters (pulses, edges,
+  [6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping)'s matched
+  filter) is an FIR with symmetric taps. Its only sin is cost: *N*
+  multiplies per sample.
 
 ![Block diagrams, computed: an FIR as a delay line with a tap on every sample and an adder chain; and the symmetric trick, adding the mirrored pair before one multiply](img/dsp_d_filters.png)
 
 ## The same thing in gateware
 
-`fir.sv` is the whole idea in a hundred lines. The ADC is sampled at
-25 MS/s as [5.07](5_07_radio_link.md#507-a-radio-link)'s radio does it; a
-delay line of *N* registers shifts on every sample; because every tap set
-here is symmetric, the mirrored pairs are added first and multiplied
-once (8 multipliers for 16 taps instead of 16); the products are summed,
-shifted right by 8 (the taps are integers times 256), and the DAC plays
-128 plus the result, clipped. Each stage is a register that changes once
-per sample, so the DAC holds a clean value for the sample's two clocks. A
-parameter picks the taps:
+`fir.sv` is the whole idea in a hundred lines. On every ADC sample (25 MS/s,
+sampled as [5.07](5_07_radio_link.md#507-a-radio-link)'s radio does it):
+
+1. a delay line of *N* registers shifts;
+2. because every tap set here is symmetric, the mirrored pairs are added
+   first and multiplied once (8 multipliers for 16 taps instead of 16);
+3. the products are summed and shifted right by 8 (the taps are integers
+   times 256);
+4. the DAC plays 128 plus the result, clipped.
+
+Each stage is a register that changes once per sample, so the DAC holds a
+clean value for the sample's two clocks. A parameter, `SET`, picks the
+taps:
 
 | `SET` | taps | what it is | multipliers |
 | --- | --- | --- | --- |
@@ -62,7 +69,7 @@ parameter picks the taps:
 | 2 | `[−256 512 −256]` | the edge detector | 0: shifts again |
 | 3 | `[2 6 4 −17 −42 −25 37 73 37 −25 −42 −17 4 6 2]` | `firwin(15, [3e6, 5e6], pass_zero=False)`: a band-pass | 6 |
 
-Yosys turns a multiply by a power of two into wiring, which is why the
+Yosys turns a multiply by a power of two into wiring. That is why the
 moving average and the edge detector cost no multiplier at all, and why
 engineers love coefficients like 1/16.
 
@@ -207,6 +214,8 @@ endmodule
 
 </details>
 
+**Simulate it**, then **build and load** one tap set:
+
 ```console
 $ cd src/dsp
 $ make sim-fir                 # iverilog: an impulse through each tap set
@@ -215,7 +224,7 @@ $ make load-fir_set1
 ```
 
 The simulation plays one sample of +64 into each filter and prints what
-the DAC does: the taps come out, scaled by 64/256, three samples later
+the DAC does. The taps come out, scaled by 64/256, three samples later
 (`SET` 2 gives `−64 127 −64`, the 128 clipped). That is the first fact
 about an FIR made visible: **the [impulse response](https://en.wikipedia.org/wiki/Impulse_response) is the taps.**
 
@@ -223,52 +232,65 @@ about an FIR made visible: **the [impulse response](https://en.wikipedia.org/wik
 
 ![Measured on the M2k: a 300 kHz, 1 V square wave into ADC IN and DAC OUT on the scope with each fixed bitstream loaded in turn: the moving average turns the edges into 640 ns ramps, the windowed-sinc low-pass rounds them with a little ring, and the edge detector passes only the edges, both signs](img/dsp_fixed_scope.png)
 
-With the ADALM2000's W1 playing a 300 kHz square wave into ADC IN and its
-scope on DAC OUT (the first of [7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)'s
-three ways), each bitstream in turn shows its character: the moving
-average's ramps are exactly 16 samples, 640 ns, long; the windowed sinc
-rounds the corners and rings a little, as a filter with a sharp cutoff
-must (the ring *is* the sinc's sidelobes, in time); and the edge detector
-outputs a doublet at every edge, two spikes of opposite sign, and nothing
-between. The frequency responses of the same
-filters, swept with the generator through
-[7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s loadable
-version, agree with scipy's prediction to a quarter of a decibel.
+**Connect the ADALM2000** as in the first of
+[7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)'s
+three ways: W1 plays a 300 kHz square wave into ADC IN, and its scope
+watches DAC OUT. **Load each bitstream in turn**:
+
+- the moving average's ramps are exactly 16 samples, 640 ns, long;
+- the windowed sinc rounds the corners and rings a little, as a filter with
+  a sharp cutoff must (the ring *is* the sinc's sidelobes, in time);
+- the edge detector outputs a doublet at every edge, two spikes of opposite
+  sign, and nothing between.
+
+The frequency responses of the same filters, swept with the generator
+through [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load)'s
+loadable version, agree with scipy's prediction to a quarter of a decibel.
 
 ## What it costs, and what it buys
 
 An FIR costs *N* multiplies per sample. With two clocks per ADC sample and
-28 hardware multipliers on this ECP5, the budget is *N* × *f*<sub>s</sub> ≤ 2 × 28 ×
-25 MS/s: about 56 taps at the full rate, or thousands at audio rates with
-one multiplier doing them all in turn, which is how a $2 audio codec runs
-a 128-tap filter. The symmetric trick halves it. What you buy is a filter
-whose response is exactly what you designed, whose phase is a straight
-line, which cannot oscillate, which never needs more bits than its
-inputs plus a few for the sum, and whose impulse response you can read
-off the taps. The one thing it cannot do cheaply is a long memory: an RC
-with a 1 ms time constant at 25 MS/s is an impulse response 100,000
-samples long, and that is where [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)
+28 hardware multipliers on this ECP5, the budget is
+*N* × *f*<sub>s</sub> ≤ 2 × 28 × 25 MS/s:
+
+- about 56 taps at the full rate;
+- or thousands at audio rates, with one multiplier doing them all in turn,
+  which is how a $2 audio codec runs a 128-tap filter.
+
+The symmetric trick halves the cost. What you buy is a filter
+
+- whose response is exactly what you designed,
+- whose phase is a straight line,
+- which cannot oscillate,
+- which never needs more bits than its inputs plus a few for the sum,
+- and whose impulse response you can read off the taps.
+
+The one thing it cannot do cheaply is a long memory: an RC with a 1 ms time
+constant at 25 MS/s is an impulse response 100,000 samples long. That is
+where [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)
 comes in.
 
-PySDR's [filters chapter](https://pysdr.org/content/filters.html) covers
-the same ground in numpy, with the design side (windowing, the
-transition width 3.3 *f*<sub>s</sub>/*N*) that this page only gestures at;
-[7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load) uses
-scipy's `firwin` and lets you load the result.
+PySDR's [filters chapter](https://pysdr.org/content/filters.html) covers the
+same ground in numpy, with the design side that this page only touches on
+(windowing, the transition width 3.3 *f*<sub>s</sub>/*N*).
+[7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load) uses scipy's
+`firwin` and lets you load the result.
 
 **Try this:**
 
-- `SET` 0 with 8 taps, then 32: the ramps halve and double, the first
+- `SET` 0 with 8 taps, then 32: the ramps halve and double, and the first
   null moves to 3.1 MHz and 780 kHz. Build both (`fir_set0` with `N`
   changed) and look.
-- Put the band-pass (`SET` 3) on the square wave: a 300 kHz square wave
-  has odd harmonics at 900 kHz, 1.5 MHz, …; which ones come through, and
-  at what amplitude? Check against the [Fourier series](https://en.wikipedia.org/wiki/Fourier_series).
+- Put the band-pass (`SET` 3) on the square wave. A 300 kHz square wave has
+  odd harmonics at 900 kHz, 1.5 MHz, …: which ones come through, and at
+  what amplitude? Check against the
+  [Fourier series](https://en.wikipedia.org/wiki/Fourier_series).
 - An FIR that is *not* symmetric: `[1 −1]` (the first difference) against
-  `[−1 2 −1]`. Measure the phase with the scope's second channel, or
-  with `filter.py --m2k --ch2` in [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load).
-- Write a 7-tap filter by hand that passes 1 MHz and blocks 3 MHz, then
-  see what `firwin` would have chosen and why it does better.
+  `[−1 2 −1]`. Measure the phase with the scope's second channel, or with
+  `filter.py --m2k --ch2` in
+  [7.03](7_03_a_filter_you_can_load.md#703-a-filter-you-can-load).
+- Write a 7-tap filter by hand that passes 1 MHz and blocks 3 MHz. Then see
+  what `firwin` would have chosen, and why it does better.
 
 <!-- nav -->
 [← 7.00 Signal processing in gateware](7_00_signal_processing_in_gateware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.02 IIR filters: feedback, and an RC in one line →](7_02_iir_filters.md)
