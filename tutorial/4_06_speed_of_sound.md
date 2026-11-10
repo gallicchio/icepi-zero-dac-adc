@@ -10,50 +10,63 @@
 **Where it plugs in.** With the USB connectors toward you, DAC OUT is the
 right-hand SMA and ADC IN the left-hand one.
 
-Drive a 40 kHz piezo transmitter (e.g. Murata MA40S4S; up to 20 V<sub>pp</sub>
-is allowed, the DAC gives 7.8) directly from the DAC. The matching receiver,
-10–50 cm away, goes straight to the ADC. Expect a lot of signal: the pair
-measured below gave 1.5 V at 11 cm, and the pressure falls as 1/distance, so
-at 50 cm it is still about 0.3 V, which the lock-in reads easily ([2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)). At 20 °C, *c* = 343.4 m/s, so λ = 8.59 mm, and
-the phase falls by **41.9° for every millimetre** you move the receiver away.
+- **Connect a 40 kHz piezo transmitter straight to DAC OUT** (e.g. Murata
+  MA40S4S; up to 20 V<sub>pp</sub> is allowed, the DAC gives 7.8).
+- **Connect the matching receiver straight to ADC IN**, 10–50 cm away.
+
+Expect a lot of signal. The pair measured below gave 1.5 V at 11 cm, and the
+pressure falls as 1/distance, so at 50 cm it is still about 0.3 V, which the
+lock-in reads easily ([2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)).
+
+At 20 °C, *c* = 343.4 m/s, so λ = 8.59 mm, and the phase falls by
+**41.9° for every millimetre** you move the receiver away. To measure *c*:
+
+1. **Raise the pair off the table.** A reflection off the bench adds a
+   ripple to the phase against distance.
+2. **Load the lock-in** (in `src/verilog`: `make load-lockin`) and watch
+   40 kHz while you slide the receiver along a ruler, 1 mm at a time:
 
 ```bash
 python3 lockin.py -f 40000       # slide the receiver along a ruler, 1 mm at a time
 ```
 
-Unwrap the phase against distance and fit: the slope gives *c* to a few
-tenths of a percent. A reflection off the bench adds a ripple to phase against
-distance, so raise the pair off the table. Then warm the air with a hair dryer. Since
-*c* ≈ 331.3 + 0.606 *T*(°C) m/s, that is 0.18% per kelvin. A sweep from 36 to
-44 kHz shows the transducers' own resonance. The next section is that sweep
-for one pair; the advanced topics after it ask what else the sweep can tell
-you, and how fast the pair can carry data.
+3. **Unwrap the phase against distance and fit a line.** The slope gives *c*
+   to a few tenths of a percent.
+4. **Warm the air with a hair dryer.** Since *c* ≈ 331.3 + 0.606 *T*(°C) m/s,
+   that is 0.18% per kelvin.
+
+A sweep from 36 to 44 kHz shows the transducers' own resonance. The next
+section is that sweep, for one pair.
 
 ## One pair, measured
 
 <img src="img/photo_ultrasound.jpg" alt="The pair as first measured: two open-frame 40 kHz transducers held by red and black minigrabbers, lying on a dark bench facing each other about 10 cm apart, each wired through a BNC-to-minigrabber lead and an SMA-to-BNC adapter to a long RG-316 cable, the two cables going to the SMA connectors of the ADC/DAC module stacked on the Icepi Zero" width="600">
 
-The pair measured here: two open-frame 16 mm transducers, each held by a
-minigrabber lead, faces about 10 cm apart by eye, each wired through an
-SMA-to-BNC adapter and about 2 m of RG-316 to the board (DP051TLX). The
-photo shows them lying on the bench, where they were first measured. For
-the results on this page they sit on a cardboard box instead, to keep the
-bench from carrying the sound, and the bench's results are kept for
-comparison. Nothing moved during either set of measurements: everything
-comes from changing what the DAC plays.
+The pair measured here:
+
+- two open-frame 16 mm transducers, faces about 10 cm apart by eye;
+- each held by a minigrabber lead and wired through an SMA-to-BNC adapter
+  and about 2 m of RG-316 to the board.
+
+The photo shows them lying on the bench. For the results on this page they
+sit on a cardboard box instead, to keep the bench from carrying the sound;
+the bench's results are given for comparison. Nothing moved during either
+set of measurements: everything comes from changing what the DAC plays.
 
 ### The scan
 
-`sweep.py` steps `lockin.sv`'s frequency ([1.08](1_08_lockin.md#108-a-lock-in-amplifier)) and keeps the second
-of two 42 ms averages at each step. The first is thrown away because the pair
-*rings*: for a millisecond or two after the frequency changes it is still
-singing the old one, and an average that starts at once hears it. (Measured:
-a reading at 35 kHz taken just after 40 kHz gave 1.1 mV; the true response
-there was 0.2 mV.) Wait a few seconds after loading `lockin.bit`, too: for the
-first 1.7 s after it loaded, this board read 1.7 mV at 30 kHz, in step with
-the drive, where there was really 0.04 mV, and then it let go. What settles
-wasn't found. `sweep.py` also turns a sweep into an *impulse response* by an
-inverse Fourier transform, for the curious.
+`sweep.py` steps `lockin.sv`'s frequency ([1.08](1_08_lockin.md#108-a-lock-in-amplifier)) and takes two 42 ms
+averages at each step, keeping only the second. The pair *rings*: for a
+millisecond or two after the frequency changes it is still singing the old
+one, and an average that starts at once hears it. (A reading at 35 kHz taken
+just after 40 kHz gave 1.1 mV; the true response there was 0.2 mV.)
+
+**Wait a few seconds after loading `lockin.bit`.** For the first 1.7 s, this
+board read 1.7 mV at 30 kHz, in step with the drive, where there was really
+0.04 mV; then it let go. What settles wasn't found.
+
+`sweep.py` also turns a sweep into an *impulse response* by an inverse
+Fourier transform (`--impulse`).
 
 <details>
 <summary>The whole file: <code>sweep.py</code></summary>
@@ -180,6 +193,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Run the sweep:**
+
 ```bash
 cd src/ultrasound                # lockin.bit loaded (src/verilog: make load-lockin)
 python3 sweep.py 37e3 43e3                            # 20 Hz steps, plotted
@@ -188,88 +203,96 @@ python3 sweep.py 30e3 64e3 --step 10 -o pair.npz      # the figure's sweep: 5 mi
 
 ![Measured with lockin.sv, on the cardboard box and lying on the bench: the pair's amplitude at the ADC from 30 to 64 kHz in dB, a 1.49 V peak at 40.31 kHz on the box, a weaker mode near 58 kHz, and away from the peak five to twelve times more signal on the box than on the bench; and the resonance in volts from 37 to 44 kHz, the same shape both ways, 1.49 V on the box and 1.27 V on the bench](img/ultra_scan.png)
 
-- **It is loud.** 1.49 V at 40.31 kHz, from the DAC's 3.9 V: far more than
-  the "tens of millivolts" this page used to promise. The receiver drives the
-  ADC's high-impedance input, so it is open-circuited.
+- **It is loud.** 1.49 V at 40.31 kHz, from the DAC's 3.9 V. The receiver
+  drives the ADC's high-impedance input, so it is open-circuited.
 - **One peak, about a kilohertz wide.** 950 Hz between the 3 dB points
   (39.85 to 40.80 kHz), so the pair together has *Q* = 40.31/0.95 ≈ 42.
 - **Steep sides, and another mode.** 46 dB down at 36 kHz and 37 dB down at
   45 kHz. A second mode near 58 kHz is 22 dB down.
-- **The bench hardly mattered at the peak.** Lying on the bench the same pair
-  gave 1.27 V, 15% less, but it was also 1.2 cm farther apart (the advanced
-  topics measure that), which accounts for most of it. The shape of the peak
-  didn't change. Away from it, on the box, 5 to 12 times more gets
-  through, 30 to 50 dB down from the peak.
+- **The bench hardly mattered at the peak.** On the bench the same pair gave
+  1.27 V, 15% less, but it was also 1.2 cm farther apart
+  ([measured below](#how-far-apart-the-delay)), which accounts for most of
+  it. The shape of the peak didn't change. Away from the peak, 5 to 12 times
+  more gets through on the box, 30 to 50 dB down from the peak.
 - **The floor.** On the bench, where the pair passed nothing (30–34 kHz),
   one 42 ms average read about 36 µV (−89 dB re 1 V). On the box the same
-  range reads 0.1 to 0.5 mV: about 0.15 mV of the DAC that the leads, moved
-  with the pair, now pick up directly at 30–32 kHz (it arrives with no
-  delay), and sound above that. (Two points at 31.25 and 62.5 kHz are left out:
-  there 25 MHz divided by the frequency is a whole number, and `lockin.sv`'s
-  reference repeats after a few samples.)
+  range reads 0.1 to 0.5 mV: at 30–32 kHz, about 0.15 mV of the DAC that the
+  leads, moved with the pair, now pick up directly (it arrives with no
+  delay); above that, sound.
+- **Two points are left out**, at 31.25 and 62.5 kHz. There 25 MHz divided
+  by the frequency is a whole number, and `lockin.sv`'s reference repeats
+  after a few samples.
 
 **Try this:**
 
-- Run the ruler experiment at the peak, 40.3 kHz, and fit *c*.
-- Swap the transducers and sweep again. Does the peak move?
-- Move the receiver back to 50 cm. The peak should fall as 1/distance, by
-  about 13 dB.
-- `python3 sweep.py --watch 40.3e3` and a hair dryer: here 1 K of air turns
-  the phase by about 8°.
+- **Run the ruler experiment at the peak**, 40.3 kHz, and fit *c*.
+- **Swap the transducers and sweep again.** Does the peak move?
+- **Move the receiver back to 50 cm.** The peak should fall as 1/distance,
+  by about 13 dB.
+- **Run `python3 sweep.py --watch 40.3e3` with a hair dryer.** Here 1 K of
+  air turns the phase by about 8°.
 
 ## Advanced topics
 
 > [!NOTE]
-> **Everything from here on is an advanced topic.** It goes past the scan: a
-> fit that separates the transducers from the air, a new design
-> (`awgcap_slow.sv`) to watch the sound arrive, and two modems through the
-> air, one on [6.12](6_12_on_the_air.md#the-same-frame-at-six-symbols-a-second)'s `ddc.sv` and one built on [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s OFDM. Skip it on a
-> first pass; nothing else in the tutorial depends on it.
+> **Everything from here on is an advanced topic.** Skip it on a first pass;
+> nothing else in the tutorial depends on it. It goes past the scan:
+>
+> - a fit that separates the transducers from the air;
+> - a new design, `awgcap_slow.sv`, to watch the sound arrive;
+> - two modems through the air, one on [6.12](6_12_on_the_air.md#the-same-frame-at-six-symbols-a-second)'s `ddc.sv` and one
+>   built on [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s OFDM.
 
 ### How far apart: the delay
 
 A delay τ turns the phase by −360° × *f*τ, so the slope of the phase, the
-[group delay](https://en.wikipedia.org/wiki/Group_delay_and_phase_delay), is the delay. At the peak it is 770 µs, far from the peak
-300 to 400 µs, and both include the transducers: a resonator holds on to
-what passes through it for up to 2*Q*/ω, 0.33 ms at *Q* = 42. A fit
-separates the two.
+[group delay](https://en.wikipedia.org/wiki/Group_delay_and_phase_delay), is the delay. It is 770 µs at the peak and
+300 to 400 µs away from it. Both include the transducers: a resonator holds
+on to what passes through it for up to 2*Q*/ω, 0.33 ms at *Q* = 42. A fit
+separates the transducers from the air.
 
 ![Measured with lockin.sv, on the cardboard box: the resonance in volts from 37 to 44 kHz with a fit of two resonators, at 39.96 and 40.65 kHz with Q of 42 each, and a delay; and the group delay, 770 µs at the peak, falling to 300 to 400 µs off it, with the fit and the delay alone, 318 µs](img/ultra_delay.png)
 
 - **Two resonators.** Between 37 and 44 kHz the response fits, to 2% rms,
   two resonances at 39.96 and 40.65 kHz with *Q* = 42 each, times a pure
-  delay: one resonance in each transducer, a little apart, which makes the
-  top flatter than either alone. The product cannot say which is the
-  transmitter's; swapping the pair can. (The *Q* ≈ 20–30 this page used to
-  guess was low.) On the bench the fit gave 39.91 and 40.61 kHz, *Q* = 39 and
-  41: the same transducers. Outside 37 to 44 kHz the real response doesn't
-  follow two resonators (below 37 kHz it falls much faster, and on the bench
-  it did on both sides), so the fit is only for the peak.
+  delay. That is one resonance in each transducer, a little apart, which
+  makes the top flatter than either alone. The product can't say which is
+  the transmitter's; swapping the pair can. On the bench the fit gave 39.91
+  and 40.61 kHz, *Q* = 39 and 41: the same transducers. The fit is only for
+  the peak: outside 37 to 44 kHz the real response doesn't follow two
+  resonators (below 37 kHz it falls much faster, and on the bench it did on
+  both sides).
 - **The delay.** **318 µs**, which at 22 °C (*c* = 344.6 m/s) is
   **10.9 cm** of air. On the bench it was 353 µs, 12.2 cm: the pair moved
-  closer when it went onto the box. The room's temperature wasn't measured,
-  and each 3 K is a millimetre; the distance was "about 10 cm" by eye between
-  the faces, and each diaphragm sits a few millimetres behind its face.
-- **The phase, for two minutes** at 40.3 kHz: on the box it slipped once, by
+  closer when it went onto the box. Two caveats: the room's temperature
+  wasn't measured (each 3 K is a millimetre), and the "about 10 cm" was by
+  eye between the faces, while each diaphragm sits a few millimetres behind
+  its face.
+- **The phase, for two minutes** at 40.3 kHz. On the box it slipped once, by
   7.4° in about a second (0.18 mm: something settling on the cardboard), and
-  otherwise held to 0.27° rms. On the bench it stayed within ±0.7° (0.34° rms):
-  16 µm of path, or 75 mK of air. That is the floor under the ruler experiment
-  (41.9° per mm), and the hair dryer has room: 1 K turns the phase by 8.1°
-  here.
+  otherwise held to 0.27° rms. On the bench it stayed within ±0.7°
+  (0.34° rms), which is 16 µm of path, or 75 mK of air. That is the floor
+  under the ruler experiment (41.9° per mm). The hair dryer has room: 1 K
+  turns the phase by 8.1° here.
 
 ### Watching the sound arrive: `awgcap_slow.sv`
 
 A lock-in sees one frequency at a time. To see the sound *arrive*, play a
 burst and record what comes back. [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)'s `awgcap.sv` does exactly that, but its
 loop is 327.68 µs long, about the length of the trip. `awgcap_slow.sv` is
-`awgcap.sv` with one change: the DAC takes its next sample only every
-2<sup>*k*</sup> clocks (*k* = 8: 195 kS/s, an 83.89 ms loop), and each value
-it records is the average of 2<sup>*k*</sup> of the ADC's 25 MS/s samples
-(97.7 kS/s, 167.77 ms, two loops). The average is the anti-alias filter, and
-when there is noise to work with it adds bits ([7.05](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits)), so the record comes
-back as 16-bit numbers in 1/256ths of a code. `awgcap_slow_tb.sv` checks it
-in simulation (`make sim-awgcap_slow`): a ramp from the DAC comes back as the
-means of its pairs of samples, lined up with the start of the loop.
+`awgcap.sv` with one change, which slows both sides by 2<sup>*k*</sup> (*k* = 8):
+
+- **The DAC** takes its next sample only every 2<sup>*k*</sup> clocks:
+  195 kS/s, an 83.89 ms loop.
+- **Each value it records** is the average of 2<sup>*k*</sup> of the ADC's
+  25 MS/s samples: 97.7 kS/s, 167.77 ms, two loops. The average is the
+  anti-alias filter, and when there is noise to work with it adds bits
+  ([7.05](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits)), so the record comes back as 16-bit numbers in 1/256ths
+  of a code.
+
+`awgcap_slow_tb.sv` checks it in simulation (`make sim-awgcap_slow`): a ramp
+from the DAC comes back as the means of its pairs of samples, lined up with
+the start of the loop.
 
 <details>
 <summary>The whole file: <code>awgcap_slow.sv</code></summary>
@@ -530,6 +553,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Load it and play a 3 ms burst at 40.3 kHz:**
+
 ```bash
 cd src/ultrasound
 make load-awgcap_slow
@@ -538,13 +563,14 @@ python3 awgcap_slow.py --burst 40300 --ms 3
 
 ![Measured with awgcap_slow.sv, on the cardboard box: a 3 ms burst at 40.3 kHz starting at 1 ms comes back as a 40 kHz signal that rings up over about a millisecond and rings down for a millisecond after the burst ends, inside the envelope predicted from the sweep's fit; and the start, zoomed: nothing from 1.000 ms, when the DAC starts, until the sound arrives 318 µs later, then a slow ring-up that follows the prediction](img/ultra_burst.png)
 
-For 318 µs, nothing; then the pair rings up, taking about a millisecond to
-reach full strength, and after the DAC stops it rings down as long. The
-orange curves weren't fitted to this record. They are the sweep's fit, two
-resonators and a delay, applied to the burst that was played (held for
-5.12 µs a sample, and averaged as `awgcap_slow.sv` averages): 25.7 codes of
-steady signal predicted, 26.6 measured, and the ring-up followed sample by
-sample. The frequency domain predicted the time domain.
+For 318 µs, nothing. Then the pair rings up, taking about a millisecond to
+reach full strength, and after the DAC stops it rings down as long.
+
+The orange curves weren't fitted to this record. They are the sweep's fit
+(two resonators and a delay) applied to the burst that was played, held for
+5.12 µs a sample and averaged as `awgcap_slow.sv` averages. It predicted
+25.7 codes of steady signal against 26.6 measured, and followed the ring-up
+sample by sample. The frequency domain predicted the time domain.
 
 That millisecond of ringing is the speed limit for anything that switches
 the tone, which is every modem below.
@@ -553,18 +579,21 @@ the tone, which is every modem below.
 > **An ADC with no noise can't average.** With nothing coming in, this ADC
 > often reads the same code every time: it has less than a code of noise.
 > Then a signal smaller than half a code never changes the code, and no
-> amount of averaging finds it ([7.05](7_05_trading_speed_for_bits.md#the-adc-side-averaging-buys-bits-only-from-noise) shows why). It is why the first few
-> samples of the ring-up above sit a little below the prediction, and why a
-> single-cycle click from the DAC, which should give the impulse response
-> directly, comes back at only one code and lopsided. The measurements here
-> use the long burst, whose 26 codes don't care, and the lock-in, whose drive
-> is always on.
+> amount of averaging finds it ([7.05](7_05_trading_speed_for_bits.md#the-adc-side-averaging-buys-bits-only-from-noise) shows why). That is why:
+>
+> - the first few samples of the ring-up above sit a little below the
+>   prediction;
+> - a single-cycle click from the DAC, which should give the impulse
+>   response directly, comes back at only one code, and lopsided.
+>
+> So the measurements here use the long burst, whose 26 codes don't care,
+> and the lock-in, whose drive is always on.
 
 ### Through the air, or through the bench?
 
 Lying on the bench, the transducers could have sent the sound through the
-bench instead of the air. Sound in a solid is fast, something like 1 to
-4 km/s in wood or laminate against 0.34 km/s in air, so a path through the
+bench instead of the air. Sound in a solid is fast: something like 1 to
+4 km/s in wood or laminate, against 0.34 km/s in air. So a path through the
 bench would arrive within 10 to 100 µs, long before the air. Three
 measurements say the bench carried almost nothing:
 
@@ -572,22 +601,23 @@ measurements say the bench carried almost nothing:
   0.9 dB of that is the 1.2 cm it moved closer (1/distance). The two
   resonances moved by 45 Hz, and their *Q* by a few percent.
 - **The impulse responses.** The inverse Fourier transforms of the two sweeps
-  (`sweep.py --impulse`) have nothing before the air's arrival above about
-  −40 dB, the level of the transform's own sidelobes, either way.
-- **The burst, on the bench.** In the 4 records of 16 in which the ADC
-  happened to be toggling between two codes (the note above), the 40.3 kHz
-  between 1.10 ms and the air's arrival was 0.05 codes, about the noise,
-  while the air's own sound 230 µs after *it* arrived was 6.1 codes: whatever
-  the bench carried was at least 42 dB weaker. (On the box none of 32
-  records toggled, so this one has no box version.)
+  (`sweep.py --impulse`), on the box and on the bench, have nothing above
+  about −40 dB before the air's arrival. That is the level of the
+  transform's own sidelobes.
+- **The burst, on the bench.** 4 records of 16 caught the ADC toggling
+  between two codes (see the note above). In those, the 40.3 kHz between
+  1.10 ms and the air's arrival was 0.05 codes, about the noise, while the
+  air's own sound 230 µs after *it* arrived was 6.1 codes. Whatever the
+  bench carried was at least 42 dB weaker. (On the box none of 32 records
+  toggled, so there is no box version of this test.)
 
 Away from the peak, though, the mounting matters. On the box the pair passes
-5 to 12 times more at 32–36 and 46–54 kHz, 30 to 50 dB below the peak,
-and that extra arrives as late as sound does (its phase turns as a 150 to
+5 to 12 times more at 32–36 and 46–54 kHz, 30 to 50 dB below the peak, and
+that extra arrives as late as sound does (its phase turns as a 150 to
 300 µs delay). Thin cardboard carries bending waves about as slowly as air,
 so timing alone can't say whether it comes through the box or around it.
-The test that needs no timing at all: slide a card between the two. The air's
-path is blocked, the box's isn't.
+**Slide a card between the two:** that test needs no timing at all, since
+it blocks the air's path but not the box's.
 
 ### A modem through 11 cm of air
 
@@ -597,15 +627,19 @@ the middle. How fast can it carry data?
 #### FSK, on `ddc.sv`
 
 The simplest modem: two tones, a 0 below the peak and a 1 above it.
-[6.12](6_12_on_the_air.md#the-same-frame-at-six-symbols-a-second)'s `ddc.sv` already plays tones from a table, one per symbol,
-switched without a phase jump, and its receiver mixes the ADC down to
-baseband at any frequency and streams I/Q, 12,207 samples a second
-(*d* = 11). So a symbol is a whole number *M* of I/Q samples, the baud rate
-is 12207/*M*, and the tones go 1/*T* apart, the closest at which each
-tone's correlation ignores the other's. `fsk.py` correlates every symbol's
-I/Q with both tones and keeps the bigger, as [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s FT8 does with eight.
-No carrier phase is needed. A 13-symbol [Barker code](https://en.wikipedia.org/wiki/Barker_code) at the front of each
-frame says where the symbols start.
+[6.12](6_12_on_the_air.md#the-same-frame-at-six-symbols-a-second)'s `ddc.sv` already does most of the work:
+
+- **Its transmitter** plays tones from a table, one per symbol, switched
+  without a phase jump.
+- **Its receiver** mixes the ADC down to baseband at any frequency and
+  streams I/Q, 12,207 samples a second (*d* = 11).
+
+So a symbol is a whole number *M* of I/Q samples, and the baud rate is
+12207/*M*. The tones go 1/*T* apart (*T* is one symbol), the closest at
+which each tone's correlation ignores the other's. `fsk.py` correlates every
+symbol's I/Q with both tones and keeps the bigger, as [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s FT8 does
+with eight, so no carrier phase is needed. A 13-symbol [Barker code](https://en.wikipedia.org/wiki/Barker_code) at
+the front of each frame says where the symbols start.
 
 <details>
 <summary>The whole file: <code>fsk.py</code></summary>
@@ -775,6 +809,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Load `ddc.sv` and send a message:**
+
 ```console
 $ cd src/twoboard && make load-ddc && cd ../ultrasound
 $ python3 fsk.py "HELLO THROUGH THE AIR"
@@ -799,45 +835,63 @@ $ python3 fsk.py --ber --baud 2441 --frames 20
 | 3052 | 38774 and 41826 | 26% | 30% |
 
 Error-free to 2441 baud, through a resonance 950 Hz wide. The tones there
-are 2.4 kHz apart, each 14 dB down the sides of the peak, but with
-40 dB of SNR to spend that costs little. What stops it is the ringing: at
-3052 baud a symbol is 0.33 ms, about the time a resonator with *Q* = 42
-takes to ring up or down, so each symbol still carries the last one. In the
-figure, at 509 baud the soft value has finished swinging long before the
-receiver decides; at 2441 an isolated bit only gets half way; at 3052 the
-soft value wanders, and the decisions with it. (With `ddc.sv` streaming at
-*d* = 11 there is no rate in between: a symbol is 4 or 5 I/Q samples.)
+are 2.4 kHz apart, each 14 dB down the sides of the peak, but with 40 dB of
+SNR to spend that costs little.
 
-Two bugs worth knowing, both in finding the sync word, and both made FSK
-look slower than it is. The first `fsk.py` correlated the normalized soft
-value, (E<sub>1</sub> − E<sub>0</sub>)/(E<sub>1</sub> + E<sub>0</sub>), and lost half its frames at 1526 baud. In
-the silence before a frame both energies are tiny, so that ratio is ±1 at
-random, and noise could match the Barker code better than the frame did.
-Correlating E<sub>1</sub> − E<sub>0</sub>, which is small in the silence, fixed that. Then at
-2035 baud 8 frames in 20 came out half wrong, each decision confident: the
-receiver had locked on whole symbols away from the start. Thirteen random
-bits match the sync word once in 8192 tries, and a frame of random data
-offers over a thousand tries, more when nearly matching will do; the first
-symbols, meanwhile, arrive weak, while the pair rings up. So now it looks
-for the sync word only where the sound starts. Both versions' "limits" were
-the receiver's, not the air's.
+What stops it is the ringing. At 3052 baud a symbol is 0.33 ms, about the
+time a resonator with *Q* = 42 takes to ring up or down, so each symbol
+still carries the last one. In the figure:
+
+- at 509 baud the soft value has finished swinging long before the receiver
+  decides;
+- at 2441 an isolated bit only gets half way;
+- at 3052 the soft value wanders, and the decisions with it.
+
+With `ddc.sv` streaming at *d* = 11 there is no rate in between: a symbol is
+4 or 5 I/Q samples.
+
+Two bugs worth knowing, both in finding the sync word. Both made FSK look
+slower than it is: those "limits" were the receiver's, not the air's.
+
+- **Normalizing the soft value.** The first `fsk.py` correlated
+  (E<sub>1</sub> − E<sub>0</sub>)/(E<sub>1</sub> + E<sub>0</sub>) with the sync word, and lost half its frames at
+  1526 baud. In the silence before a frame both energies are tiny, so that
+  ratio is ±1 at random, and noise could match the Barker code better than
+  the frame did. Correlating E<sub>1</sub> − E<sub>0</sub>, which is small in the silence, fixed
+  that.
+- **Locking on in the wrong place.** Then at 2035 baud 8 frames in 20 came
+  out half wrong, each decision confident: the receiver had locked on whole
+  symbols away from the start. Thirteen random bits match the sync word once
+  in 8192 tries, and a frame of random data offers over a thousand tries,
+  more when nearly matching will do; meanwhile the first symbols arrive
+  weak, while the pair rings up. So now `fsk.py` looks for the sync word
+  only where the sound starts.
 
 #### OFDM, on `awgcap_slow.sv`
 
 To beat the ringing, don't switch: send many slow tones at once. That is
-[OFDM](https://en.wikipedia.org/wiki/Orthogonal_frequency-division_multiplexing) ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)): each symbol is an inverse FFT, here 1024 points at the
-record's 97.7 kS/s, so the subcarriers are 95.37 Hz apart and a symbol is
-10.49 ms, and a 2.62 ms *cyclic prefix* in front of it is time for the
-ringing to finish. Each subcarrier then sees the channel as one complex
-number, which one known symbol measures. And because one board both plays
-and records, with one clock and the record lined up with the loop, there is
-no timing or carrier to recover.
+[OFDM](https://en.wikipedia.org/wiki/Orthogonal_frequency-division_multiplexing) ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)). Each symbol is an inverse FFT, here 1024 points at the
+record's 97.7 kS/s:
+
+- the subcarriers are 95.37 Hz apart, and a symbol is 10.49 ms;
+- a 2.62 ms *cyclic prefix* in front of each symbol is time for the ringing
+  to finish;
+- each subcarrier then sees the channel as one complex number, which one
+  known symbol measures.
+
+Because one board both plays and records, with one clock and the record
+lined up with the loop, there is no timing or carrier to recover.
 
 The [QAM](https://en.wikipedia.org/wiki/Quadrature_amplitude_modulation) on each subcarrier is chosen to suit it ("bit loading", as DSL
-does): a probe of QPSK on all 94 subcarriers from 36 to 45 kHz measures each
-one's SNR, and each then carries the most bits *b* with 2<sup>*b*</sup> − 1 ≤
-SNR/gap, from BPSK up to 1024-QAM. With a gap of 0 dB that would be
-[Shannon's limit](https://en.wikipedia.org/wiki/Shannon%E2%80%93Hartley_theorem) ([6.08](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are)); real QAM needs about 8 to 10 dB more for few errors.
+does):
+
+1. A probe of QPSK on all 94 subcarriers from 36 to 45 kHz measures each
+   one's SNR.
+2. Each subcarrier then carries the most bits *b* with 2<sup>*b*</sup> − 1 ≤
+   SNR/gap, from BPSK up to 1024-QAM.
+
+With a gap of 0 dB that would be [Shannon's limit](https://en.wikipedia.org/wiki/Shannon%E2%80%93Hartley_theorem) ([6.08](6_08_shannons_limit.md#608-shannons-limit-and-how-far-from-it-you-are)); real QAM
+needs about 8 to 10 dB more for few errors.
 
 <details>
 <summary>The whole file: <code>ofdm_air.py</code></summary>
@@ -1083,22 +1137,27 @@ if __name__ == "__main__":
 
 </details>
 
+**Probe each subcarrier, then send data:**
+
 ```bash
 cd src/ultrasound                # awgcap_slow.bit loaded
 python3 ofdm_air.py --probe      # each subcarrier's SNR
 python3 ofdm_air.py --loops 20 --gap 10
 ```
 
-First, where to start each FFT. The prefix is there to soak up the
-previous symbol's ringing, so start late; but not too late, or the window
-reaches the next symbol:
+**Where to start each FFT.** The prefix is there to soak up the previous
+symbol's ringing, so start late; but not too late, or the window reaches the
+next symbol:
 
 ![Measured on the cardboard box: the median SNR of the subcarriers between 38 and 43 kHz against where the FFT window starts after the start of each symbol; it climbs from 7.5 dB at 0 ms to a plateau of 33 to 34 dB from 1.8 to 2.95 ms, and falls off a cliff past the prefix plus 318 µs, when the next symbol arrives](img/ultra_window.png)
 
-The plateau is a fourth measurement of the same impulse response. Its left
-edge, about 1.8 ms, is how long the pair takes to ring 33 dB down; its right
-edge is the prefix (2.62 ms) plus the 318 µs that the next symbol takes to
-cross the air. `ofdm_air.py` starts at 2.46 ms (240 samples), in the middle.
+The plateau is a fourth measurement of the same impulse response:
+
+- its left edge, about 1.8 ms, is how long the pair takes to ring 33 dB down;
+- its right edge is the prefix (2.62 ms) plus the 318 µs that the next
+  symbol takes to cross the air.
+
+`ofdm_air.py` starts at 2.46 ms (240 samples), in the middle.
 
 ![Measured on the cardboard box: each 95 Hz subcarrier's SNR from the probe, up to 40 dB at the peak, above 30 dB from 38.9 to 42.0 kHz and above 10 dB from 36.8 to 44.8 kHz; and the bits loaded on each with a 10 dB gap, mostly 8 near the peak and one of 10, under Shannon's log2(1 + SNR)](img/ultra_ofdm.png)
 
@@ -1110,17 +1169,19 @@ cross the air. `ofdm_air.py` starts at 2.46 ms (240 samples), in the middle.
 | 10 dB | 377 | 28.8 kbit/s | 7 in 75,400 (9 × 10<sup>−5</sup>) | 32.0 kbit/s, 1.7 × 10<sup>−4</sup> |
 | 7 dB | 444 | 33.9 kbit/s | 133 in 88,800 (1.5 × 10<sup>−3</sup>) | 37.6 kbit/s, 9 × 10<sup>−4</sup> |
 
-The rate is the bits of one symbol over its 13.11 ms, prefix included.
-Each loop also spends one symbol of six on training and 5 ms on silence, so
-the data through each loop is 5/6.4 of that.
+The rate is the bits of one symbol over its 13.11 ms, prefix included. Each
+loop also spends one symbol of six on training and 5 ms on silence, so the
+data through each loop is 5/6.4 of that.
 
 On the box the subcarriers' SNRs came out 1 to 2 dB lower than on the bench,
 though the signal was 1.4 dB stronger, and the loading gave up about 10% of
-the rate. So the SNR here is not set by the noise, which more signal would
+the rate. So the SNR here is set not by the noise, which more signal would
 beat, but by something that grows with the signal; on the bench, too,
-doubling the drive didn't raise it. What that is wasn't found: the DAC's
-and ADC's 8 bits, the pair's own distortion, and the extra paths the box
-opens are all candidates.
+doubling the drive didn't raise it. What that is wasn't found. Candidates:
+
+- the DAC's and ADC's 8 bits;
+- the pair's own distortion;
+- the extra paths the box opens.
 
 #### The score
 
@@ -1131,29 +1192,27 @@ opens are all candidates.
 | OFDM, gap 7 dB | 33.9 kbit/s, 1.5 × 10<sup>−3</sup> | 37.6 kbit/s, 9 × 10<sup>−4</sup> |
 | Shannon, from the probe's SNRs, less the prefix | 56 kbit/s | 61 kbit/s |
 
-Nine to fifteen times faster than FSK, through the same few centimetres of
-air. The 950 Hz bandwidth was the wrong number to start from. With 40 dB of
-SNR at the peak, the band where the SNR is above 10 dB is 8 kHz wide, and
-Shannon's limit counts every hertz of it, each at its own SNR. FSK used two
-slices of it and threw the SNR away; OFDM spends both. That is 40 to 60% of
-Shannon's limit with no error-correcting code ([6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)), where [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s
-OFDM on the cable reached half.
+OFDM is nine to fifteen times faster than FSK, through the same few
+centimetres of air. The 950 Hz bandwidth was the wrong number to start from:
 
-All of this page's measurements and figures come from
-[`dev/tools/ultrasound/`](../dev/tools/ultrasound/): `measure.py` loads each
-bitstream in turn and saves the data, and `fig_ultrasound.py` draws the
-figures and prints every number quoted here, for the box and the bench.
+- with 40 dB of SNR at the peak, the band where the SNR is above 10 dB is
+  8 kHz wide, and Shannon's limit counts every hertz of it, each at its own
+  SNR;
+- FSK used two slices of that band and threw the SNR away; OFDM spends both.
+
+That is 40 to 60% of Shannon's limit with no error-correcting code
+([6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)), where [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s OFDM on the cable reached half.
 
 **Try this (advanced):**
 
-- Swap the transducers and fit again. Which of the two resonances moved
+- **Swap the transducers and fit again.** Which of the two resonances moved
   with the transmitter?
-- Slide a card between them: does anything but the air carry the sound? Then
-  try foam instead of cardboard, and watch the tails 30 to 50 dB down.
-- Move the receiver back to 50 cm. The signal falls by 13 dB; run
+- **Slide a card between them.** Does anything but the air carry the sound?
+  Then try foam instead of cardboard, and watch the tails 30 to 50 dB down.
+- **Move the receiver back to 50 cm.** The signal falls by 13 dB; run
   `ofdm_air.py` again and see what the loading gives up.
-- `fsk.py --fc 58000`: the second mode is a second channel. How fast?
-- `ofdm_air.py --offset 64`: start the FFT too early and watch the
+- **Run `fsk.py --fc 58000`**: the second mode is a second channel. How fast?
+- **Run `ofdm_air.py --offset 64`** to start the FFT too early, and watch the
   subcarriers lose 20 dB to the last symbol's ringing.
 
 <!-- nav -->
