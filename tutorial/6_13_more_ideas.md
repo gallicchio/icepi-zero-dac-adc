@@ -6,8 +6,8 @@
 ![Computed: a chirp from 2 to 20 kHz, a noisy microphone record, and the cross-correlation, where the direct sound and the echo from a wall 1.5 m away become two sharp peaks](img/chirp_sonar.png)
 
 This chapter went further than most courses do, but a modem is a deep well.
-None of these has been built yet. Each starts from something that works
-here, and each comes with the question it answers.
+None of these ideas has been built yet. Each starts from something that works
+here, and says what you'd learn from it.
 
 ## Communications
 
@@ -26,13 +26,18 @@ here, and each comes with the question it answers.
 ## Chapter 8, perhaps: radar
 
 A radar is a transmitter and a receiver that share a clock, so it can
-measure *when* an echo comes back (range) and how its phase turns
-(velocity). One board, or two synchronized as in [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there), has all of that, and
+measure
+
+- *when* an echo comes back: range;
+- how its phase turns: velocity.
+
+One board, or two synchronized as in [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there), has all of that, and
 [6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable) already built the waveforms radar people use and ran a radar on a
-cable. The sections below would make it a chapter. Sound is the place to
-start: [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)'s 40 kHz ultrasound has a wavelength of 8.6 mm, the same as a
-35 GHz radar's, so a tabletop behaves like a radar range, and a pair of
-transducers costs [about $6](https://www.robotshop.com/products/devantech-400sr-st160-transducer).
+cable. The sections below would make it a chapter.
+
+Sound is the place to start. [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)'s 40 kHz ultrasound has a wavelength of
+8.6 mm, the same as a 35 GHz radar's, so a tabletop behaves like a radar
+range, and a pair of transducers costs [about $6](https://www.robotshop.com/products/devantech-400sr-st160-transducer).
 
 | section | what you'd learn | start from |
 | --- | --- | --- |
@@ -48,12 +53,19 @@ MIT's [*Build a Small Radar System Capable of Sensing Range, Doppler, and
 Synthetic Aperture Radar Imaging*](https://ocw.mit.edu/courses/res-ll-003-build-a-small-radar-system-capable-of-sensing-range-doppler-and-synthetic-aperture-radar-imaging-january-iap-2011/)
 (the "coffee-can radar") does 8.02–8.06 at 2.4 GHz with six Mini-Circuits
 parts, two coffee cans and a laptop's sound card as the digitizer. This
-board would replace the sound card with a 25 MS/s one and the laptop's
-MATLAB with the FFT in logic, and the RF parts of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio) are most of its
-bill of materials. [Appendix D](D_coming_soon.md#the-four-boards-together-the-coffee-can-radar-and-more)
+board would replace
+
+- the sound card with a 25 MS/s one;
+- the laptop's MATLAB with the FFT in logic.
+
+The RF parts of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio) are most of its bill of materials.
+[Appendix D](D_coming_soon.md#the-four-boards-together-the-coffee-can-radar-and-more)
 works through what the next board and the AMOD's RF board would add:
-stepped-frequency and FMCW ranging, SAR at 2.4 and 5.8 GHz, direction
-finding and MIMO.
+
+- stepped-frequency and FMCW ranging;
+- SAR at 2.4 and 5.8 GHz;
+- direction finding;
+- MIMO.
 
 <!-- nav -->
 [← 6.12 On the air: whispers, and how far they carry](6_12_on_the_air.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.00 Signal processing in gateware →](7_00_signal_processing_in_gateware.md)
