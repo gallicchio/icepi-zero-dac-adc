@@ -6,13 +6,18 @@
 ![How the Linux system is built: the CPU from SpinalHDL; the bitstream from LiteX; the device tree from LiteX's csr.json and make_linux.py, through dtc; the kernel and root file system from Buildroot; the driver from kbuild. Each output is coloured by where it ends up: the FPGA's SPI flash, the SD card's FAT partition, or its ext2 partition](img/linux_build.png)
 
 Everything in [`src/linux/prebuilt/`](../src/linux/prebuilt/) can be rebuilt
-from source. You need this when you change the gateware (a new peripheral), the
-kernel (a new option) or the driver. It takes a Linux computer (or WSL), about
-5 GB of disk, and the better part of an hour the first time.
+from source. You need to when you change
+
+- the gateware (a new peripheral),
+- the kernel (a new option),
+- or the driver.
+
+It takes a Linux computer (or WSL), about 5 GB of disk, and the better part
+of an hour the first time.
 
 ## Tools
 
-On top of [1.00](1_00_circuits_from_code.md#100-circuits-from-code) and [2.00](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga):
+**Install these**, on top of the tools of [1.00](1_00_circuits_from_code.md#100-circuits-from-code) and [2.00](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga):
 
 ```bash
 sudo apt install build-essential device-tree-compiler bc cpio rsync unzip file \
@@ -28,18 +33,21 @@ cd buildroot && git checkout 2026.02.3
 
 The VexRiscv CPU is written in SpinalHDL, a hardware language embedded in
 Scala, and `sbt` turns the exact configuration LiteX asks for (one core, 4 kB
-caches, an MMU) into Verilog. That happens once; the result is cached. A
-hardware description in a language embedded in a language that runs on a
-virtual machine: it works, and you only wait for Java once.
+caches, an MMU) into Verilog. That happens once; the result is cached.
 
 ## 1. The SoC, and the device tree
 
 linux-on-litex-vexriscv's `make.py` builds a Linux-capable SoC for a named
 board. [`make_linux.py`](../src/linux/make_linux.py) adds one more board,
-`icepi_zero_adda`: the stock `icepi_zero` plus `add_adda()` from
-[2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral), with the micro-SD slot driven in
-its fast native 4-bit mode. Then it adds nodes for our peripherals and the
-LEDs to the [device tree](https://en.wikipedia.org/wiki/Devicetree).
+`icepi_zero_adda`:
+
+- the stock `icepi_zero`,
+- plus `add_adda()` from
+  [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral),
+- with the micro-SD slot driven in its fast native 4-bit mode.
+
+Then it adds nodes for our peripherals and the LEDs to the
+[device tree](https://en.wikipedia.org/wiki/Devicetree).
 
 <details>
 <summary>The whole file: <code>make_linux.py</code></summary>
@@ -202,27 +210,37 @@ port, the timer, the interrupt controller...). The addresses in our nodes
 come from the same `csr.json`, so they're right even if LiteX moves things
 around.
 
+**Build the SoC and its device tree:**
+
 ```bash
 cd $ADDA/tools/linux-on-litex-vexriscv
 mkdir -p images_adda
 python3 $ADDA/src/linux/make_linux.py --board=icepi_zero_adda --build --uart-baudrate=460800
 ```
 
-The result is
-`build/icepi_zero_adda/gateware/icepi_zero_adda.bit` and
-`images_adda/rv32.dtb`. This SoC fills 51 of the 56 block RAMs, 27 of the 28
-multipliers (20 of them are [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s filter) and 61% of the logic,
-and passes timing at 50 MHz: nextpnr estimates 51 MHz after placing it and
-reports 63.7 MHz after routing it, for this build. The serial port runs at 460,800 baud, the fastest
-that serial boot handles reliably.
+The result is `build/icepi_zero_adda/gateware/icepi_zero_adda.bit` and
+`images_adda/rv32.dtb`. This SoC fills
+
+- 51 of the 56 block RAMs,
+- 27 of the 28 multipliers (20 of them are [7.04](7_04_the_filter_as_a_litex_peripheral.md#704-the-filter-as-a-litex-peripheral)'s filter),
+- and 61% of the logic.
+
+It passes timing at 50 MHz: for this build, nextpnr estimates 51 MHz after
+placing it and reports 63.7 MHz after routing it. The serial port runs at
+460,800 baud, the fastest that serial boot handles reliably.
 
 ## 2. Linux, with Buildroot
 
 [Buildroot](https://buildroot.org) builds a whole small Linux system from
-source: a cross-compiler first, then the kernel (Linux 6.12, with
-linux-on-litex-vexriscv's LiteX patches), OpenSBI, [BusyBox](https://en.wikipedia.org/wiki/BusyBox) and the root file
-system. linux-on-litex-vexriscv provides the board support; our changes live
-in [`src/linux/`](../src/linux/), a [Buildroot](https://en.wikipedia.org/wiki/Buildroot) *external tree*:
+source:
+
+- a cross-compiler, first;
+- the kernel (Linux 6.12, with linux-on-litex-vexriscv's LiteX patches);
+- OpenSBI, [BusyBox](https://en.wikipedia.org/wiki/BusyBox) and the root
+  file system.
+
+linux-on-litex-vexriscv provides the board support. Our changes live in
+[`src/linux/`](../src/linux/), a [Buildroot](https://en.wikipedia.org/wiki/Buildroot) *external tree*:
 
 <details>
 <summary><code>configs/icepi_adda_defconfig</code>: the whole Buildroot configuration</summary>
@@ -378,6 +396,8 @@ CONFIG_NC_SERVER=y
 
 </details>
 
+**Configure and build** it:
+
 ```bash
 cd $ADDA/tools/buildroot
 make O=$ADDA/tools/buildroot-icepi \
@@ -430,6 +450,8 @@ clean:
 	$(MAKE) -C $(KDIR) M=$(CURDIR) ARCH=riscv CROSS_COMPILE=$(CROSS) clean
 ```
 
+**Build the driver** and put it in the root file system:
+
 ```bash
 cd $ADDA/src/linux/driver
 make                                   # -> adda.ko
@@ -441,6 +463,8 @@ Everything in `rootfs_overlay/` appears in the board's file system.
 
 ## 4. Put it together
 
+**Collect the images** in `images_adda/` and regenerate the device tree:
+
 ```bash
 cd $ADDA/tools/linux-on-litex-vexriscv
 B=$ADDA/tools/buildroot-icepi/images
@@ -450,10 +474,12 @@ python3 $ADDA/src/linux/make_linux.py --board=icepi_zero_adda --images-dir=image
 ```
 
 The device tree records where the root file system ends in memory, so
-`make_linux.py` must run again whenever `rootfs.cpio.gz` changes size. Without
+**run `make_linux.py` again whenever `rootfs.cpio.gz` changes size**. Without
 `--build` it only regenerates the device tree, in seconds (the baud rate
-matters only with `--build`). Then boot it as in
-[3.01](3_01_booting_linux.md#301-booting-linux), with your files instead of the prebuilt ones:
+matters only with `--build`).
+
+Then **boot it** as in [3.01](3_01_booting_linux.md#301-booting-linux), with
+your files instead of the prebuilt ones:
 
 ```bash
 openFPGALoader -b icepi-zero build/icepi_zero_adda/gateware/icepi_zero_adda.bit && \
@@ -462,9 +488,9 @@ litex_term --speed=460800 --images=images_adda/boot.json /dev/ttyUSB0
 
 ## Waiting, and what the build can change
 
-Building your own images means you have already left upstream, so it is
-fair to ask which of the boot's waits the build could shorten. Four things
-wait, and they are set in four different places:
+Once you build your own images, you can ask which of the boot's waits the
+build could shorten. Four things wait, and they are set in four different
+places:
 
 | what waits | where it is set | what it costs | here |
 | --- | --- | --- | --- |
@@ -475,25 +501,32 @@ wait, and they are set in four different places:
 
 The 20 ms needs no patch to LiteX. The timeout is a register that the BIOS
 and Linux could set, and neither does, so its reset value is what counts:
-one method in `make_linux.py` sets it. Read it back with `devmem 0xf000400c 32`
-in Linux: 0x000F4240, a million clocks.
+one method in `make_linux.py` sets it. **Read it back** in Linux with
+`devmem 0xf000400c 32`: 0x000F4240, a million clocks.
 
-The rest of the boot is work, not waiting: the BIOS copying the 9.2 MB
-kernel from the card (about 14 s, at about 650 kB/s), the kernel starting
-(about 10 s), and BusyBox starting programs at about 0.4 s each on a
-50 MHz CPU. A smaller kernel
-shortens the first two (the last "Try this"); [3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card)'s Detail says where the
-rest goes.
+The rest of the boot is work, not waiting:
+
+- the BIOS copying the 9.2 MB kernel from the card (about 14 s, at about
+  650 kB/s);
+- the kernel starting (about 10 s);
+- BusyBox starting programs, at about 0.4 s each on a 50 MHz CPU.
+
+A smaller kernel shortens the first two (the last "Try this");
+[3.04](3_04_booting_from_sd.md#304-booting-from-an-sd-card)'s Detail says
+where the rest goes.
 
 **Try this:**
 
 - Getting a new `adda.ko` onto the board doesn't need a new root file system
-  and a 4-minute reboot. Run `base64 adda.ko` on the laptop, type
-  `base64 -d > /tmp/adda.ko` on the board, paste the text, press Ctrl-D, then
-  `rmmod adda; insmod /tmp/adda.ko`. Paste slowly: the board's serial port
-  receives into a small buffer. At 8 characters every 10 ms, the 14 kB module
-  takes about 30 s, and arrives with an identical `md5sum`. Pasted at full
-  speed, it arrives garbled.
+  and a 4-minute reboot:
+  1. Run `base64 adda.ko` on the laptop.
+  2. Type `base64 -d > /tmp/adda.ko` on the board, paste the text, and
+     press Ctrl-D.
+  3. Run `rmmod adda; insmod /tmp/adda.ko`.
+
+  Paste slowly: the board's serial port receives into a small buffer. At 8
+  characters every 10 ms, the 14 kB module takes about 30 s, and arrives
+  with an identical `md5sum`. Pasted at full speed, it arrives garbled.
 - The kernel includes drivers this board will never use. Remove some with
   `make O=$ADDA/tools/buildroot-icepi linux-menuconfig` (IPv6 and PPP, for
   a start), rebuild, and see how much smaller `Image` gets.
