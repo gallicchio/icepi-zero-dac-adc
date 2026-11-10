@@ -5,11 +5,14 @@
 
 ![The amplitude through a short cable with the DAC at 50 and at 100 MS/s: twice the clock reaches twice as far](img/pll_top.png)
 
-Every AD9708 is guaranteed to run at 100 MS/s, twice what Chapter 1 gives
-it, but the board has only a 50 MHz oscillator. The FPGA can multiply that.
-This section builds a 100 MHz clock, plays a sine with it, and then runs the
-lock-in of [1.08](1_08_lockin.md#108-a-lock-in-amplifier) with it, which turns out to fix the lock-in's errors above
-8 MHz.
+Every AD9708 is guaranteed to run at 100 MS/s, twice what
+[Chapter 1](1_00_circuits_from_code.md) gives it, but the board has only a
+50 MHz oscillator. The FPGA can multiply that. This section:
+
+- builds a 100 MHz clock;
+- plays a sine with it;
+- runs the lock-in of [1.08](1_08_lockin.md#108-a-lock-in-amplifier) with it, which fixes the lock-in's errors
+  above 8 MHz.
 
 ## Phase-locked loops
 
@@ -18,13 +21,14 @@ voltage-controlled oscillator (VCO) and a feedback loop. The loop divides the
 output clock by *N*, compares the result with the input clock, and steers the
 VCO until the two agree in frequency *and* phase. So the output settles at
 *N* times the input. Divide the input by *M* first and you get *N*/*M* times
-the input, for many whole numbers *N* and *M*. Because the output is
-phase-locked to the crystal, it's exactly as accurate as the crystal: the
-"100 MHz" is the crystal's 50 MHz times two, error and all. (The crystals on
-the five boards measured here ran 2.8, 3.3, 1.7, 2.1 and 2.0 ppm slow, and
+the input, for many whole numbers *N* and *M*.
+
+The output is phase-locked to the crystal, so it's exactly as accurate as the
+crystal: the "100 MHz" is the crystal's 50 MHz times two, error and all. (The
+crystals on five boards ran 2.8, 3.3, 1.7, 2.1 and 2.0 ppm slow;
 [5.02](5_02_warming_a_crystal.md#502-warming-a-crystal) shows how much they move with temperature.)
 
-You rarely work out the dividers yourself. The OSS CAD Suite's `ecppll` does
+You rarely work out the dividers yourself: the OSS CAD Suite's `ecppll` does
 it, and writes the SystemVerilog:
 
 ```console
@@ -37,15 +41,15 @@ clkout0 frequency: 100 MHz
 VCO frequency: 600
 ```
 
-Check one number that `ecppll` doesn't check for you. The ECP5 datasheet
-guarantees the PLL's jitter only when the input clock, divided by `Refclk
-divisor`, is at least 10 MHz. From this board's 50 MHz, that means a divisor
-of 5 or less. Ask `ecppll` for 32 MHz and it picks a divisor of 14 (and gives
+**Check one number that `ecppll` doesn't check for you.** The ECP5 datasheet
+guarantees the PLL's jitter only when the input clock divided by `Refclk
+divisor` is at least 10 MHz: from this board's 50 MHz, a divisor of 5 or
+less. Ask `ecppll` for 32 MHz and it picks a divisor of 14 (and gives
 32.14 MHz). The PLL will run like that, but its jitter is no longer specified.
 
-`pll100.sv` is `my_pll.v`, tidied up and with clearer port names. There's one
-module, `EHXPLLL`, which is the PLL itself, and a page of settings you can
-take as given:
+`pll100.sv` is `my_pll.v`, tidied up and with clearer port names: one module,
+`EHXPLLL`, which is the PLL itself, and a page of settings you can take as
+given:
 
 <!-- file: src/verilog/pll100.sv -->
 ```systemverilog
@@ -100,16 +104,21 @@ and each PLL has four outputs, so one crystal can give a design up to eight
 related frequencies. Clocks reach the flip-flops over dedicated low-skew
 *global clock networks*, 16 in each quadrant of the chip
 ([Project Trellis](https://github.com/YosysHQ/prjtrellis), which documents the
-chip's insides, describes them). The logic driven by one clock is a *clock
-domain*. A signal that crosses from one domain to another needs care, because
-the receiving flip-flop can catch it mid-change: a single bit goes through two
-flip-flops in a row, as the serial receiver in `uart.sv` does
-([1.06](1_06_fast_capture.md#106-fast-captures)), and a stream of numbers goes
-through a FIFO. This tutorial mostly avoids the problem. Its designs run on
-one 50 MHz clock and make slower things with *enables* (the ADC's 25 MHz is a
-flip-flop that toggles, not a second clock), and `lockin_pll.sv` moves
-everything to the PLL's 100 MHz. LiteX's SoC of Chapter 2 makes its own clocks
-for the CPU and the SDRAM with a PLL.
+chip's insides, describes them).
+
+The logic driven by one clock is a *clock domain*. A signal that crosses from
+one domain to another needs care, because the receiving flip-flop can catch
+it mid-change:
+
+- a single bit goes through two flip-flops in a row, as the serial receiver
+  in `uart.sv` does ([1.06](1_06_fast_capture.md#106-fast-captures));
+- a stream of numbers goes through a FIFO.
+
+This tutorial mostly avoids the problem. Its designs run on one 50 MHz clock
+and make slower things with *enables* (the ADC's 25 MHz is a flip-flop that
+toggles, not a second clock), and `lockin_pll.sv` moves everything to the
+PLL's 100 MHz. LiteX's SoC of [Chapter 2](2_00_a_processor_on_the_fpga.md) makes its own clocks for the CPU
+and the SDRAM with a PLL.
 
 </details>
 
@@ -158,14 +167,17 @@ module sine_pll #(
 endmodule
 ```
 
-`make load-sine_pll`. The tone is the same 1 MHz, but it's now built from
-steps 10 ns long instead of 20. On a [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer) fast enough to see it,
-the first image, at clock − *f*, moves from 49 MHz to 99 MHz. It's weaker,
-because the DAC's [zero-order hold](https://en.wikipedia.org/wiki/Zero-order_hold) (the staircase) suppresses it by [sinc](https://en.wikipedia.org/wiki/Sinc_function)(99/100)
-instead of sinc(49/50), and the analog filters on the module suppress it
-further. A faster clock also flattens the droop of the tone itself. A
-staircase of steps *T* long has a response sinc(*fT*) = sin(π*fT*)/(π*fT*): at
-20 MHz that's 0.76 at 50 MS/s and 0.94 at 100 MS/s.
+**Load it:** `make load-sine_pll`. The tone is the same 1 MHz, but it's now
+built from steps 10 ns long instead of 20. What changes:
+
+- **The first image**, at clock − *f*, moves from 49 MHz to 99 MHz (on a
+  [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer) fast enough to see it). It's weaker, because the
+  DAC's [zero-order hold](https://en.wikipedia.org/wiki/Zero-order_hold) (the staircase) suppresses it by [sinc](https://en.wikipedia.org/wiki/Sinc_function)(99/100)
+  instead of sinc(49/50), and the analog filters on the module suppress it
+  further.
+- **The tone itself droops less.** A staircase of steps *T* long has a
+  response sinc(*fT*) = sin(π*fT*)/(π*fT*): at 20 MHz that's 0.76 at
+  50 MS/s and 0.94 at 100 MS/s.
 
 <details>
 <summary><b>Detail:</b> the timing at the DAC's pins</summary>
@@ -182,11 +194,14 @@ change, and the margins shrink to 2 ns and 2.5 ns.
 
 ## The lock-in at 100 MS/s
 
-`lockin_pll.sv` does the same for the lock-in. Every block runs on the PLL's
-100 MHz clock, the ADC still samples at 25 MS/s (now 100 MHz / 4), and the
-serial port still runs at 1,000,000 baud (now 100 clocks per bit).
-`diff lockin.sv lockin_pll.sv` shows everything that changed. Apart from `clk`
-becoming `clk100` everywhere, it's this:
+`lockin_pll.sv` does the same for the lock-in:
+
+- every block runs on the PLL's 100 MHz clock;
+- the ADC still samples at 25 MS/s (now 100 MHz / 4);
+- the serial port still runs at 1,000,000 baud (now 100 clocks per bit).
+
+`diff lockin.sv lockin_pll.sv` shows everything that changed. Apart from
+`clk` becoming `clk100` everywhere, it's this:
 
 ```systemverilog
     logic clk100, locked;
@@ -399,9 +414,9 @@ endmodule
 </details>
 
 `adc_clk` is still 20 ns high and 20 ns low, and the data pins are still read
-just before its rising edge. Only the tuning word's arithmetic changes on the
-laptop, so `lockin.py` takes the clock as an option. The DAC can now make any
-frequency up to its own [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), 50 MHz:
+just before its rising edge. On the laptop only the tuning word's arithmetic
+changes, so `lockin.py` takes the clock as an option (`--fclk`). The DAC can
+now make any frequency up to its own [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), 50 MHz:
 
 ```console
 $ make load-lockin_pll
@@ -413,11 +428,12 @@ $ python3 lockin.py --fclk 100e6 -f 40e6
 ...
 ```
 
-The ADC samples at only 25 MS/s, so how can it measure 40 MHz? It aliases
-40 MHz down to 10 MHz, but the reference table is looked up at exactly the
-same instants, so the reference aliases identically and still matches. (This
-is [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s first Try-this, taken further.) Here are sweeps through the 16.5 cm
-cable at both DAC rates:
+**How can an ADC at 25 MS/s measure 40 MHz?** It aliases 40 MHz down to
+10 MHz, but the reference table is looked up at exactly the same instants, so
+the reference aliases identically and still matches. (This is [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
+first Try-this, taken further.)
+
+Here are sweeps through the 16.5 cm cable at both DAC rates:
 
 ![Lock-in sweeps with the DAC at 50 and 100 MS/s](img/pll.png)
 
@@ -428,13 +444,13 @@ cable at both DAC rates:
   droops less: sinc(*f*/100 MHz) instead of sinc(*f*/50 MHz).
 - **The 50 MS/s readings above ~8 MHz are wrong, and here is by how much**
   (middle). Above 16 MHz the 50 MS/s design reads *more* than the 100 MS/s
-  one: at 20 MHz, 4.11 V. Taking the 100 MS/s measurement and correcting it
-  for the other sinc droop, the 50 MS/s DAC's tone alone should give 3.06 V.
-  The difference is the image at 50 MHz − *f*, which the ADC folds back onto
-  *f*. The 100 MS/s sweep measured the module's response at 50 MHz − *f*
-  independently, and it predicts the image's size: the dots and the line
-  agree to within about 25% over the whole range. At 100 MS/s the image moves
-  to 100 MHz − *f*, where the analog filters pass almost nothing.
+  one: 4.11 V at 20 MHz, where the 50 MS/s DAC's tone alone should give
+  3.06 V (the 100 MS/s measurement, corrected for the other sinc droop). The
+  difference is the image at 50 MHz − *f*, which the ADC folds back onto *f*.
+  The 100 MS/s sweep measured the module's response at 50 MHz − *f*
+  independently, so it predicts the image's size: the dots and the line agree
+  to within about 25% over the whole range. At 100 MS/s the image moves to
+  100 MHz − *f*, where the analog filters pass almost nothing.
 - **The phase bend above 8 MHz is the instrument's own** (bottom). It's the
   same at both rates, so it isn't the image. It's the analog filters, whose
   delay isn't constant near their cutoff. It cancels when you divide one
@@ -448,18 +464,18 @@ half.
 
 **Try this:**
 
-- `ecppll -n pll125 -i 50 -o 125 -f pll125.v`, and push the DAC to its
-  typical maximum. Then go past it. [`dev/tools/pinspeed/`](../dev/tools/pinspeed/)
-  found the DAC still converting correctly at 200 MS/s, so the data sheet is
-  conservative. Where does it finally give up, and is it the DAC or the FPGA's
-  output pins?
-- Use a second PLL output as a phase-shifted copy of the clock
+- **Push the DAC to its typical maximum** with
+  `ecppll -n pll125 -i 50 -o 125 -f pll125.v`. Then go past it.
+  [`dev/tools/pinspeed/`](../dev/tools/pinspeed/) found the DAC still
+  converting correctly at 200 MS/s, so the data sheet is conservative. Where
+  does it finally give up, and is it the DAC or the FPGA's output pins?
+- **Use a second PLL output as a phase-shifted copy of the clock**
   (`ecppll ... --clkout1 100 --phase1 90`). Clock the DAC from it and move the
   phase to find where the DAC's data window opens and closes. Or use it for
   equivalent-time sampling finer than [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s 20 ns.
-- Repeat [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s two-cable measurement with `lockin_pll.sv`. With the image
-  gone, does the phase difference stay a straight line past 8 MHz?
-- Measure an RC low-pass with a corner near 20 MHz, at both rates, each
+- **Repeat [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s two-cable measurement with `lockin_pll.sv`.** With the
+  image gone, does the phase difference stay a straight line past 8 MHz?
+- **Measure an RC low-pass with a corner near 20 MHz**, at both rates, each
   divided by its own through reference. Which result can you believe?
 
 <!-- nav -->

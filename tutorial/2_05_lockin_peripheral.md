@@ -82,14 +82,16 @@ module lockin_core (
 endmodule
 ```
 
-The sums are 48 bits wide, too wide for one 32-bit register. `CSRStatus(64)`
-simply occupies two addresses, and LiteX's generated `lockin_x_read()` reads
-both and returns a `uint64_t`. The C side divides by 2<sup>n_log2</sup> and
-does the square root and arctangent in floating point. VexRiscv has no
-floating-point unit, so the compiler calls software routines instead. That's
-slow, but it happens once per 42 ms measurement. This is a good division of
-labor: the FPGA does 50 million multiplications a second, and the CPU does
-the few awkward ones at the end.
+- **The sums are 48 bits wide**, too wide for one 32-bit register.
+  `CSRStatus(64)` occupies two addresses, and LiteX's generated
+  `lockin_x_read()` reads both and returns a `uint64_t`.
+- **The C side** divides by 2<sup>n_log2</sup> and does the square root and
+  arctangent in floating point. VexRiscv has no floating-point unit, so the
+  compiler calls software routines instead. That's slow, but it happens once
+  per 42 ms measurement.
+
+This is a good division of labor: the FPGA does 50 million multiplications a
+second, and the CPU does the few awkward ones at the end.
 
 ## The whole firmware
 
@@ -501,6 +503,9 @@ clean:
 
 ## Using it
 
+At the `adda>` prompt (`help` lists the commands), **`li` *Hz*** makes one
+lock-in measurement and **`sweep` *start* *stop* *points*** a frequency sweep:
+
 ```
 adda> li 100000
 99999.993 Hz  1983.707 mV  -1.650 deg
@@ -516,13 +521,12 @@ adda> sweep 90000 110000 5
 ```
 
 Here the ADC's input came from a separate 2 V generator, tuned to within
-0.002 Hz of the function generator's 99,999.993 Hz, so the phase drifts by
+0.002 Hz of the function generator's 99,999.993 Hz. So the phase drifts by
 under a degree per second: a quarter of a degree between these two readings.
-The sweep shows the other side of the same
-coin: 500 Hz or more away from the input's frequency, the lock-in reports a
-few millivolts of a 2 V signal.
+The sweep shows the other side of the same coin: 500 Hz or more away from the
+input's frequency, the lock-in reports a few millivolts of a 2 V signal.
 
-With the DAC cabled to the ADC, `sweep` measures a filter or a cable as [1.08](1_08_lockin.md#108-a-lock-in-amplifier)
+**Cable the DAC to the ADC**, and `sweep` measures a filter or a cable as [1.08](1_08_lockin.md#108-a-lock-in-amplifier)
 did, with the same 42 ms averaging and pass band. Through the 16.5 cm cable,
 the one [1.08](1_08_lockin.md#108-a-lock-in-amplifier) timed:
 
@@ -538,64 +542,72 @@ adda> sweep 100000 8000000 6
 ```
 
 The amplitudes are the ones [1.08](1_08_lockin.md#108-a-lock-in-amplifier) measured. The delay is not: the phase slope
-here is 299 ns, against [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s 212.7 ns. Neither design is wrong. A lock-in's
+here is 299 ns, against [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s 212.7 ns. Neither design is wrong: a lock-in's
 absolute phase includes its own internal delays, which is why every
-measurement is divided by a reference taken the same way. What's new is that
-the measurement is now a function call: the averaging time, the frequency
-plan and the arithmetic are software, and changing them takes seconds instead
-of a new bitstream.
+measurement is divided by a reference taken the same way.
+
+What's new is that the measurement is now a function call. The averaging
+time, the frequency plan and the arithmetic are software, and changing them
+takes seconds instead of a new bitstream.
 
 <details>
 <summary><b>Detail:</b> where the extra 86 ns come from</summary>
 
-Mostly from the pipelines. `funcgen_core` has three more registers between
-its phase accumulator and the DAC than `lockin.sv` has (60 ns), and
-`lockin_core` reads the phase one clock later (20 ns). (The crosstalk floor is also higher in this
-SoC: 0.9 mV at 100 kHz, against 0.17 mV for [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s bare design.)
+Mostly from the pipelines:
+
+- `funcgen_core` has three more registers between its phase accumulator and
+  the DAC than `lockin.sv` has (60 ns);
+- `lockin_core` reads the phase one clock later (20 ns).
+
+(The crosstalk floor is also higher in this SoC: 0.9 mV at 100 kHz, against
+0.17 mV for [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s bare design.)
 
 </details>
 
 ## How small a signal can it see?
 
-The same generator (the ADALM2000's W1), at the function generator's
-frequency, stepped from 4 V down to 1 mV. Each point is the mean of three `li 100000 24` measurements
-(2<sup>24</sup> samples, 0.67 s each). The figure at the top of this page is
-the result.
+The figure at the top of this page steps the same generator (the ADALM2000's
+W1), at the function generator's frequency, from 4 V down to 1 mV. Each point
+is the mean of three `li 100000 24` measurements (2<sup>24</sup> samples,
+0.67 s each).
 
-From 4 V down to one ADC code (39.5 mV), the reading is proportional to the
-input. And below one code, the lock-in still clearly sees the signal: 7.4 mV
-for 10 mV, 2.6 mV for 4 mV. An 8-bit ADC, reading a signal a tenth of its
-smallest step.
+- **From 4 V down to one ADC code (39.5 mV)**, the reading is proportional to
+  the input.
+- **Below one code**, the lock-in still clearly sees the signal: 7.4 mV for
+  10 mV, 2.6 mV for 4 mV. An 8-bit ADC, reading a signal a tenth of its
+  smallest step.
 
 <details>
 <summary><b>Detail:</b> how it sees below one code, and what limits it</summary>
 
-- Above one code, the reading is low by 0.5% at 4 V and 3% at 0.1 V. A signal
-  of ±2 codes exercises only the few codes around mid-scale, so it samples
-  those codes' individual widths (the ADC's *[differential nonlinearity](https://en.wikipedia.org/wiki/Differential_nonlinearity)*)
+- **Above one code**, the reading is low by 0.5% at 4 V and 3% at 0.1 V. A
+  signal of ±2 codes exercises only the few codes around mid-scale, so it
+  samples those codes' individual widths (the ADC's *[differential nonlinearity](https://en.wikipedia.org/wiki/Differential_nonlinearity)*)
   rather than their average.
-- Below one code, the ADC's own noise, only about a tenth of a code rms (the
-  half-code residual behind [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do)'s 7.1
-  effective bits is mostly the converter's nonlinearity, not noise), *dithers* a small
-  signal across code boundaries, and averaging 16 million samples recovers
-  it. That little [dither](https://en.wikipedia.org/wiki/Dither) is why these readings fall short: low by 25–40%,
-  though this test can't say how much of that is the ADC: the ADALM2000's
+- **Below one code**, the ADC's own noise *dithers* a small signal across
+  code boundaries, and averaging 16 million samples recovers it. That noise
+  is only about a tenth of a code rms (the half-code residual behind
+  [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do)'s 7.1 effective bits is mostly the converter's nonlinearity, not
+  noise). So little [dither](https://en.wikipedia.org/wiki/Dither) is why these readings fall short, low by
+  25–40%. This test can't say how much of that is the ADC: the ADALM2000's
   generator only has 2.4 mV steps itself.
-- The floor, 0.9 mV, is what the lock-in reads with the input at 0 V. That's
-  the DAC's own output leaking into the ADC. Because it's at exactly the
-  reference frequency, no amount of averaging removes it. Only better layout
-  and shielding would, or a separate measurement of it to subtract as a vector.
+- **The floor**, 0.9 mV, is what the lock-in reads with the input at 0 V.
+  That's the DAC's own output leaking into the ADC. Because it's at exactly
+  the reference frequency, no amount of averaging removes it. Only better
+  layout and shielding would, or a separate measurement of it to subtract as
+  a vector.
 
 </details>
 
 **Try this:**
 
-- Make the lock-in free-running: when a result is done, latch it and start the
-  next sum immediately, and add a `count` register that increments with each
-  result. Now software can read results without waiting.
-- Add an input to `lockin_core` that selects the reference as the *second
-  harmonic* of the function generator (`phase << 1`), and measure the 2*f*
-  distortion of a diode clipper driven at *f* ([4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper)).
+- **Make the lock-in free-running**: when a result is done, latch it and
+  start the next sum immediately, and add a `count` register that increments
+  with each result. Now software can read results without waiting.
+- **Measure a second harmonic.** Add an input to `lockin_core` that selects
+  the reference as the *second harmonic* of the function generator
+  (`phase << 1`), and measure the 2*f* distortion of a diode clipper driven
+  at *f* ([4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper)).
 
 <!-- nav -->
 [← 2.04 A capture peripheral](2_04_capture_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.06 The registers from the laptop →](2_06_registers_from_the_laptop.md)
