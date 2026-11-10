@@ -1,7 +1,7 @@
 <!-- nav -->
-[← 5.07 A radio link](5_07_radio_link.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.00 Digital communications (Hardware Defined Radio) →](6_00_digital_communications.md)
+[← 5.08 A 3D show on an oscilloscope](5_08_xy_show.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.00 Digital communications (Hardware Defined Radio) →](6_00_digital_communications.md)
 
-# 5.08 With a little more hardware
+# 5.09 With a little more hardware
 
 ![Computed: records from two ADCs look like plain noise, but their cross-spectrum, averaged over more and more records, settles on the small noise of the resistor they share](img/xcorr_noise.png)
 
@@ -39,7 +39,7 @@ of it open source. None has been tried with this board yet.
 | **Music over a light beam** | the [FM](https://en.wikipedia.org/wiki/Frequency_modulation) LED transmitter of many electronics courses, done digitally: board A's ADC hears a music player and FM-modulates an LED; board B's photodiode and ADC demodulate it and stream it to `stream.py --play` | [5.05](5_05_fsk_modem.md#505-a-modem)'s phase accumulator, [4.07](4_07_optical_link.md#407-an-optical-link)'s optics |
 
 <!-- nav -->
-[← 5.07 A radio link](5_07_radio_link.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.00 Digital communications (Hardware Defined Radio) →](6_00_digital_communications.md)
+[← 5.08 A 3D show on an oscilloscope](5_08_xy_show.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.00 Digital communications (Hardware Defined Radio) →](6_00_digital_communications.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

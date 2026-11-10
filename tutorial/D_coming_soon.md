@@ -268,7 +268,7 @@ What changed from the plan below, and why:
   whips replace the antennas.
 - **Checked again against the ECP5-2ADC-2DAC board, before ordering.**  The host has its own Johnson-noise source,
   photodiode amplifier and LED driver, so two AMOD-A tiles changed: a5 is now a socket and x101 amplifier for an
-  HB100 10.525 GHz Doppler module ([5.08](5_08_more_hardware.md#instruments-for-a-physics-lab)'s speed gun, the only route above 6 GHz), and a10 an impedance and I-V tile
+  HB100 10.525 GHz Doppler module ([5.09](5_09_more_hardware.md#instruments-for-a-physics-lab)'s speed gun, the only route above 6 GHz), and a10 an impedance and I-V tile
   (a DIP-selected reference resistor and V and I outputs for the host's two ADCs).  On RF-MOD the QPL9547 LNA is in
   (the taped QPL9547TR7 was in stock: 0.3 dB of noise figure instead of a second gain block), and a TRF3722
   quadrature transmitter (r13) on the host's two DACs replaced the second synthesizer: an image-free transmitter
@@ -450,7 +450,7 @@ $0.41 the two built boards paid for theirs.
 | A2 | an op-amp gain block, ×10, 20 MHz | ±5 | 1 | 2 | [4.07](4_07_optical_link.md#407-an-optical-link), [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s weak signals, the noise tiles | $1.50 | keep |
 | A3 | an op-amp gain block, ×100 | ±5 | 1 | 2 | the same; ×1000 after A2; the volts the 8-bit ADC wants, after the RF board's receive mixer | $1.50 | keep |
 | A4 | an HF low-noise amplifier, 1–30 MHz, 40 dB | +5 | 1 | 2 | [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s rung 3 (an "SDR preamplifier" costs $15–40), [5.07](5_07_radio_link.md#507-a-radio-link), the AM loopstick | $3 | keep |
-| A5 | Johnson noise: a ×1000 low-noise amplifier, and resistors on a DIP switch | ±5 | 1 | 1 | [5.08](5_08_more_hardware.md#508-with-a-little-more-hardware)'s Boltzmann's constant | $5 | keep |
+| A5 | Johnson noise: a ×1000 low-noise amplifier, and resistors on a DIP switch | ±5 | 1 | 1 | [5.09](5_09_more_hardware.md#509-with-a-little-more-hardware)'s Boltzmann's constant | $5 | keep |
 | A6 | a comparator and RC integrator: a delta-sigma ADC from one FPGA pin | +5 | 1 | 1 | [7.05](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits): the side this module cannot show | $2 | keep |
 | A7 | a phase-locked loop in hardware: a 74HC4046 (input and VCO-output jacks, the loop filter's parts on a DIP switch) | +5 | 1 | 2 | [5.04](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other)'s PLL in gateware, beside the analog one; *Learning the Art of Electronics* Lab 18L's frequency multiplier, which these students build next | $0.77 | keep |
 | A8 | heat: a 10 Ω resistor, a thermistor and a TMP36 | +5 | 1 | 1 | [5.02](5_02_warming_a_crystal.md#502-warming-a-crystal), which never measured the temperature; [7.06](7_06_control.md#706-control-at-the-speed-of-the-cable)'s slow plant | $2 | keep |
@@ -460,7 +460,7 @@ $0.41 the two built boards paid for theirs.
 | A12 | audio: a 20 mm speaker, an electret microphone with its bias, a preamplifier, and the one-bit DAC (a Pmod pin, an RC and a 3.5 mm jack) | +5 | 2 | 2 | [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz), [4.10](4_10_more_ideas.md#410-more-ideas-for-one-board)'s bat sonar; [7.05](7_05_trading_speed_for_bits.md#705-trading-speed-for-bits): hear a one-bit stream, with P6 | $2.50 | keep |
 
 The "maybe"s: a socket for an HB100 and its 60 dB audio amplifier
-([5.08](5_08_more_hardware.md#508-with-a-little-more-hardware)'s speed gun),
+([5.09](5_09_more_hardware.md#509-with-a-little-more-hardware)'s speed gun),
 and a transformer tile (a 1:1 and a 1:4, the ADALP2000's hexa-path idea)
 for isolation, baluns and
 [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s
@@ -469,7 +469,7 @@ their supplies and neighbours are: the fan with a tachometer (PhMOD's
 H-bridge drives it) and the NMR front end (PhMOD's duplexer and preamplifier).
 
 Rejected: an I<sup>2</sup>S audio DAC or ADC module (plug it into the Pmod
-instead: $5, and nothing to lay out); the optics of [5.08](5_08_more_hardware.md#508-with-a-little-more-hardware)'s laser locks (a breadboard's job,
+instead: $5, and nothing to lay out); the optics of [5.09](5_09_more_hardware.md#509-with-a-little-more-hardware)'s laser locks (a breadboard's job,
 not a PCB's). Anything at 915 MHz needs RF layout, so it has a board of its
 own (next).
 
@@ -492,7 +492,7 @@ pages each:
 - P4 and P8, the resonators, are [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)'s and [4.03](4_03_quartz_crystal.md#403-the-q-of-a-quartz-crystal)'s Q measurements, then
   the plant of the one experiment this tutorial most lacks: a lockbox (below).
 - A2 to A4, the amplifiers, serve the antenna ladder of [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry), the
-  optical link of [4.07](4_07_optical_link.md#407-an-optical-link), the noise measurements of [5.08](5_08_more_hardware.md#508-with-a-little-more-hardware), and the RF
+  optical link of [4.07](4_07_optical_link.md#407-an-optical-link), the noise measurements of [5.09](5_09_more_hardware.md#509-with-a-little-more-hardware), and the RF
   board's receiver.
 
 **Two in, two out.** Most of this tutorial uses one ADC and one DAC. The
@@ -506,7 +506,7 @@ only honest, with two:
 - *quadrature*: I and Q out of two DACs into two mixers, an image-reject
   transmitter; I and Q into two ADCs, a real complex receiver;
 - *a lockbox*: one DAC modulates, the other corrects, as in
-  [5.08](5_08_more_hardware.md#508-with-a-little-more-hardware)'s Pound–Drever–Hall lock;
+  [5.09](5_09_more_hardware.md#509-with-a-little-more-hardware)'s Pound–Drever–Hall lock;
 - *cross-correlation*: two ADCs on one resistor average their own noise
   away and keep the resistor's (Johnson noise without a perfect amplifier);
 - *angle of arrival and MIMO*, from [6.13](6_13_more_ideas.md#613-more-ideas-and-a-radar-chapter); and a plain XY display for
@@ -730,7 +730,7 @@ keying and FSK, and the "maybe" tiles above are the rest.
 The first four boards serve this tutorial's pages. The two below serve
 the experiments a senior lab or a final project reaches for and the pages
 only point at: a Pound–Drever–Hall lock
-([5.08](5_08_more_hardware.md#508-with-a-little-more-hardware)), a piezo
+([5.09](5_09_more_hardware.md#509-with-a-little-more-hardware)), a piezo
 held on a fringe,
 [7.07](7_07_bigger_ideas.md#707-bigger-ideas-nmr-mri-and-qubits)'s NMR in
 a magnet you own, the NV-centre and rubidium experiments worked out
@@ -1557,7 +1557,7 @@ by the same agent, in the same session.
 ## Long cables
 
 Several pages want a long cable: [4.05](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub)'s stub, [4.10](4_10_more_ideas.md#410-more-ideas-for-one-board)'s time-domain
-reflectometry, [5.08](5_08_more_hardware.md#508-with-a-little-more-hardware)'s Einstein synchronization, [6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)'s radar on a
+reflectometry, [5.09](5_09_more_hardware.md#509-with-a-little-more-hardware)'s Einstein synchronization, [6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)'s radar on a
 cable. In the US, on 2026-10-05:
 
 | what | for | about |

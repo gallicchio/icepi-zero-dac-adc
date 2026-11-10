@@ -3034,3 +3034,53 @@ Nothing measured; the board still has the ultrasound pair on it. Written, drawn,
 **Not done:** no bench measurement; the 60 V "touch-safe" claim is the DC limit and yours to review before a student meets it; the Pmod rule is stated for the new board's two sockets, and a rev-B Icepi adapter with one Pmod needs nothing more.
 
 **Board state:** DP051TLX runs `ddc.bit` (unchanged since Prompt 28); the ultrasound pair is on its box.
+
+## Prompt 30
+
+I want you to add the Icepi Zero version of the demo to the `~/mudd/133electronics/icepi-zero-dac-adc` tutorial as a new section 5.08 (bumping the "with more hardware" to 5.09). You don't need to include any of the code on this page -- it's going to be less pedagogical than the other pages. All the code should go in its own directory, isolated from the rest of this tutorial. On your new 5.08 page, give an overview of this whole project at the level of a final report: how persistence works, how you handle the 3D rendering in the FPGA, how you handle the other demos that aren't straight-forward rendering (like Chua), how you handle synchronization between boards, and anything else that would be of interest to someone doing this tutorial who got to this point and would think that this XY thing is amazingly cool. i put a video in tutorial/img/20261108_230454.mp4 which is too big for github and should be git ignored, but I want you to make an animated GIF of it as the "eye catching" thing that starts this page. You should make a clip of the original video that starts at 6 seconds, right before the globe starts rotating, and goes to the end.  Your file should have a better name. Spend time on this doing a really good and clear explanation of how each interesting aspect of this was achieved. You can show clips of the relevant verilog (or system verilog). There should also be simple instructions on how to make this and flash it onto a pair of Icepi Zeros. Don't worry too much about which is X and which is Y because the user can easily swap BNCs on the scope. But do try to make it repeatable, in that someone at the same computer flashing over and over should always end up with the same Icepi Zero as X and Y.
+
+(Then, mid-turn:) If there are uncommitted things in the icepi tutorial, you should figure out what they are and commit them. You are now the agent "in charge" of the tutorial repo for now.
+
+(And:) In all of your tests, I've connected each board's ADC to the other ones DAC with an SMA tee. If that's not strictly necessary, you can say so, but then the "simple XY swap" will get more complicated.
+
+## Response 30 2026-11-10 11:22:45 - 12:27:59 Claude Opus 5.5
+
+Built, loaded, simulated and checked on the bench from the tutorial's own copy (`src/xyshow/`): `make -j2` (X 59.96 MHz, Y 69.75 MHz, for a 50 MHz clock; 1 min 42 s), `make flash`, `make sim` (PASS, 901 frames), `host/show.py sync` (no bad bursts, trim −3.8 ppm), `host/show.py draw "HELLO"` on both boards, and every mode and finale on the SDS1104X-E with no bad bursts. `make check`: 0 errors, 1 warning (0.00 doesn't open with a picture; that warning predates this prompt).
+
+**5.08 A 3D show on an oscilloscope** (`tutorial/5_08_xy_show.md`) is a report, not a walk through the code. It covers:
+
+- **Making and loading it:** the cabling as a diagram, `make`, `make flash`, the scope's settings, and what you'll see.
+- **How a scope draws:** vectors, not pixels. Brightness is time spent, and a beam that waits is a bright dot. Every jump shows, and the strokes are reordered to keep jumps short. Persistence comes from the phosphor and from the eye.
+- **The pipeline**, and **3D in fixed point:** the scene memory, groups and matrices, the cull test, perspective from a table, rounding to the DAC's codes, the line generator, and why it has a 512-segment FIFO.
+- **The animator:** phases as the DDS accumulators of 1.03, the microprogram and its seven-clock instruction, and the tricks: a travelling wave from a matrix, shears, the spinner's ramp, twelve rates from one phase, and Morse by culling. A table of what it costs.
+- **The two chaotic twins:** Chua by Runge–Kutta in shifts and adds only, and Lorenz.
+- **Two boards, one picture:** the burst and its payload, the threshold, the three details that made it work, and the frequency-locked loop.
+- **How it was tested:** the simulation, the movie, the bench, and the seven things the analog scope found.
+- **The 21 finales**, and **how to change the show.**
+
+There are fourteen short clips of Verilog and Python.
+
+**The GIF** is `tutorial/img/xyshow_tek2213.gif`: 6 s to the end of the 24 s video (18.3 s), 480 px wide, 8 frames a second, 32 colours, 4.9 MB. The 51 MB video stays on disk only; `tutorial/img/*.mp4` is in `.gitignore`. Two more figures: `xyshow_sim.png` shows every mode and finale from the simulation, `xyshow_siglent.png` the same from the bench.
+
+**The code** is in `src/xyshow/`, apart from the rest of the tutorial: 41 files, 0.7 MB.
+
+- `rtl/`: the Verilog and its generated tables. The tables are committed, so building needs only the OSS CAD Suite.
+- `host/`: the Python that writes the tables, the animator's bit-exact model, and `show.py` to talk to the boards.
+- `sim/`: both boards through a modelled cable.
+- `make_show.py`, `flash.py`, a `Makefile` and a README.
+
+Its bitstreams, renders and simulation output are in `.gitignore`. The Verilog is the show's, with only comments changed: they no longer point at files outside the directory, and the whole register map is now at the top of `rtl/top_icepi.v`.
+
+**X and Y, every time.** `make flash` runs `flash.py`, which reads the two FT231X serial numbers, sorts them, and writes X into the first and Y into the second. On the same computer the same board is always X, whatever USB port it's in; here X is DK0GFLAW and Y is DP051TLX. `make flash X=... Y=...` chooses for yourself.
+
+**The tees.** Only one link is needed: board Y's ADC must hear board X's DAC, and board X never reads its ADC. Cabling both ways makes the boards interchangeable, so swapping cables at the scope is all anyone ever has to do. The page says so.
+
+**Renumbered.** 5.08 With a little more hardware is now 5.09 (`git mv`). Updated to match: the README's contents and introduction, 5.00's table of experiments, Appendix D's links, `dev/tools/fig_openers.py`, and the navigation lines of 5.07, 5.09 and 6.00. Nothing else under `~/mudd` linked to the old file name.
+
+**Uncommitted things, found and committed.** Git's index was stale: it listed changes the files didn't have, and `git reset` cleared it. The one real change was Appendix D's parts-per-board prices from Prompt 22, committed as f3bf61f.
+
+**Also:**
+- `LICENSE` names the show's third-party material. The seal and the wordmark belong to the College; the coastlines are Natural Earth's (public domain); the molecules come from PubChem.
+- The repository is 10 commits ahead of GitHub. This session has no key, so you push.
+
+**Board state:** both boards run the show from their flash, DK0GFLAW as X and DP051TLX as Y (DP051TLX had `ddc.bit` at the end of Prompt 29). The scope is as found.

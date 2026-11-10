@@ -60,3 +60,13 @@ src/twoboard/*.vvp
 # Python
 __pycache__/
 *.pyc
+
+# 5.08's XY show (src/xyshow): the bitstreams and their logs, the testbench's copies and output, the movies
+src/xyshow/build/
+src/xyshow/renders/
+src/xyshow/sim/*.hex
+src/xyshow/sim/*.vvp
+src/xyshow/sim/icepi_samples.txt
+
+# Videos straight from the camera (5.08's is 51 MB, too big for GitHub): the pages show GIFs made from them
+tutorial/img/*.mp4

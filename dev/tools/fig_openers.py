@@ -75,7 +75,7 @@ Every fact in a figure comes from the page named beside it, or from the file nam
                         16384 samples at 50 MHz / 64, the 21 ms loop 4.10 suggests.  The 3 ms
                         chirp, the echo (0.3 of the direct sound) and the noise (0.6 rms)
                         are choices for the illustration.
-  xcorr_noise.png   5.08  computed: two ADCs share a small common noise (the resistor's
+  xcorr_noise.png   5.09  computed: two ADCs share a small common noise (the resistor's
                         Johnson noise) under larger independent noise; the cross-spectrum,
                         averaged over N = 1, 10, 100, 1000 records, settles on the common
                         part.  The 25 MS/s sample rate is the ADC's (2.03); 1024-sample
@@ -1048,7 +1048,7 @@ def fig_chirp_sonar():
     print("wrote chirp_sonar.png", f"(peaks at {td:.3f} and {te:.3f} ms)")
 
 
-# ==== 5.08: thermal noise by cross-correlation (computed) ======================================
+# ==== 5.09: thermal noise by cross-correlation (computed) ======================================
 def fig_xcorr_noise():
     rng = np.random.default_rng(5)
     fs, L = 25e6, 1024                 # the ADC's 25 MS/s (2.03); 1024-sample records (a choice)

@@ -113,6 +113,13 @@ Third-party material
     linux-on-litex-vexriscv's own defconfig (BSD-2-Clause, Copyright (c)
     2019-2024 Linux-on-LiteX-VexRiscv Developers), with this tutorial's
     additions marked.
+  - Harvey Mudd College's seal, traced into strokes (src/xyshow/host/seal.json,
+    and drawn in tutorial/img/xyshow_*), and the College's wordmark on the
+    fidget spinner's cap in 5.08's show belong to the College; neither is
+    covered by this repository's licences.  The show's coastlines
+    (src/xyshow/host/coast.json) are Natural Earth's, in the public domain,
+    and its molecules' 3D structures (src/xyshow/host/*.sdf) come from
+    PubChem (NCBI).
 
 The tools the tutorial installs (OSS CAD Suite, LiteX, Buildroot and the rest)
 are downloaded by you, not included here, and come with their own licences.

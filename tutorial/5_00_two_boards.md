@@ -13,7 +13,8 @@ of each to the ADC of the other, and something new appears: two clocks that
 don't quite agree. Most of this chapter is about that. It covers how to compare two
 clocks to parts per billion, how to agree on what time it is when every message
 takes time to arrive, how two oscillators that can hear each other fall into
-step, and how much information a 16 cm cable can carry.
+step, and how much information a 16 cm cable can carry. It ends with a show: the two boards
+drawing in 3D on an oscilloscope, one axis each, kept in step through the cable.
 
 | | |
 | --- | --- |
@@ -98,7 +99,8 @@ came, and that is a likely cause.
 | [5.05 A modem](5_05_fsk_modem.md#505-a-modem) | [frequency-shift keying](https://en.wikipedia.org/wiki/Frequency-shift_keying): typing from one laptop to the other, then two Linux computers on one cable | yes |
 | [5.06 The modem against noise](5_06_modem_and_noise.md#506-the-modem-against-noise) | [bit error rate](https://en.wikipedia.org/wiki/Bit_error_rate) against [signal-to-noise ratio](https://en.wikipedia.org/wiki/Signal-to-noise_ratio), measured and predicted | yes: measured that way |
 | [5.07 A radio link](5_07_radio_link.md#507-a-radio-link) | a narrowband modem through the air, between two loop antennas | yes, through a cable |
-| [5.08 With a little more hardware](5_08_more_hardware.md#508-with-a-little-more-hardware) | more ideas: light, sound, a GPS reference, thermal noise, a network of three | |
+| [5.08 A 3D show on an oscilloscope](5_08_xy_show.md#508-a-3d-show-on-an-oscilloscope) | the two boards drive an oscilloscope in XY mode: the College seal in 3D and 21 animations, from the FPGAs alone, the boards kept in step through the cable | no: it takes both DACs |
+| [5.09 With a little more hardware](5_09_more_hardware.md#509-with-a-little-more-hardware) | more ideas: light, sound, a GPS reference, thermal noise, a network of three | |
 
 Chapter 6 ([6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)) goes on from the modem to how real digital radios work: PSK with
 clock and carrier recovery, spread spectrum, and OFDM ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)), with one board or two.

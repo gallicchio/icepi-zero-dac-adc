@@ -20,15 +20,15 @@ You will:
 * boot **Linux** on that computer, and read the [ADC](https://en.wikipedia.org/wiki/Analog-to-digital_converter) as an ordinary file;
 * and then, if you like, keep going: crystals, resonators, the speed of sound,
   [time transfer](https://en.wikipedia.org/wiki/Time_transfer) between two boards (as national labs do it), modern
-  digital communications (OFDM, at 56 Mbit/s through a cable), and a radio
-  link.
+  digital communications (OFDM, at 56 Mbit/s through a cable), a radio
+  link, and a 3D show on an oscilloscope drawn by two boards kept in step.
 
 Everything is open source, from the FPGA tools to the instruments: an
 open-source function generator, digitizer (a slow oscilloscope), lock-in
 amplifier, network analyzer, FFT spectrum analyzer, AM transmitter and
 software-defined radio receiver, modems, and a time-transfer link, each a
 page or two of SystemVerilog and Python that you can read and change.
-[5.08](tutorial/5_08_more_hardware.md#instruments-for-a-physics-lab) lists more
+[5.09](tutorial/5_09_more_hardware.md#instruments-for-a-physics-lab) lists more
 that physics labs usually buy: a [Pound–Drever–Hall](https://en.wikipedia.org/wiki/Pound%E2%80%93Drever%E2%80%93Hall_technique) laser lock, a
 coincidence counter, shot-noise and Johnson-noise measurements.
 
@@ -165,7 +165,8 @@ first", so you can check before you start.
 - [5.05 A modem](tutorial/5_05_fsk_modem.md)
 - [5.06 The modem against noise](tutorial/5_06_modem_and_noise.md)
 - [5.07 A radio link](tutorial/5_07_radio_link.md)
-- [5.08 With a little more hardware](tutorial/5_08_more_hardware.md)
+- [5.08 A 3D show on an oscilloscope](tutorial/5_08_xy_show.md)
+- [5.09 With a little more hardware](tutorial/5_09_more_hardware.md)
 
 **6. Digital communications (Hardware Defined Radio)**
 

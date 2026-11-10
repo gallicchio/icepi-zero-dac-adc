@@ -1,0 +1,86 @@
+[
+ {
+  "kind": "chua",
+  "seconds": 5.0
+ },
+ {
+  "kind": "spinner",
+  "seconds": 7.6
+ },
+ {
+  "kind": "gears",
+  "seconds": 6.0
+ },
+ {
+  "kind": "ligo",
+  "seconds": 7.0
+ },
+ {
+  "kind": "caffeine",
+  "seconds": 5.0
+ },
+ {
+  "kind": "governor",
+  "seconds": 6.5
+ },
+ {
+  "kind": "dish",
+  "seconds": 9.0
+ },
+ {
+  "kind": "top",
+  "seconds": 6.0
+ },
+ {
+  "kind": "arm",
+  "seconds": 7.0
+ },
+ {
+  "kind": "pcb",
+  "seconds": 7.0
+ },
+ {
+  "kind": "sats",
+  "seconds": 7.0
+ },
+ {
+  "kind": "pwave",
+  "seconds": 12.0
+ },
+ {
+  "kind": "scope",
+  "seconds": 6.0
+ },
+ {
+  "kind": "generator",
+  "seconds": 7.0
+ },
+ {
+  "kind": "dna",
+  "seconds": 5.0
+ },
+ {
+  "kind": "drone",
+  "seconds": 7.0
+ },
+ {
+  "kind": "boom",
+  "seconds": 7.0
+ },
+ {
+  "kind": "pol",
+  "seconds": 7.0
+ },
+ {
+  "kind": "sagnac",
+  "seconds": 7.0
+ },
+ {
+  "kind": "tek",
+  "seconds": 7.0
+ },
+ {
+  "kind": "replicate",
+  "seconds": 6.0
+ }
+]

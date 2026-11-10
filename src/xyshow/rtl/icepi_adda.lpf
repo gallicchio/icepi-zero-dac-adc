@@ -1,0 +1,83 @@
+# icepi_adda.lpf -- pin constraints for an Icepi Zero with the
+# IcepiZero_AD9280_AD9708_2x12 adapter (../../adapter_board/) and an
+# AD9280/AD9708 module.
+#
+# One file for every design in this folder.  A design only has to use the
+# ports it needs; constraints for ports a design doesn't have are ignored
+# (nextpnr prints a warning for each and carries on).
+#
+# Each pair of lines says: this Verilog port name lives on this ball (pin) of
+# the ECP5 chip, and uses this electrical standard.
+
+# ---- 50 MHz crystal oscillator: the only clock on the board ----------------
+LOCATE COMP "clk" SITE "M1";
+IOBUF  PORT "clk" IO_TYPE=LVCMOS33;
+FREQUENCY PORT "clk" 50 MHZ;
+
+# ---- 5 white LEDs, active high (1 = on) ------------------------------------
+# Numbered so a binary number reads normally with the USB connectors pointing
+# down: led[4] (the MSB) is the leftmost LED, led[0] (the LSB) the rightmost.
+# (LiteX's own platform file numbers them the other way round.)
+LOCATE COMP "led[4]" SITE "E13";
+LOCATE COMP "led[3]" SITE "D14";
+LOCATE COMP "led[2]" SITE "E12";
+LOCATE COMP "led[1]" SITE "C13";
+LOCATE COMP "led[0]" SITE "D13";
+IOBUF  PORT "led[0]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "led[1]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "led[2]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "led[3]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "led[4]" IO_TYPE=LVCMOS33;
+
+# ---- push button nearest the USB connectors: reads 0 while pressed ---------
+# (The other button, C4, is also the reset line of the LiteX designs.)
+LOCATE COMP "btn" SITE "C5";
+IOBUF  PORT "btn" IO_TYPE=LVCMOS33 PULLMODE=UP;
+
+# ---- serial port, through the FT231X USB chip (/dev/ttyUSB0 on the laptop) -
+LOCATE COMP "uart_tx" SITE "K15";
+IOBUF  PORT "uart_tx" IO_TYPE=LVCMOS33;
+LOCATE COMP "uart_rx" SITE "K16";
+IOBUF  PORT "uart_rx" IO_TYPE=LVCMOS33 PULLMODE=UP;
+
+# ---- AD9280 ADC: 8 data bits in, clock out ---------------------------------
+# adc_d[7] is the MSB.  On the module's silkscreen: AD0..AD7, and ACLK.
+LOCATE COMP "adc_d[0]" SITE "R1";
+LOCATE COMP "adc_d[1]" SITE "R3";
+LOCATE COMP "adc_d[2]" SITE "N4";
+LOCATE COMP "adc_d[3]" SITE "P3";
+LOCATE COMP "adc_d[4]" SITE "P2";
+LOCATE COMP "adc_d[5]" SITE "M2";
+LOCATE COMP "adc_d[6]" SITE "L1";
+LOCATE COMP "adc_d[7]" SITE "L2";
+LOCATE COMP "adc_clk"  SITE "J1";
+IOBUF  PORT "adc_d[0]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "adc_d[1]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "adc_d[2]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "adc_d[3]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "adc_d[4]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "adc_d[5]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "adc_d[6]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "adc_d[7]" IO_TYPE=LVCMOS33;
+IOBUF  PORT "adc_clk"  IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+
+# ---- AD9708 DAC: 8 data bits out, clock out --------------------------------
+# dac_d[7] is the MSB.  On the module's silkscreen: DA0..DA7, and DCLK.
+LOCATE COMP "dac_d[0]" SITE "D4";
+LOCATE COMP "dac_d[1]" SITE "E4";
+LOCATE COMP "dac_d[2]" SITE "E3";
+LOCATE COMP "dac_d[3]" SITE "J3";
+LOCATE COMP "dac_d[4]" SITE "F3";
+LOCATE COMP "dac_d[5]" SITE "E1";
+LOCATE COMP "dac_d[6]" SITE "G1";
+LOCATE COMP "dac_d[7]" SITE "H2";
+LOCATE COMP "dac_clk"  SITE "G2";
+IOBUF  PORT "dac_d[0]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[1]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[2]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[3]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[4]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[5]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[6]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_d[7]" IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;
+IOBUF  PORT "dac_clk"  IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=SLOW;

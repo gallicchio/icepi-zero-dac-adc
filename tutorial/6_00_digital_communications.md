@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 5.08 With a little more hardware](5_08_more_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.01 Eye diagrams and pulse shaping →](6_01_eye_diagrams.md)
+[← 5.09 With a little more hardware](5_09_more_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.01 Eye diagrams and pulse shaping →](6_01_eye_diagrams.md)
 
 # 6.00 Digital communications (Hardware Defined Radio)
 
@@ -364,7 +364,7 @@ needs the same care.
 > the two ends, and keep the power tiny.
 
 <!-- nav -->
-[← 5.08 With a little more hardware](5_08_more_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.01 Eye diagrams and pulse shaping →](6_01_eye_diagrams.md)
+[← 5.09 With a little more hardware](5_09_more_hardware.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.01 Eye diagrams and pulse shaping →](6_01_eye_diagrams.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>
