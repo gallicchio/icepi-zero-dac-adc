@@ -8,16 +8,23 @@
 Everything in this chapter so far went through C: write the firmware,
 compile it, upload it, then type commands to it. Sometimes you just want to
 set a register from Python, with numpy and matplotlib at hand, and no
-firmware at all. LiteX can do that. Instead of connecting the serial port to
-the CPU's console, it can connect it to a *bridge*: a small circuit on the
-bus that obeys two messages from the laptop, "read the word at this address"
-and "write this word there". The laptop then reads and writes the SoC's
-registers just as the CPU's loads and stores do, and `csr.csv`, which LiteX
-writes for every build, gives them their names.
+firmware at all.
+
+LiteX can do that. Instead of connecting the serial port to the CPU's
+console, it can connect it to a *bridge*: a small circuit on the bus that
+obeys two messages from the laptop,
+
+- "read the word at this address" and
+- "write this word there".
+
+The laptop then reads and writes the SoC's registers just as the CPU's loads
+and stores do, and `csr.csv`, which LiteX writes for every build, gives them
+their names.
 
 ## Build it
 
-It's the SoC of [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)–[2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral), with one option changed, built into a folder of its own:
+It's the SoC of [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)–[2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral), with one option changed, built into a folder of its own.
+**Build it, load it, and start `litex_server`**:
 
 ```console
 $ cd src/riscv
@@ -26,13 +33,15 @@ $ openFPGALoader -b icepi-zero build/bone/gateware/icepi_zero.bit
 $ litex_server --uart --uart-port /dev/ttyUSB0 &
 ```
 
-`crossover+uartbone` puts the bridge (LiteX calls it UARTBone) on the
-serial port and gives the CPU's console a *crossover* [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter) instead: a pair of
-registers that the laptop reads and writes through the bridge. `litex_server`
-holds the serial port, and any number of programs on the laptop talk to the
-bus through it, over a network connection to port 1234 on the laptop itself.
-(Stop it, `kill %1`, before you load another bitstream: it keeps the serial
-port open.)
+- `crossover+uartbone` puts the bridge (LiteX calls it UARTBone) on the
+  serial port, and gives the CPU's console a *crossover* [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter) instead: a
+  pair of registers that the laptop reads and writes through the bridge.
+- `litex_server` holds the serial port. Any number of programs on the laptop
+  talk to the bus through it, over a network connection to port 1234 on the
+  laptop itself.
+
+**Stop `litex_server` (`kill %1`) before you load another bitstream**: it
+keeps the serial port open.
 
 ## Read and write registers
 
@@ -136,7 +145,8 @@ wb.close()
 
 </details>
 
-Through the 101.5 cm cable from DAC OUT to ADC IN:
+With a cable from DAC OUT to ADC IN (here the 101.5 cm one), **run
+`remote.py`**:
 
 ```console
 $ python3 remote.py
@@ -151,8 +161,9 @@ ctrl_scratch = 0x12345678
 capture: 16384 samples in 1.5 s, codes 30 to 225, first ones [48, 37, 30, 30, 37, 49, 66, 87]
 ```
 
-The same 3.85 V at 1 MHz as the firmware's `li` in [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral), from Python, with nothing
-compiled. Afterwards the registers still hold what the script left in them:
+That's the same 3.85 V at 1 MHz as the firmware's `li` in [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral), from Python,
+with nothing compiled. Afterwards the registers still hold what the script
+left in them:
 
 ```console
 $ litex_cli --csr-csv build/bone/csr.csv --regs --filter lockin
@@ -179,23 +190,23 @@ Memory dump:
 0xf0000804  78 56 34 12                                      xV4.
 ```
 
-(`ctrl_scratch` is at 0xf0000804 in this SoC, not 0xf0000004 as in [2.01](2_01_a_cpu_and_its_bios.md#201-a-cpu-and-its-bios):
-adding peripherals moved the registers around, which is why scripts should
-use names from `csr.csv`, not addresses.)
+`ctrl_scratch` is at 0xf0000804 in this SoC, not 0xf0000004 as in [2.01](2_01_a_cpu_and_its_bios.md#201-a-cpu-and-its-bios):
+adding peripherals moved the registers around. That's why **scripts should
+use names from `csr.csv`, not addresses**.
 
 ## How fast?
 
 Each register access is a round trip: a few bytes to the board over the
-serial port, and a few bytes back, a few milliseconds in all. That's slow next
-to the CPU, which does a load in tens of nanoseconds, but fast enough for an
-instrument you drive by hand or sweep point by point: five lock-in points
-took 0.46 s, of which 0.21 s was the lock-in itself averaging. A block read
-is efficient: the whole 16 kB capture buffer came back in 1.5 s, against
-1.4 s for 16384 bytes at 115,200 baud with no overhead at all, and half the
-time of the firmware's hex `dump` in [2.04](2_04_capture_peripheral.md#204-a-capture-peripheral).
+serial port, and a few bytes back, a few milliseconds in all. That's slow
+next to the CPU, which does a load in tens of nanoseconds, but fast enough
+for an instrument you drive by hand or sweep point by point. Five lock-in
+points took 0.46 s, of which 0.21 s was the lock-in itself averaging.
 
-So there are now three ways to drive the same registers, each with its
-place:
+A block read is efficient: the whole 16 kB capture buffer came back in
+1.5 s. That's against 1.4 s for 16384 bytes at 115,200 baud with no overhead
+at all, and half the time of the firmware's hex `dump` in [2.04](2_04_capture_peripheral.md#204-a-capture-peripheral).
+
+There are now three ways to drive the same registers, each with its place:
 
 | | firmware in C (2.02–2.05) | the bridge (this page) | Linux (Chapter 3) |
 | --- | --- | --- | --- |
@@ -210,16 +221,16 @@ same `litex_server`.
 
 **Try this:**
 
-- Plot the capture: add matplotlib to `remote.py`, as `cap_plot.py` in [2.04](2_04_capture_peripheral.md#204-a-capture-peripheral)
+- **Plot the capture**: add matplotlib to `remote.py`, as `cap_plot.py` in [2.04](2_04_capture_peripheral.md#204-a-capture-peripheral)
   does for the firmware's dump.
-- How many register writes per second does the bridge manage? Time a loop
-  that writes `leds_out` 1000 times, and compare with the round trip you
-  expect from the bytes involved.
-- The bridge's speed is the serial port's. Rebuild with `--uart-baudrate
-  1000000` and start `litex_server` with `--uart-baudrate 1000000` (the
-  FT231X goes up to 3 Mbaud). Not tried here: does the capture come back
-  8.7 times faster?
-- Write the lock-in sweep of [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral) as a Python function and run it inside a
+- **Count the bridge's register writes per second.** Time a loop that writes
+  `leds_out` 1000 times, and compare with the round trip you expect from the
+  bytes involved.
+- **Speed up the serial port**: the bridge's speed is the serial port's.
+  Rebuild with `--uart-baudrate 1000000` and start `litex_server` with
+  `--uart-baudrate 1000000` (the FT231X goes up to 3 Mbaud). Untested: does
+  the capture come back 8.7 times faster?
+- **Sweep from a notebook.** Write the lock-in sweep of [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral) as a Python function and run it inside a
   Jupyter notebook, with the [Bode plot](https://en.wikipedia.org/wiki/Bode_plot) drawn as it goes.
 
 <!-- nav -->

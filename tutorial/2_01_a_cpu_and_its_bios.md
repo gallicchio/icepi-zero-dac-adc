@@ -17,14 +17,14 @@ the Icepi Zero, and talk to its CPU.
 | **memory** | a controller for the board's 32 MB of SDRAM, plus on-chip RAM, and a ROM holding the [BIOS](https://en.wikipedia.org/wiki/BIOS) |
 | **BIOS** | a small program in that ROM. It tests the memory, then gives you a `litex>` prompt, and it can load other programs over the serial port |
 | **CSRs** | *control and status registers*: small registers that connect the CPU to hardware. The CPU writes a *CSRStorage* and the hardware sees the value as a wire; the hardware drives a *CSRStatus* and the CPU reads it. Each one has an address, like memory |
-| **LED chaser** | a little piece of logic, like [1.01](1_01_led_counter.md#101-a-counter-on-the-leds)'s counter, that LiteX writes into the FPGA beside the CPU. It runs a light back and forth across the LEDs, by itself, until the CPU writes to its register. Like everything in this table, it's logic inside the FPGA, not a separate chip |
+| **LED chaser** | a little piece of logic, like [1.01](1_01_led_counter.md#101-a-counter-on-the-leds)'s counter, that LiteX puts in the FPGA beside the CPU. It runs a light back and forth across the LEDs by itself, until the CPU writes to its register. Like everything in this table, it's logic inside the FPGA, not a separate chip |
 
 <details>
 <summary><b>Detail:</b> where LiteX keeps the board's wiring</summary>
 
-Chapter 1 told the tools which FPGA ball each signal is on with a constraints
-file, `icepi_adda.lpf`. LiteX keeps the same facts in a Python *platform
-file* for each board, written by the board's designer:
+[Chapter 1](1_00_circuits_from_code.md) told the tools which FPGA ball each signal is on with a
+constraints file, `icepi_adda.lpf`. LiteX keeps the same facts in a Python
+*platform file* for each board, written by the board's designer:
 `litex_boards/platforms/icepi_zero.py`, in the LiteX you installed in
 [2.00](2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga).
 A few of its lines:
@@ -37,11 +37,13 @@ A few of its lines:
     Subsignal("rx", Pins("K16"), IOStandard("LVCMOS33"))),
 ```
 
-`clk50` on ball M1 is `icepi_adda.lpf`'s `clk`. LiteX's `user_led` 0, ball
-E13, is the leftmost LED, which [1.01](1_01_led_counter.md#101-a-counter-on-the-leds)
-calls `led[4]`: the same wire, numbered the other way round. A design asks for a resource by name
-(`platform.request("user_led", 0)`), and LiteX writes the constraints file for
-nextpnr itself. The converter module isn't part of the board, so
+- `clk50`, on ball M1, is `icepi_adda.lpf`'s `clk`.
+- `user_led` 0, on ball E13, is the leftmost LED, which [1.01](1_01_led_counter.md#101-a-counter-on-the-leds) calls
+  `led[4]`: the same wire, numbered the other way round.
+
+A design asks for a resource by name (`platform.request("user_led", 0)`),
+and LiteX writes the constraints file for nextpnr itself. The converter
+module isn't part of the board, so
 [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral)'s
 `adda_litex.py` adds its pins the same way, with
 `platform.add_extension()`.
@@ -57,15 +59,16 @@ openFPGALoader -b icepi-zero build/stock/gateware/icepi_zero.bit
 litex_term /dev/ttyUSB0                  # your port: see 0.01.  Press Enter for a prompt
 ```
 
-The build is the same Yosys → nextpnr → ecppack flow as Chapter 1, on a much
-bigger design, plus a C compiler run for the BIOS. LiteX prints a lot; the
-result is in `build/stock/`. The LEDs start chasing as soon as the bitstream
-loads.
+1. **Build.** It is the same Yosys → nextpnr → ecppack flow as
+   [Chapter 1](1_00_circuits_from_code.md), on a much bigger design, plus a C compiler run for the BIOS.
+   LiteX prints a lot; the result is in `build/stock/`.
+2. **Load.** The LEDs start chasing as soon as the bitstream loads.
+3. **Connect** with `litex_term`, LiteX's terminal program. Load the
+   bitstream *before* starting it: the FT231X chip does both jobs, so
+   loading a bitstream disconnects the serial port. Quit `litex_term` with
+   Ctrl-C.
 
-`litex_term` is LiteX's terminal program. (Load the bitstream *before*
-starting it: the FT231X chip does both jobs, so loading a bitstream
-disconnects the serial port. Quit `litex_term` with Ctrl-C.) Type `reboot` at
-the prompt to watch the CPU start up:
+**Type `reboot`** at the prompt to watch the CPU start up:
 
 ```
         __   _ __      _  __
@@ -103,33 +106,39 @@ No boot medium found
 litex>
 ```
 
-The BIOS tested the SDRAM, looked for a program to boot (none yet), and gave
-up gracefully. `help` lists what it can do.
+The BIOS tested the SDRAM, looked for a program to boot (none yet), and
+gave up gracefully. **Type `help`** to list what it can do.
 
 <details>
 <summary><b>Detail:</b> what the CPU does from power-up to the <code>litex></code> prompt</summary>
 
-The BIOS is part of the bitstream. LiteX compiled it, and put it in block RAM
-as that RAM's starting contents, the same way Yosys put the sine table of [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis)
-there: so when the FPGA wakes up ([1.01](1_01_led_counter.md#101-a-counter-on-the-leds)), the BIOS is already in memory, in a
-128 kB region that the CPU sees as read-only, the ROM, at address 0. A RISC-V
-CPU coming out of reset starts fetching instructions from a fixed *reset
-address*, here 0x00000000, so the first instruction it runs is the BIOS's.
+The BIOS is part of the bitstream. LiteX compiled it and put it in block
+RAM as that RAM's starting contents, the same way Yosys put the sine table
+of [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis) there. So
+when the FPGA wakes up ([1.01](1_01_led_counter.md#101-a-counter-on-the-leds)), the BIOS is already in memory: in the
+ROM, a 128 kB region at address 0 that the CPU sees as read-only. A
+RISC-V CPU coming out of reset starts fetching instructions from a fixed
+*reset address*, here 0x00000000, so the first instruction it runs is the
+BIOS's.
 
-The BIOS then does what the banner says: it sets up the serial port and
-prints the banner, sets up the SDRAM controller and tests the first 2 MB of
-the SDRAM, and tries each way it knows of to boot a program. This SoC knows
-only one, the serial port: the BIOS sends the string `sL5DdSMmkekro` and waits
-a quarter of a second for `litex_term` to answer. Nobody answered, so it
-prints `litex>` and waits for your commands, forever.
+The BIOS then does what the banner says:
+
+1. It sets up the serial port and prints the banner.
+2. It sets up the SDRAM controller and tests the first 2 MB of the SDRAM.
+3. It tries each way it knows of to boot a program. This SoC knows only
+   one, the serial port: the BIOS sends the string `sL5DdSMmkekro` and
+   waits a quarter of a second for `litex_term` to answer.
+
+Nobody answered, so it prints `litex>` and waits for your commands,
+forever.
 
 </details>
 
 ## Peek and poke
 
 Every register in the SoC has an address, and the BIOS's `mem_read` and
-`mem_write` commands load from and store to any address you like. Where's
-everything? `mem_list` gives the big regions:
+`mem_write` commands load from and store to any address you like. To see
+where everything is, **type `mem_list`** for the big regions:
 
 ```
 litex> mem_list
@@ -157,8 +166,8 @@ name is empty, and the registers are a thin slice at the top:
 
 <img src="img/memory_map.png" alt="The bare-metal SoC's whole 32-bit address space, not to scale: the ROM holding the BIOS at 0x00000000, 8 kB of SRAM at 0x10000000, the 32 MB SDRAM at 0x40000000 and the CSRs at 0xf0000000, with everything else empty (an access there is a bus error). The CSR region is zoomed in to show the registers this page uses: ctrl_scratch at 0xf0000004, which starts as 0x12345678, leds_out at 0xf0001000, and the timer0 registers from 0xf0002000" width="760">
 
-`ctrl_scratch` is a register that does nothing at all, which makes it a good
-first experiment. It starts out holding 0x12345678:
+**Start with `ctrl_scratch`**, a register that does nothing at all, which
+makes it a good first experiment. It starts out holding 0x12345678:
 
 ```
 litex> mem_read 0xf0000004
@@ -170,16 +179,17 @@ Memory dump:
 0xf0000004  fe ca 00 00                                      ....
 ```
 
-(The bytes come out lowest first, because RISC-V is *little-endian*.) Now the
-LEDs. `leds_out` is at 0xf0001000:
+The bytes come out lowest first, because RISC-V is *little-endian*.
+
+**Now the LEDs.** `leds_out` is at 0xf0001000:
 
 ```
 litex> mem_write 0xf0001000 0x15
 ```
 
-The chaser stops, and the LEDs show `10101`. Try `0x01`: the *leftmost* LED
-lights. LiteX numbers the LEDs the opposite way from Chapter 1's
-`icepi_adda.lpf`, with bit 0 on the left.
+The chaser stops, and the LEDs show `10101`. **Try `0x01`**: the
+*leftmost* LED lights. LiteX numbers the LEDs the opposite way from
+[Chapter 1](1_00_circuits_from_code.md)'s `icepi_adda.lpf`, with bit 0 on the left.
 
 That's the whole idea of a *memory-mapped* peripheral: a store instruction to
 one address, and a wire inside the FPGA changes. The BIOS's `leds` command
@@ -187,13 +197,15 @@ one address, and a wire inside the FPGA changes. The BIOS's `leds` command
 
 **Try this:**
 
-- Count from 0 to 31 on the LEDs by hand, with `mem_write`. Then think about
-  how much easier that would be with a program (next section).
-- Find the timer's registers in `csr.csv`. Start it counting: write 0 to
-  `timer0_en`, 0xffffffff to `timer0_load`, and 1 to `timer0_en`. Then write
-  1 to `timer0_update_value` (which copies the count into `timer0_value`) and
-  read `timer0_value`. Do that twice, a second or so apart. Which way is it
-  counting, and how fast? ([2.02](2_02_c_on_the_cpu.md#202-c-on-the-cpu) uses it as a stopwatch.)
+- **Count by hand:** count from 0 to 31 on the LEDs with `mem_write`.
+  Then think about how much easier that would be with a program (next
+  section).
+- **The timer:** find its registers in `csr.csv`. Start it counting:
+  write 0 to `timer0_en`, 0xffffffff to `timer0_load`, and 1 to
+  `timer0_en`. Then write 1 to `timer0_update_value` (which copies the
+  count into `timer0_value`) and read `timer0_value`. Do that twice, a
+  second or so apart. Which way is it counting, and how fast?
+  ([2.02](2_02_c_on_the_cpu.md#202-c-on-the-cpu) uses it as a stopwatch.)
 
 <!-- nav -->
 [← 2.00 A processor on the FPGA](2_00_a_processor_on_the_fpga.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.02 C on the CPU →](2_02_c_on_the_cpu.md)

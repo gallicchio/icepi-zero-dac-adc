@@ -103,11 +103,14 @@ has three registers, `control`, `config` and `status`, built from named
 clock when the CPU writes a 1, which is just what the core's `start` input
 wants.
 
-The buffer is a **bus slave**. `wishbone.Interface()` is the bundle of wires a
-Wishbone device has (`adr`, `dat_r`, `cyc`, `stb`, `ack`, ...). The wrapper
-connects the address to the core's read port and answers every request one
-clock later with `ack`, which is how long the block RAM takes. Each 32-bit
-word holds four samples, the first in its lowest byte:
+The buffer is a **bus slave**:
+
+- `wishbone.Interface()` is the bundle of wires a Wishbone device has
+  (`adr`, `dat_r`, `cyc`, `stb`, `ack`, ...).
+- The wrapper connects the address to the core's read port and answers every
+  request one clock later with `ack`, which is how long the block RAM takes.
+
+Each 32-bit word holds four samples, the first in its lowest byte:
 
 | | byte 3 | byte 2 | byte 1 | byte 0 |
 | --- | --- | --- | --- | --- |
@@ -124,9 +127,10 @@ soc.bus.add_slave("capture_buf", soc.capture.bus, SoCRegion(size=0x4000, cached=
 tells LiteX to give it 16 kB of addresses. `cached=False` places it in the
 CPU's uncached I/O area: the CPU must fetch fresh samples every time, not
 reuse stale copies from its data cache. LiteX chose 0x80000000 because
-VexRiscv treats the top half of its address space as I/O and never caches it;
-that is also why the CSRs live at 0xf0000000. To the C program, the buffer is
-just an array:
+VexRiscv treats the top half of its address space as I/O and never caches
+it; that is also why the CSRs live at 0xf0000000.
+
+To the C program, the buffer is just an array:
 
 ```c
 static volatile uint8_t *const samples = (volatile uint8_t *)CAPTURE_BUF_BASE;
@@ -135,9 +139,11 @@ static volatile uint8_t *const samples = (volatile uint8_t *)CAPTURE_BUF_BASE;
 `volatile` tells the compiler that this memory can change behind its back, so
 every `samples[i]` must be a real load.
 
-With the firmware from [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral) running, `cap D [level]` records 16384 samples at
-25 MS/s ÷ 2<sup>D</sup> (optionally waiting for an upward crossing of
-`level`), and `dump` prints them in hex:
+**Try it**, with the firmware from [2.03](2_03_function_generator_peripheral.md#203-a-function-generator-peripheral) running:
+
+- `cap D [level]` records 16384 samples at 25 MS/s ÷ 2<sup>D</sup>,
+  optionally waiting for an upward crossing of `level`;
+- `dump` prints them in hex.
 
 ```
 adda> cap 2 128
@@ -146,8 +152,9 @@ adda> dump
 898d93979b9fa3a6a9abadafb0b1b1b2b0aeacaaa7a4a09d98938e8a85807a76716c67635f5b5855...
 ```
 
-`cap_plot.py` does that for you from the laptop, and plots the result. Quit
-`litex_term` first: only one program can have the port open at a time.
+`cap_plot.py` does that for you from the laptop, and plots the result.
+**Quit `litex_term` first**: only one program can have the port open at a
+time.
 
 <details>
 <summary>The whole file: <code>cap_plot.py</code></summary>
@@ -247,16 +254,17 @@ capture: 16384 samples at 6250000 S/s, codes 51..203, mean 126
 The figure at the top of this page shows three of them.
 
 Printing 16384 samples as text at 115,200 baud takes 3.4 s, against 0.16 s
-for [1.06](1_06_fast_capture.md#106-fast-captures)'s raw bytes at 1 Mbaud. That's the price of going through a console
-meant for humans. Chapter 3 reads the same buffer under Linux.
+for [1.06](1_06_fast_capture.md#106-fast-captures)'s raw bytes at 1 Mbaud.
+That's the price of going through a console meant for humans.
+[Chapter 3](3_00_linux_on_the_fpga.md) reads the same buffer under Linux.
 
 **Try this:**
 
-- Add a *pre-trigger*: keep recording into the buffer as a ring while
+- **Add a *pre-trigger*.** Keep recording into the buffer as a ring while
   `ARMED`, and stop 8192 samples after the trigger, so that the capture shows
   what happened before the trigger as well as after.
-- Add a `level` readback: a `CSRStatus(8)` that always holds the latest ADC
-  sample, so the firmware can be a slow voltmeter without a capture.
+- **Add a `level` readback**: a `CSRStatus(8)` that always holds the latest
+  ADC sample, so the firmware can be a slow voltmeter without a capture.
 
 <!-- nav -->
 [← 2.03 A function-generator peripheral](2_03_function_generator_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.05 A lock-in peripheral →](2_05_lockin_peripheral.md)

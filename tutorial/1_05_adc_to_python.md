@@ -6,7 +6,7 @@
 ![Music from a phone's headphone output, into the ADC's SMA input; the samples go over USB to the laptop, which plays them through its speaker](img/mp3_to_adc.png)
 
 By the end of this page, the laptop records whatever the ADC sees, 50,000
-samples a second, and can play it back: plug a phone's headphone output into
+samples a second, and can play it back. Plug a phone's headphone output into
 the ADC, and you'll hear your music, recorded by your FPGA.
 
 Five LEDs are a poor oscilloscope. The same USB cable that loads the FPGA is
@@ -14,19 +14,27 @@ also a serial port, so let's send the samples to the laptop.
 
 ## A serial port (UART)
 
-The FT231X chip on the Icepi Zero is a USB-to-serial converter. On your
-laptop it's a serial port ([0.01](0_01_how_to_use_this_tutorial.md#001-how-to-use-this-tutorial) says what
-it's called); on the FPGA's side it's two wires, `uart_tx` (FPGA to laptop)
-and `uart_rx` (laptop to FPGA). The protocol is the one you've probably seen
-on a microcontroller's serial port with a scope: the line idles at 1, and
-each byte is a 0 *start bit*, the 8 data bits least-significant first, and a 1
-*stop bit*. Ten bit-times per byte. At 1,000,000 bits per second (*baud*), a
-bit lasts 1 µs, which is 50 of our clock cycles.
+The FT231X chip on the Icepi Zero is a USB-to-serial converter:
+
+* on your laptop it's a serial port ([0.01](0_01_how_to_use_this_tutorial.md#001-how-to-use-this-tutorial) says what
+  it's called);
+* on the FPGA's side it's two wires, `uart_tx` (FPGA to laptop) and
+  `uart_rx` (laptop to FPGA).
+
+The protocol is the one you've probably seen on a microcontroller's serial
+port with a scope. The line idles at 1, and each byte is:
+
+* a 0 *start bit*,
+* the 8 data bits, least-significant first,
+* a 1 *stop bit*.
+
+That's ten bit-times per byte. At 1,000,000 bits per second (*baud*), a bit
+lasts 1 µs, which is 50 of our clock cycles.
 
 ![Computed: one byte on the serial line at 1,000,000 baud. The line idles at 1; then a 0 start bit, the 8 data bits least-significant first, and a 1 stop bit, 1 µs each, and the receiver reads the line in the middle of each bit](img/uart_frame.png)
 
 Here's the FPGA's half, a transmitter and a receiver. Only the transmitter is
-used in this section; the receiver comes in [1.06](1_06_fast_capture.md#106-fast-captures).
+used here; the receiver comes in [1.06](1_06_fast_capture.md#106-fast-captures).
 
 <!-- file: src/verilog/uart.sv -->
 ```systemverilog
@@ -201,10 +209,14 @@ endmodule
 ```
 
 `uart_tx #(.CLKS_PER_BIT(50)) tx (...)` is an *instance*: a copy of the
-`uart_tx` module from `uart.sv`, named `tx`, with its parameter set to 50 and
-its ports wired to our signals. That's how SystemVerilog designs are built up
-out of pieces. `make` passes both files to Yosys (see the
-[`Makefile`](../src/verilog/Makefile)).
+`uart_tx` module from `uart.sv`,
+
+* named `tx`,
+* with its parameter set to 50,
+* and its ports wired to our signals.
+
+That's how SystemVerilog designs are built up out of pieces. `make` passes
+both files to Yosys (see the [`Makefile`](../src/verilog/Makefile)).
 
 The DAC plays a sawtooth again, 256 times slower than [1.02](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac)'s, so that a cable
 from the DAC to the ADC gives you something to look at.
@@ -327,6 +339,8 @@ if __name__ == "__main__":
     plt.show()
 ```
 
+**Connect DAC OUT to ADC IN** with the coax cable, then:
+
 ```console
 $ make load-adc_stream
 $ python3 stream.py
@@ -337,20 +351,21 @@ $ python3 stream.py
 
 That's an oscilloscope: slow, but yours. Every byte that arrives is a sample,
 so there's nothing to decode. The samples are evenly spaced because the FPGA
-times them, not the laptop: the laptop just has to keep up, and at 50 kB/s it
+times them, not the laptop. The laptop just has to keep up, and at 50 kB/s it
 easily does.
 
 ## Listen to it
 
 50,000 samples a second is fast enough for sound: hearing stops near 20 kHz,
-below the 25 kHz [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency). Plug the headphone output of a phone or an
-MP3 player into ADC IN, the left-hand SMA with the USB connectors toward
-you, with a 3.5 mm-to-SMA cable (a few dollars; or 3.5 mm-to-BNC plus a
-BNC-to-SMA adapter).
+below the 25 kHz [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency).
+
+**Plug the headphone output** of a phone or an MP3 player **into ADC IN**,
+the left-hand SMA with the USB connectors toward you. Use a 3.5 mm-to-SMA
+cable (a few dollars), or 3.5 mm-to-BNC plus a BNC-to-SMA adapter.
 
 <img src="img/stack_mp3.png" alt="Seen from above: the music player into ADC IN, the left SMA; DAC OUT, the right SMA, isn't used" width="400">
 
-Play some music, and record 10 seconds of it:
+**Play some music**, and record 10 seconds of it:
 
 ```console
 $ python3 stream.py -n 500000 --play
@@ -359,16 +374,21 @@ wrote stream.wav
 Playing stream.wav through the laptop's speaker with paplay...
 ```
 
-(Those codes are from the loopback cable, which was still in when this
-was run: the board's own ramp, the loudest thing it can hear. A phone's
-headphone output is quieter, about codes 100 to 150; the first line is
-where you check that 500,000 samples really arrived, 10 seconds' worth.)
+The codes above are from the loopback cable: the board's own ramp, the
+loudest thing it can hear. A phone's headphone output is quieter, about
+codes 100 to 150. Use the first line to check that 500,000 samples really
+arrived, 10 seconds' worth.
 
-`--play` scales the samples to fill a 16-bit sound file, resamples them to
-48 kHz (sound cards don't take 50 kHz), saves the result as `stream.wav`, and
-plays it: with the `sounddevice` package if you've installed it
-(`pip install sounddevice`), or else with `afplay` (macOS) or `paplay` or
-`aplay` (Linux). WSL may have no sound; open `stream.wav` from Windows instead
+`--play`:
+
+* scales the samples to fill a 16-bit sound file,
+* resamples them to 48 kHz (sound cards don't take 50 kHz),
+* saves the result as `stream.wav`,
+* and plays it: with the `sounddevice` package if you've installed it
+  (`pip install sounddevice`), or else with `afplay` (macOS) or `paplay` or
+  `aplay` (Linux).
+
+WSL may have no sound; open `stream.wav` from Windows instead
 (`explorer.exe .` opens the folder).
 
 Expect hiss, like an old answering machine. A headphone output swings about
@@ -384,11 +404,11 @@ $ python3 stream.py -n 500000 --play --keep 10    # every 10th sample: 5,000 a s
 $ python3 stream.py -n 500000 --play --reverse    # backwards
 ```
 
-With 3 bits, the rounding error becomes a loud hiss that follows the music.
-With 5,000 samples a second, everything above the new Nyquist frequency,
-2.5 kHz, folds back down as tones that weren't in the music: cymbals turn into
-whistles. That's [aliasing](https://en.wikipedia.org/wiki/Aliasing), heard
-rather than seen.
+* With 3 bits, the rounding error becomes a loud hiss that follows the music.
+* With 5,000 samples a second, everything above the new Nyquist frequency,
+  2.5 kHz, folds back down as tones that weren't in the music: cymbals turn
+  into whistles. That's [aliasing](https://en.wikipedia.org/wiki/Aliasing),
+  heard rather than seen.
 
 **Try this:**
 
@@ -400,11 +420,11 @@ rather than seen.
 - Send every 250th sample instead (100,000 a second). How close is that to the
   serial port's limit? What happens if you go past it?
 - `adc_stream.sv` keeps one ADC sample in 500 and throws the rest away.
-  Add up all 500 instead, each minus 128 (as [1.08](1_08_lockin.md#108-a-lock-in-amplifier) does), shift the sum right
-  by 7 bits, add 128 back, and send that (clipped to 0..255). It's the average
-  times 3.9: more gain for a headphone signal, and steps a quarter of a code
-  apart, which no single sample has. Listen again: is there less hiss? How
-  can an average have finer steps than the numbers it averages?
+  Instead, add up all 500, each minus 128 (as [1.08](1_08_lockin.md#108-a-lock-in-amplifier) does), shift the sum right
+  by 7 bits, add 128 back, and send that (clipped to 0..255). That's the
+  average times 3.9: more gain for a headphone signal, and steps a quarter of
+  a code apart, which no single sample has. Listen again: is there less
+  hiss? How can an average have finer steps than the numbers it averages?
 
 <!-- nav -->
 [← 1.04 The ADC on the LEDs](1_04_adc_on_the_leds.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.06 Fast captures →](1_06_fast_capture.md)

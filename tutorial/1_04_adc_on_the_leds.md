@@ -5,16 +5,21 @@
 
 ![The ADC's reading on the LEDs: a slow ramp from the DAC comes back through a cable, and the LEDs show the top five bits of each sample. A simulation of adc_leds.sv, in real time](img/anim_adc_leds.gif)
 
-That's where this page ends up: the DAC plays a slow ramp, a cable carries it
-to the ADC, and the LEDs show the top five bits of what the ADC reads. (A
-simulation of this page's design,
-[`adc_leds.sv`](../src/verilog/adc_leds.sv), in real time, with the ADC's
-behaviour as measured in [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc).)
+That's where this page ends up:
 
-Now the other direction: analog in, numbers out. Connect a coax cable from
-DAC OUT to ADC IN: with the USB connectors toward you, DAC OUT is the
-right-hand SMA and ADC IN the left-hand one. (Or connect a function generator
-or a power supply to ADC IN instead, but keep it between −5 V and +5 V.)
+* the DAC plays a slow ramp,
+* a cable carries it to the ADC,
+* and the LEDs show the top five bits of what the ADC reads.
+
+(The animation simulates [`adc_leds.sv`](../src/verilog/adc_leds.sv) in real
+time, with the ADC behaving as [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) measures it.)
+
+Now the other direction: analog in, numbers out.
+
+**Connect a coax cable from DAC OUT to ADC IN.** With the USB connectors
+toward you, DAC OUT is the right-hand SMA and ADC IN the left-hand one. (Or
+connect a function generator or a power supply to ADC IN instead, but keep
+it between −5 V and +5 V.)
 
 <img src="img/stack_loopback.png" alt="Seen from above, USB connectors at the bottom: ADC IN is the left SMA, DAC OUT the right one, and the loopback cable joins them" width="400">
 
@@ -94,33 +99,42 @@ module adc_leds (
 endmodule
 ```
 
-Two ports are new: `adc_d[7:0]`, eight inputs, and `adc_clk`, the output that
-clocks the ADC. Their pins are in `icepi_adda.lpf` already.
+Two ports are new, and their pins are in `icepi_adda.lpf` already:
 
-`make load-adc_leds`. With the cable in place, the DAC ramps slowly from
-−3.95 V to +3.88 V and the ADC follows it, so the LEDs count up in binary from
-`00011` to `11100` over 5.4 seconds, and start again. Pull the cable out and
-they settle at `01111`: an unconnected ADC input reads 0 V, code 127, which
-is `01111111`. With a power supply instead, each LED step is 8 ADC codes,
-0.32 V.
+* `adc_d[7:0]`, eight inputs;
+* `adc_clk`, the output that clocks the ADC.
+
+**Run `make load-adc_leds`.** With the cable in place, the DAC ramps slowly
+from −3.95 V to +3.88 V and the ADC follows it:
+
+* The LEDs count up in binary from `00011` to `11100` over 5.4 seconds, and
+  start again.
+* **Pull the cable out** and they settle at `01111`: an unconnected ADC
+  input reads 0 V, code 127, which is `01111111`.
+* With a power supply instead, each LED step is 8 ADC codes, 0.32 V.
 
 <details>
 <summary><b>Detail:</b> why 25 MS/s in but 50 MS/s out?</summary>
 
-Each converter's datasheet sets its own ceiling. The AD9280 ADC is rated for
-32 MS/s: a clock period of at least 31.25 ns, of which at least 14.7 ns high
-and 14.7 ns low, because each stage of its pipeline needs that long to
-settle. The AD9708 DAC is simpler and faster: it only has to latch a new code
-on each rising clock edge (data steady 2.0 ns before, 1.5 ns after). Its
-datasheet lists the maximum update rate as 100 MS/s *minimum* and 125 MS/s
-*typical*: every part is guaranteed to keep up at 100 MS/s, and a typical part
-still works at 125, but no particular part is promised that. (The guarantee is
-stated for 5 V supplies; this module runs the DAC's logic at 3.3 V.)
+Each converter's datasheet sets its own ceiling:
 
-On this board, though, every clock comes from the one 50 MHz oscillator, and
-counting its edges gives only 50 MHz divided by a whole number: 50, 25, 16.7,
-12.5 MHz... The DAC gets the full 50, and the ADC gets 25, the fastest of
-those it can take. The whole-number ratio has a second benefit that [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) and
+* **The AD9280 ADC** is rated for 32 MS/s: a clock period of at least
+  31.25 ns, of which at least 14.7 ns high and 14.7 ns low, because each
+  stage of its pipeline needs that long to settle.
+* **The AD9708 DAC** is simpler and faster: it only has to latch a new code
+  on each rising clock edge (data steady 2.0 ns before, 1.5 ns after). Its
+  datasheet lists the maximum update rate as 100 MS/s *minimum* and
+  125 MS/s *typical*: every part is guaranteed to keep up at 100 MS/s, and
+  a typical part still works at 125, but no particular part is promised
+  that. (The guarantee is stated for 5 V supplies; this module runs the
+  DAC's logic at 3.3 V.)
+
+On this board, though, every clock comes from the one 50 MHz oscillator.
+Counting its edges gives only 50 MHz divided by a whole number: 50, 25,
+16.7, 12.5 MHz... The DAC gets the full 50, and the ADC gets 25, the
+fastest of those it can take.
+
+The whole-number ratio has a second benefit that [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) and
 [1.08](1_08_lockin.md#108-a-lock-in-amplifier) rely on: every ADC sample is taken at the same point of the DAC's clock,
 so the two stay in step forever. They're *coherent*.
 
@@ -131,26 +145,34 @@ so the two stay in step forever. They're *coherent*.
 
 The FPGA can make faster clocks itself, with a PLL ([4.01](4_01_a_faster_dac.md#401-a-faster-dac-plls)
 runs the DAC at 100 MS/s that way), and the ADC could gain its last 28% like
-that. A 120 MHz clock could run the DAC at 120 MS/s (past its guaranteed
-100, within its typical 125) and the ADC at 30 MS/s, still in a whole-number
-ratio. A 62.5 MHz clock would run the ADC at 31.25 MS/s, 98% of its maximum,
-with the DAC at 62.5.
+that:
 
-At that rate, though, the 25 ns output delay is most of a 32 ns period: "just
-before the next rising edge", the data would have been steady for only about
-7 ns, and the datasheet gives the 25 ns only as a typical value. So this was
-tried on the hardware. The ADC's data pins were sampled every 8 ns while the
-ADC's clock was shifted in 2 ns steps. The data turned out to be valid for all
-but about 4 ns of each 32 ns period, and at the best sampling point the
-quality was the same as at 25 MS/s (43.7 dB SINAD, 7.0 effective bits,
-including the DAC's own distortion). So 31.25 MS/s works, if the design reads
-the data away from those 4 ns, and the way to find where they fall is to try,
-as here.
+* a 120 MHz clock could run the DAC at 120 MS/s (past its guaranteed 100,
+  within its typical 125) and the ADC at 30 MS/s, still in a whole-number
+  ratio;
+* a 62.5 MHz clock would run the ADC at 31.25 MS/s, 98% of its maximum,
+  with the DAC at 62.5.
 
-The same test turned up a subtler effect. When the ADC sampled just as the DAC
-was switching, the noise rose by about 5 dB, because the two converters share
-a board and a ground. Run both from one clock in a whole-number ratio, as
-these designs do, and that timing is the same every time you load the design.
+At that rate, though, the 25 ns output delay is most of a 32 ns period.
+"Just before the next rising edge", the data would have been steady for
+only about 7 ns, and the datasheet gives the 25 ns only as a typical value.
+
+So this was tried on the hardware: the ADC's data pins were sampled every
+8 ns while the ADC's clock was shifted in 2 ns steps.
+
+* The data turned out to be valid for all but about 4 ns of each 32 ns
+  period.
+* At the best sampling point the quality was the same as at 25 MS/s
+  (43.7 dB SINAD, 7.0 effective bits, including the DAC's own distortion).
+
+So 31.25 MS/s works, if the design reads the data away from those 4 ns,
+and the way to find where they fall is to try, as here.
+
+The same test turned up a subtler effect. When the ADC sampled just as the
+DAC was switching, the noise rose by about 5 dB, because the two converters
+share a board and a ground. Run both from one clock in a whole-number
+ratio, as these designs do, and that timing is the same every time you load
+the design.
 
 </details>
 
