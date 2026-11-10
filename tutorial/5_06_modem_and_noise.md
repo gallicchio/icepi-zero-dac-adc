@@ -9,15 +9,16 @@
 > **One board?** Everything on this page was measured on one board, looped
 > back.
 
-A receiver's real test is noise: how fast do
-its errors grow as the signal gets weaker? `modem_noise.sv` is `modem.sv` with
-three knobs. `NOISE` adds white noise to the transmitted tone, `AMP` sets the
-tone's amplitude, and `LOGWIN` sets the receiver's window to 2^LOGWIN samples.
-With the defaults it *is* `modem.sv`. The noise is made in the FPGA. A 32-bit
-xorshift generator produces four random bytes every clock, and their sum is
-nearly Gaussian, as the central limit theorem promises for a sum of a few
-independent things. Its standard deviation is 147.8, scaled by NOISE/256, or
-0.577 × NOISE DAC codes.
+A receiver's real test is noise: how fast do its errors grow as the signal
+gets weaker? `modem_noise.sv` is `modem.sv` with three knobs:
+* `NOISE` adds white noise to the transmitted tone
+* `AMP` sets the tone's amplitude
+* `LOGWIN` sets the receiver's window to 2^LOGWIN samples
+
+With the defaults it *is* `modem.sv`. The noise is made in the FPGA: a 32-bit
+xorshift generator makes four random bytes every clock, and their sum is nearly
+Gaussian (the central limit theorem, for a sum of a few independent things).
+Its standard deviation is 147.8, scaled by NOISE/256: 0.577 × NOISE DAC codes.
 
 <details>
 <summary>The whole file: <code>modem_noise.sv</code></summary>

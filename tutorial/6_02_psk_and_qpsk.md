@@ -6,15 +6,19 @@
 ![Measured, one board looped back, with the transmitter's carrier 3052 Hz high and its symbols 1953 ppm fast on purpose. Top: before the loops, every 16th sample is a ring, because the carrier offset turns the constellation twice in one record and the wrong sampling instants fill it in; after the two loops, four tight clusters and 0 errors in 962 bits; the eye after the matched filter. Middle: the timing loop's sampling point drifts steadily as it learns the symbol rate, settling at the 1953 ppm that was sent, and its detector's output per symbol. Bottom: the Costas loop turns the constellation steadily as it learns the carrier offset, settling at the 3052 Hz that was sent, and its detector's output](img/comms_psk_loops.png)
 
 The lock-in of [1.08](1_08_lockin.md#108-a-lock-in-amplifier) measures a sine's amplitude and phase as one complex
-number, X + *j*Y. **Phase-shift keying** makes the phase the message. The
-transmitter holds its carrier's phase at one of two values for each symbol
-(**BPSK**: 0° or 180°, one bit) or one of four (**[QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK))**: 45°, 135°, 225° or 315°,
-two bits), and the receiver is a lock-in with a very short average, one
-symbol long, that reads back which. QPSK is really two BPSK signals at once,
-one on cos and one on −sin: over a symbol they're orthogonal, so they share
-the band without disturbing each other, and QPSK carries twice the bits in
-the same bandwidth. GPS, Wi-Fi's slowest rates, satellite TV and deep-space
-probes all use one or the other.
+number, X + *j*Y. **Phase-shift keying** makes the phase the message. For
+each symbol, the transmitter holds its carrier's phase at one of
+
+- two values, **BPSK**: 0° or 180°, one bit per symbol;
+- four values, **[QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK))**: 45°, 135°, 225° or 315°, two bits per symbol.
+
+The receiver is a lock-in whose average is only one symbol long: it reads
+back which phase was sent.
+
+QPSK is really two BPSK signals at once, one on cos and one on −sin. Over a
+symbol they're orthogonal, so they share the band without disturbing each
+other: QPSK carries twice the bits in the same bandwidth. GPS, Wi-Fi's
+slowest rates, satellite TV and deep-space probes all use BPSK or QPSK.
 
 ## The transmitter
 
@@ -25,7 +29,7 @@ probes all use one or the other.
   circle in that order, so mistaking a symbol for its neighbour, the usual
   error, costs only one bit.
 - **A frame**: each loop starts with a 32-symbol *unique word* the receiver
-  knows (more on why below), then 480 data symbols.
+  knows (see [Which way is up?](#which-way-is-up)), then 480 data symbols.
 - **Pulses**: root-raised cosines ([6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping)), 512 symbols per loop: 1.5625 million
   symbols a second, 16 ADC samples each.
 - **The carrier**: I on cos and Q on −sin at 6.25 MHz, 2048 whole cycles per
@@ -35,7 +39,7 @@ probes all use one or the other.
 
 ## The receiver, and what it doesn't know
 
-The whole receiver, and the transmitter, are in one file:
+The transmitter and the whole receiver are in one file:
 
 <details>
 <summary>The whole file: <code>psk.py</code></summary>
@@ -640,6 +644,14 @@ if __name__ == "__main__":
 
 </details>
 
+To run it on one board, looped back:
+
+1. **Load `awgcap.sv`** ([5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)) with `cd src/twoboard && make load-awgcap`, as in
+   [6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping).
+2. **Cable DAC OUT to ADC IN.**
+3. **Run `python3 psk.py`** in `src/comms/`. The loops find almost no offset,
+   and there should be 0 bit errors:
+
 ```console
 $ python3 psk.py                     # QPSK; awgcap.sv loaded, DAC OUT cabled to ADC IN
 QPSK at 1.562 Msymbol/s (3.125 Mbit/s) on 6.2500 MHz; transmitter's carrier +0 Hz, symbols +0 ppm
@@ -649,22 +661,22 @@ unique words at symbols [-1, 511], turned by [-1, -1] x 90 deg   (-1: the frame 
 0 bit errors in 960 bits after the first 400 symbols; MER 38.3 dB
 ```
 
-The receiver mixes down with cos and −sin, as the lock-in does, then applies
-the matched filter, and then it has three problems:
+The receiver mixes down with cos and −sin, as the lock-in does, and applies
+the matched filter. Then it has three problems:
+
+- **When** is each symbol's centre? That is the transmitter's clock.
+- What are the carrier's **phase** and its exact **frequency**?
+- Once the constellation is square again, **which way is up**?
 
 ![The receiver chain: ADC samples, mix down by 1, −j, −1, j, matched filter, Gardner timing loop, Costas loop, decide with the unique word, bits. Under each block a sketch: the band at 6.25 MHz moving to 0 Hz, the eye opening, samples landing on the symbol centres, the constellation turned square, four clusters with their bits. Everything after the ADC runs on the laptop in psk.py](img/comms_d_rxchain.png)
 
-It It doesn't know **when**
-each symbol's centre is, the transmitter's clock. It doesn't know the
-carrier's **phase**, or its exact **frequency**. And even when the
-constellation is square again, it doesn't know **which way is up**.
-
-Between two boards, one crystal on each causes the first two at once: a
-transmitter whose crystal runs 1 ppm fast sends its symbols 1 ppm fast *and*
-its carrier 1 ppm high. One board looped back to itself has neither problem,
-so `psk.py` makes them on purpose, `--cfo 3000 --sro 2000`: the carrier 3052 Hz
-high and the symbols 1953 ppm fast (the nearest values that keep everything
-periodic in the loop):
+With two boards, the one crystal on each board causes the first two problems
+at once: a transmitter whose crystal runs 1 ppm fast sends its symbols 1 ppm fast
+*and* its carrier 1 ppm high. One board looped back to itself has neither
+problem, so **make them on purpose** with `--cfo 3000 --sro 2000`: the carrier
+3052 Hz high and the symbols 1953 ppm fast (the nearest values that keep
+everything periodic in the loop). The loops should find both offsets, and
+there should still be 0 bit errors:
 
 ```console
 $ python3 psk.py --cfo 3000 --sro 2000
@@ -675,12 +687,13 @@ unique words at symbols [-1, 512], turned by [-1, -1] x 90 deg
 0 bit errors in 962 bits after the first 400 symbols; MER 37.9 dB
 ```
 
-The picture at the top of this page is another run like it (`dev/tools/comms/fig_psk.py`). Before the loops, every
-16th sample is a ring (the carrier offset turns the constellation twice in
-the 655 µs record, and sampling at the wrong instants fills it in); after
-them, four tight clusters. The
-*modulation error ratio* (MER), the clusters' size against their spacing, is
-38 dB.
+The picture at the top of this page is another run like it:
+
+- **Before the loops**, every 16th sample lies on a ring. The carrier offset
+  turns the constellation twice in the 655 µs record, and sampling at the
+  wrong instants fills the ring in.
+- **After them**, there are four tight clusters. The *modulation error ratio*
+  (MER), the clusters' size against their spacing, is 38 dB.
 
 ## What the receiver holds
 
@@ -689,127 +702,157 @@ After mixing and the matched filter, the receiver holds
   *y*(*t*) = e<sup>*j*(θ + Δω*t*)</sup> Σ<sub>*k*</sub> *a*<sub>*k*</sub> *g*(*t* − *kT* − τ) + noise,
 
 with *a*<sub>*k*</sub> the symbols, *g* the raised cosine of [6.01](6_01_eye_diagrams.md#601-eye-diagrams-and-pulse-shaping), and three
-numbers it doesn't know: τ (the transmitter's clock), θ (the carrier's
-phase) and Δω (its frequency). The timing loop finds τ, and *T* with it; the
-Costas loop finds θ and Δω; the unique word settles the 90° the Costas loop
-can't. (PySDR's [synchronization chapter](https://pysdr.org/content/sync.html) builds the same two loops in
-Python, with the same names.)
+numbers it doesn't know:
+
+- τ, the transmitter's clock, found by the **timing loop** (and *T* with it);
+- θ and Δω, the carrier's phase and frequency, found by the **Costas loop**.
+
+The **unique word** then settles the 90° the Costas loop can't. PySDR's
+[synchronization chapter](https://pysdr.org/content/sync.html) builds the same
+two loops in Python, with the same names.
 
 ## The timing loop
 
-The timing loop finds the symbol centres. It uses Gardner's idea: sample
-twice per symbol, at the guessed centres and half-way between them. When two
-neighbouring symbols differ, the signal must cross zero half-way. If the
-half-way sample has *already* crossed, in the direction the signal is going,
-the guess is late. The detector is one line:
+The timing loop finds the symbol centres, with Gardner's idea:
+
+- sample twice per symbol, at the guessed centres and half-way between them;
+- when two neighbouring symbols differ, the signal must cross zero half-way;
+- if the half-way sample has *already* crossed, in the direction the signal
+  is going, the guess is late.
+
+The detector is one line:
 
   *e* = Re{ *y*<sub>mid</sub><sup>*</sup> (*y*<sub>now</sub> − *y*<sub>prev</sub>) }
 
-(*y*<sub>now</sub> − *y*<sub>prev</sub>) says which way the signal is going,
-and is zero when two symbols are the same: runs of equal symbols say nothing.
-*y*<sub>mid</sub> says how far past zero it is:
+- (*y*<sub>now</sub> − *y*<sub>prev</sub>) says which way the signal is going.
+  It is zero when two symbols are the same, so runs of equal symbols say nothing.
+- *y*<sub>mid</sub> says how far past zero it is:
 
 ![Computed: Gardner's timing detector. Left, three rows: raised-cosine symbols sampled on time, early and late, with the previous, half-way and current samples marked; the half-way sample is zero on time, positive when early, negative when late, so e = mid times (now minus prev) is 0, −1 and +1. Right: the detector's average output against timing error, an S-curve through zero with slope 1.08 per symbol](img/comms_d_gardner.png)
 
 The picture uses an alternating +1, −1, +1 train, for which the half-way
-sample is exactly zero on time; with random data a neighbour's tail leaks
-into it (the self-noise of the Detail below), which is why one symbol's *e*
-scatters and only the average is trusted. And turning all three samples
-by any phase leaves *e* unchanged, so the timing loop can lock *before* the
-carrier loop has: that breaks the chicken-and-egg problem of needing one to
-find the other.
+sample is exactly zero on time. With random data a neighbour's tail leaks
+into it (the *self-noise* of the timing-detector Detail at the end of this
+page), so one symbol's *e* depends on the data and scatters widely: only its
+average is trusted. Over random data, that average passes straight through
+zero. It is the detector's "S-curve",
 
-One symbol's *e* scatters widely, because it depends on the data. But
-averaged over random data it passes straight through zero (the detector's
-"S-curve", *S*(τ) = Σ<sub>*j*</sub> *g*(*j* − ½ + τ)[*g*(*j* + τ) − *g*(*j* − 1 + τ)], a
-straight line near zero that curves over beyond a quarter of a symbol): measured, a slope of 1.08 per symbol, against 1.07 per
-symbol predicted for raised-cosine pulses.
+  *S*(τ) = Σ<sub>*j*</sub> *g*(*j* − ½ + τ)[*g*(*j* + τ) − *g*(*j* − 1 + τ)],
+
+a straight line near zero that curves over beyond a quarter of a symbol. Its
+slope, measured, is 1.08 per symbol, against 1.07 per symbol predicted for
+raised-cosine pulses.
+
+Turning all three samples by any phase leaves *e* unchanged, so the timing
+loop can lock *before* the carrier loop has. That breaks the chicken-and-egg
+problem of needing one loop to find the other.
 
 ![Measured detector characteristics. Left: the Gardner detector and learnSDR lesson 18's x times dx/dt detector, averaged over a record, against timing error: both pass straight through zero, with opposite signs, and curve over beyond a quarter symbol, though one symbol's value scatters widely. Right: the Costas phase detectors against phase error: zero, and pushing back towards zero, every 180 degrees for BPSK and every 90 degrees for QPSK](img/comms_detectors.png)
 
-The loop around the detector is a [PI controller](https://en.wikipedia.org/wiki/PID_controller) ([4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)). The proportional
-part nudges the next sampling instant; the integral part learns the
-transmitter's symbol period, so the loop follows a rate offset with no lag:
-the middle graph above settles at the 1953 ppm that was sent. Between
-samples, a cubic *interpolator* computes the signal's value at any fractional
-time, as an FPGA would.
+The loop around the detector is a [PI controller](https://en.wikipedia.org/wiki/PID_controller) ([4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)):
+
+- the **proportional** part nudges the next sampling instant;
+- the **integral** part learns the transmitter's symbol period, so the loop
+  follows a rate offset with no lag. In the middle row of the picture at the
+  top of the page, it settles at the 1953 ppm that was sent.
+
+Between samples, a cubic *interpolator* computes the signal's value at any
+fractional time, as an FPGA would.
 
 ## The Costas loop
 
-After the timing loop, each symbol is one complex number *z*, which should sit
-at 45°, 135°, 225° or 315° but is turned by the unknown carrier phase. The
-[Costas loop](https://en.wikipedia.org/wiki/Costas_loop) turns it back. Its detector:
+After the timing loop, each symbol is one complex number *z*. It should sit
+at 45°, 135°, 225° or 315°, but the unknown carrier phase has turned it. The
+[Costas loop](https://en.wikipedia.org/wiki/Costas_loop) turns it back. Its detector,
 
   *e* = Im( *z* *d*<sup>*</sup> ),  where *d* is the constellation point nearest to *z*
 
-is |*z*| times the sine of the angle from where *z* is to where it belongs. Choosing the
-nearest point *removes the data*: any symbol works as a reference. (John
-Costas's original analog loop, for BPSK, multiplied I by Q: ½ sin 2θ, the
-same thing as squaring the signal, which also removes the data. QPSK would
-need the fourth power.) The loop filter is again a PI controller. Its
-integral is the carrier's frequency offset, in radians per symbol; the phase
-follows it. It's a [phase-locked loop](https://en.wikipedia.org/wiki/Phase-locked_loop) like [5.04](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other)'s, whose reference is the
+is |*z*| times the sine of the angle from where *z* is to where it belongs.
+Choosing the nearest point *removes the data*: any symbol works as a
+reference. (John Costas's original analog loop, for BPSK, multiplied I by Q:
+½ sin 2θ, the same as squaring the signal, which also removes the data. QPSK
+would need the fourth power.)
+
+The loop filter is again a PI controller. Its integral is the carrier's
+frequency offset, in radians per symbol, and the phase follows it. It's a
+[phase-locked loop](https://en.wikipedia.org/wiki/Phase-locked_loop) like [5.04](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other)'s, whose reference is the
 carrier with the data taken out:
 
 ![Computed: the Costas loop as a block diagram: each symbol is multiplied by e to the minus j phi, the nearest constellation point is chosen, the detector takes the imaginary part of z times d conjugate, a PI loop filter and a phase accumulator feed phi back to the multiplier. Beside it, the angle from a symbol to its nearest point, and the detector's output against phase error: a sine that folds every 90 degrees for QPSK, zero at four equally happy places](img/comms_d_costas.png)
 
 ## How wide should the loops be?
 
-Each loop's *noise bandwidth* sets a trade. Here it is 0.01 × the symbol rate
-(16 kHz) for timing, and 0.02 × the symbol rate (31 kHz) for the carrier. Wider loops lock faster and follow
-bigger offsets, but noise shakes them more and, at low SNR, the carrier loop
-can slip by a quarter turn. Narrower loops are quiet but slow, and lose a
-carrier offset they could have caught. These two settle in about 300 symbols
-(the grey band in the picture, 400 symbols, isn't counted), and at
-*E*<sub>b</sub>/*N*<sub>0</sub> = 6 dB they leave about 3% of a symbol of
-timing jitter and 3° of phase jitter (in simulation, `--sim`).
+Each loop's *noise bandwidth* sets a trade-off. Here it is
+
+- 0.01 × the symbol rate (16 kHz) for timing;
+- 0.02 × the symbol rate (31 kHz) for the carrier.
+
+**Wider** loops lock faster and follow bigger offsets, but noise shakes them
+more, and at low SNR the carrier loop can slip by a quarter turn.
+**Narrower** loops are quiet but slow, and lose a carrier offset they could
+have caught.
+
+These two settle in about 300 symbols. The first 400 symbols (the grey band
+in the picture at the top) aren't counted. At *E*<sub>b</sub>/*N*<sub>0</sub> =
+6 dB the loops leave about 3% of a symbol of timing jitter and 3° of phase
+jitter (in simulation, `--sim`).
 
 <details>
 <summary><b>Detail:</b> the loop gains, and why 300 symbols</summary>
 
 `loop_gains()` turns a bandwidth into the two gains of a second-order loop
-(Rice, *Digital Communications*, appendix C): with ζ = 1/√2 and
-θ = *B*<sub>n</sub>*T*/(ζ + 1/4ζ), the proportional gain is
-*K*<sub>p</sub> = 4ζθ/(1 + 2ζθ + θ<sup>2</sup>)/*K*<sub>d</sub> and the integral gain
-*K*<sub>i</sub> = 4θ<sup>2</sup>/(1 + 2ζθ + θ<sup>2</sup>)/*K*<sub>d</sub>, where *K*<sub>d</sub> is
-the detector's slope (1.07 per symbol for Gardner's, 1 for the Costas
-detector). The loop's natural frequency is about 2θ per symbol: 9 kHz for
-the Costas loop, so a 3 kHz offset is well inside its range, and it settles
-in about 4/(ζω<sub>n</sub>) ≈ 300 symbols, which is what the figure shows.
-That turns "about 300 symbols" from an observation into a prediction.
+(Rice, *Digital Communications*, appendix C). With ζ = 1/√2 and
+θ = *B*<sub>n</sub>*T*/(ζ + 1/4ζ):
+
+- the proportional gain is *K*<sub>p</sub> = 4ζθ/(1 + 2ζθ + θ<sup>2</sup>)/*K*<sub>d</sub>;
+- the integral gain is *K*<sub>i</sub> = 4θ<sup>2</sup>/(1 + 2ζθ + θ<sup>2</sup>)/*K*<sub>d</sub>;
+
+where *K*<sub>d</sub> is the detector's slope: 1.07 per symbol for Gardner's, 1
+for the Costas detector.
+
+The loop's natural frequency is about 2θ per symbol: 9 kHz for the Costas
+loop, so a 3 kHz offset is well inside its range. It settles in about
+4/(ζω<sub>n</sub>) ≈ 300 symbols: a prediction that matches what the figure
+shows.
 
 </details>
 
 ## When the offset is too big: a frequency-locked loop
 
-The Costas loop found 3052 Hz without complaint. How far can it go? `fll.py
---pullin` steps the transmitter's carrier up until the loop fails. Through
-the cable, with the loop's default bandwidth, it locks cleanly to 24 kHz, is
-marginal at 27 kHz and fails from 30 kHz; with noise at *E*<sub>b</sub>/*N*<sub>0</sub> = 6 dB it
-gives up at about 20 kHz. Its natural frequency is 4.7 kHz, and the range it
-can pull into without slipping is about 2ζ*f*<sub>n</sub> = 6.6 kHz; beyond that the
-integrator drags it in slowly, and noise breaks the process. Two radios
-whose crystals disagree by 20 ppm at 915 MHz are 18 kHz apart before anyone
-has sent a bit, so a real receiver needs a coarser step first. Two work with
-no symbols, no timing and no decisions:
+The Costas loop found 3052 Hz without complaint. How far can it go?
+**Run `fll.py --pullin`**: it steps the transmitter's carrier up until the
+loop fails. Through the cable, with the loop's default bandwidth, it
+
+- locks cleanly up to 24 kHz;
+- is marginal at 27 kHz;
+- fails from 30 kHz.
+
+With noise at *E*<sub>b</sub>/*N*<sub>0</sub> = 6 dB it gives up at about 20 kHz.
+
+Its natural frequency is 4.7 kHz, and the range it can pull into without
+slipping is about 2ζ*f*<sub>n</sub> = 6.6 kHz. Beyond that, the integrator drags
+it in slowly, and noise breaks the process.
+
+Two radios whose crystals disagree by 20 ppm at 915 MHz are 18 kHz apart
+before anyone has sent a bit, so a real receiver needs a coarser step first.
+Two coarse estimators work with no symbols, no timing and no decisions:
 
 1. **The x<sup>4</sup> line.** Raise the matched-filter output to the fourth
    power. QPSK's four phases become one (×4 turns 45°, 135°, 225° and 315°
-   all into 180°), the data cancel in the mean, and what's left is a pure
-   tone at four times the carrier offset: an FFT finds it to a few hertz in
-   one 655 µs record. It's learnSDR [lesson 12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md)'s squaring trick taken
-   to the fourth power and read with an FFT. (For BPSK, square.)
+   all into 180°) and the data cancel in the mean. What's left is a pure
+   tone at four times the carrier offset, which an FFT finds to a few hertz
+   in one 655 µs record. This is learnSDR [lesson 12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md)'s squaring trick,
+   taken to the fourth power and read with an FFT. (For BPSK, square.)
 2. **The band-edge FLL** (learnSDR [lesson 17](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson17.md)). Two filters sit on the
    two slopes of the signal's spectrum, half a symbol rate above and below
-   the carrier; if the carrier is too high, the upper filter sees more
+   the carrier. If the carrier is too high, the upper filter sees more
    power than the lower. The difference is the error, and a first-order
-   loop on the frequency follows it. No FFT, two short filters, sample by
-   sample: the kind of thing an FPGA likes.
+   loop on the frequency follows it. No FFT, just two short filters, sample
+   by sample: the kind of thing an FPGA likes.
 
 Either one hands a corrected signal (the carrier mixed back by the offset
-found) to the ordinary receiver, which finishes the job:
-
-Both estimators, and the pull-in test, are in one file:
+found) to the ordinary receiver, which finishes the job. Both estimators, and
+the pull-in test, are in one file:
 
 <details>
 <summary>The whole file: <code>fll.py</code></summary>
@@ -1104,6 +1147,10 @@ if __name__ == "__main__":
 
 </details>
 
+**Run it** with the carrier 100 kHz high, then 24 kHz high with noise. The
+Costas loop alone gets about half the bits wrong; after either coarse
+estimator, almost none:
+
 ```console
 $ python3 fll.py --cfo 100000
 QPSK, transmitter's carrier +100708 Hz
@@ -1123,116 +1170,148 @@ QPSK, transmitter's carrier +24414 Hz, Eb/N0 6 dB
 
 ![Measured, one board looped back: the Costas loop's pull-in, bit errors against the carrier offset, alone and after each coarse estimator; the fourth-power spectrum with its line at four times the offset; the two band-edge filters sitting on the signal's spectral slopes and the FLL detector's S-curve against offset; the FLL converging on a 100 kHz offset and then jittering; and the hand-over to the Costas loop at 6 dB](img/comms_fll.png)
 
-Look at the last line of each block: the x<sup>4</sup> line is within 10 Hz, the
-FLL alone is off by 10 kHz. (Panel f of the figure is what that costs: at
-100 kHz and 6 dB the FLL handed over 7.9 kHz short, right at the noisy
-Costas loop's limit, and that record failed; the x<sup>4</sup> path had no such
-trouble.) The FLL's detector has self-noise, exactly like
-Gardner's: the power in a 547 kHz band edge flickers with the data, so the
-frequency it settles on jitters, by about 13 kHz rms with a 100-symbol time
-constant and only as 1/√τ with a longer one, and one record holds just 1000
-symbols. The x<sup>4</sup> line is a coherent tone (the data cancel exactly,
-they only raise the floor around it), so the same record places it 500
-times more precisely. Why does anyone use band-edge, then? Because a
-streaming receiver has seconds to average, the filters cost nothing, and
-the x<sup>4</sup> trick fails for 8PSK at low SNR (x<sup>8</sup> drowns) and for
-OFDM.
+**Look at the last line of each block**: the x<sup>4</sup> line is within 10 Hz,
+while the FLL alone is off by 10 kHz. Panel f of the figure shows what that
+costs: at 100 kHz and 6 dB the FLL handed over 7.9 kHz short, right at the
+noisy Costas loop's limit, and that record failed. The x<sup>4</sup> path had no
+such trouble. The difference is noise in the detectors:
+
+- **The FLL's detector has self-noise**, exactly like Gardner's: the power in
+  a 547 kHz band edge flickers with the data. So the frequency it settles on
+  jitters: by about 13 kHz rms with a 100-symbol time constant, shrinking
+  only as 1/√τ with a longer one. One record holds just 1000 symbols.
+- **The x<sup>4</sup> line is a coherent tone**: the data cancel exactly, and
+  only raise the floor around it. So the same record places it 500 times
+  more precisely.
+
+Why does anyone use band-edge, then?
+
+- A streaming receiver has seconds to average.
+- The filters cost nothing.
+- The x<sup>4</sup> trick fails for 8PSK at low SNR (x<sup>8</sup> drowns) and for
+  OFDM.
 
 <details>
 <summary><b>Detail:</b> learnSDR's lesson 17, and its /100 that became /1000</summary>
 
-GNU Radio's loop updates its frequency by β*e* with β = 4θ<sup>2</sup>/(1 + 2ζθ + θ<sup>2</sup>),
-θ the "loop bandwidth" in radians per sample, so the FLL is a first-order
-loop with a time constant of about 1/(4θ<sup>2</sup>) samples (to within the detector's
-gain, a factor of one or two). [Lesson 17](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson17.md)'s text has θ = 2π/16/100 at
-16 samples per symbol and 1 MS/s: a time constant of 16,000 samples, 16 ms,
-settled in about 65 ms, jittering by about 140 Hz. Its flowgraph has /1000:
-a time constant of 1.6 s and six seconds to settle. Both lock a crystal's
-fixed offset; /100 is the sensible one, since it also follows a drifting
-oscillator and the student sees it work, while /1000 looks dead for several
-seconds. The lesson's first question, what doubling the bandwidth does to
-the settling time, has the answer "a factor of four", because β goes as θ<sup>2</sup>.
+GNU Radio's loop updates its frequency by β*e*, with β = 4θ<sup>2</sup>/(1 + 2ζθ + θ<sup>2</sup>)
+and θ the "loop bandwidth" in radians per sample. So the FLL is a first-order
+loop with a time constant of about 1/(4θ<sup>2</sup>) samples (to within the
+detector's gain, a factor of one or two). At 16 samples per symbol and 1 MS/s:
+
+- [Lesson 17](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson17.md)'s text has θ = 2π/16/100: a time constant of 16,000
+  samples (16 ms), settled in about 65 ms, jittering by about 140 Hz.
+- Its flowgraph has /1000: a time constant of 1.6 s, and six seconds to
+  settle.
+
+Both lock a crystal's fixed offset. /100 is the sensible one: it also follows
+a drifting oscillator, and the student sees it work, while /1000 looks dead
+for several seconds. The lesson's first question, what doubling the bandwidth
+does to the settling time, has the answer "a factor of four", because β goes
+as θ<sup>2</sup>.
 
 </details>
 
 ## Which way is up?
 
 The Costas detector is zero, and pushes towards zero, every 90° for QPSK
-(every 180° for BPSK): the loop is equally happy in four positions, and can't
-know which is right. There are two standard fixes, and `psk.py` has both:
+(every 180° for BPSK). So the loop is equally happy in four positions, and
+can't know which is right. There are two standard fixes, and `psk.py` has
+both:
 
 - **A unique word**: known symbols at the start of every frame. Correlating
-  with them gives a peak whose angle, rounded to 90°, is the leftover turn,
-  and whose position marks where the frame starts. (`turned by [-1, -1] x
-  90 deg` above: the loop had settled a quarter turn off.)
+  with them gives a peak. Its angle, rounded to 90°, is the leftover turn,
+  and its position marks where the frame starts. (`turned by [-1, -1] x
+  90 deg` in the runs above: the loop had settled a quarter turn off.)
 - **Differential coding** (`--diff`): put the data in the *change* of phase
   from one symbol to the next. Any fixed turn cancels out, but each wrong
   symbol now spoils two differences, so the error rate is 2*p*(1 − *p*):
-  twice the uncoded rate *p* when *p* is small, 0.3 dB at 10<sup>−5</sup>. (This is
-  differential *encoding* with a coherent receiver. A receiver with no
-  Costas loop at all, reading each symbol against the previous one, is
-  DQPSK with differential *detection*: about 2.3 dB worse at 10<sup>−5</sup>, and
-  what you build when the carrier is too unstable to track.)
+  twice the uncoded rate *p* when *p* is small, 0.3 dB at 10<sup>−5</sup>.
+
+  This is differential *encoding* with a coherent receiver. A receiver with
+  no Costas loop at all, reading each symbol against the previous one, is
+  DQPSK with differential *detection*. It is about 2.3 dB worse at
+  10<sup>−5</sup>, and it's what you build when the carrier is too unstable to
+  track.
 
 ## Against theory
 
-`--ebn0` adds white noise at the transmitter, at a given *E*<sub>b</sub>/*N*<sub>0</sub>,
-the energy per bit over the noise's power per hertz: the fair way to compare
-modulations that carry different numbers of bits per symbol. The curve to
-beat is *P*<sub>b</sub> = Q(√(2*E*<sub>b</sub>/*N*<sub>0</sub>)) = ½ erfc(√(*E*<sub>b</sub>/*N*<sub>0</sub>)) for BPSK, and for
-Gray-coded QPSK too, because its two bits ride on two independent BPSKs.
-Per symbol, *E*<sub>s</sub> = 2*E*<sub>b</sub>, and the MER of the three constellations in the
-figure is *E*<sub>s</sub>/*N*<sub>0</sub>: 5, 9 and 13 dB at 2, 6 and 10 dB. The whole
-receiver, loops and all, measured through the cable:
+`--ebn0` adds white noise at the transmitter, at a given
+*E*<sub>b</sub>/*N*<sub>0</sub>: the energy per bit over the noise's power per
+hertz. That is the fair way to compare modulations that carry different
+numbers of bits per symbol. `psk.py --ber 0:10` measures the bit error rate
+at each *E*<sub>b</sub>/*N*<sub>0</sub> from 0 to 10 dB, in 1 dB steps.
+
+The curve to beat is
+
+  *P*<sub>b</sub> = Q(√(2*E*<sub>b</sub>/*N*<sub>0</sub>)) = ½ erfc(√(*E*<sub>b</sub>/*N*<sub>0</sub>))
+
+for BPSK, and for Gray-coded QPSK too, because its two bits ride on two
+independent BPSKs. Per symbol, *E*<sub>s</sub> = 2*E*<sub>b</sub>, and the MER of
+the three constellations in the figure is *E*<sub>s</sub>/*N*<sub>0</sub>: 5, 9 and
+13 dB at 2, 6 and 10 dB.
+
+The whole receiver, loops and all, measured through the cable:
 
 ![Measured bit error rate against Eb/N0 for BPSK, Gray-coded QPSK and differential QPSK, with the theory curves, and QPSK constellations at 2, 6 and 10 dB](img/comms_psk_ber.png)
 
-BPSK at 1.56 Mbit/s and QPSK at twice that land on the same curve, as theory
-says they should: per bit, QPSK's second channel costs nothing. Up to 7 dB the
-measurements sit 0.2–0.5 dB to the right of theory (BPSK at 6 dB: 3.3 × 10<sup>−3</sup>,
-against 2.4 × 10<sup>−3</sup>). The model gives the same gap (`--sim --ber 4:6`), so it
-is the receiver's, not the cable's: the two loops' jitter, most likely,
-though which part of the receiver is a fair question for a "Try this".
-Differential coding costs 2*p*(1 − *p*), as predicted. Above 7 dB each point rests on only a few errors (1 to 26), too few
-to pin the rate down, and at 0 dB QPSK does worse than theory (0.10, against
-0.079): there the Costas loop sometimes slips a quarter turn.
+- **BPSK** at 1.56 Mbit/s and **QPSK** at twice that land on the same curve,
+  as theory says they should: per bit, QPSK's second channel costs nothing.
+- **Up to 7 dB** the measurements sit 0.2–0.5 dB to the right of theory
+  (BPSK at 6 dB: 3.3 × 10<sup>−3</sup>, against 2.4 × 10<sup>−3</sup>). The model
+  gives the same gap (`--sim --ber 4:6`), so it is the receiver's, not the
+  cable's: most likely the two loops' jitter. Which part of the receiver is
+  to blame is left for you to find out.
+- **Differential coding** costs 2*p*(1 − *p*), as predicted.
+- **Above 7 dB** each point rests on only a few errors (1 to 26), too few to
+  pin the rate down.
+- **At 0 dB** QPSK does worse than theory (0.10, against 0.079): there the
+  Costas loop sometimes slips a quarter turn.
 
 <details>
 <summary><b>Detail:</b> learnSDR's timing detector, and its open question</summary>
 
 learnSDR's [lesson 18](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson18.md) uses GNU Radio's symbol synchronizer with its "maximum
-likelihood" detector, *x* · d*x*/d*t*: at the right instant the pulse is at its
-peak, so its slope is zero. The lesson asks why the average of this should
-be a straight line through zero, when one symbol's value, as on the left of
-the detector picture, scatters so widely. The answer: averaged over random
-data, it is Σ<sub>*j*</sub> *g*(*jT* + τ) *g*′(*jT* + τ), where *g* is the
-whole raised-cosine pulse, and its slope at τ = 0 is the curvature of the
-pulse's own peak, *g*″(0), plus Σ<sub>*j*≠0</sub> *g*′(*jT*)<sup>2</sup> from the
-neighbouring symbols. The peak's curvature does the work; the neighbours'
-slopes average to zero at τ = 0 but scatter from symbol to symbol (that's the
-"self-noise"), and they make the slope *shallower*: for α = 0.35, −3.52 + 1.79
-= −1.73 per symbol. Gardner's detector is the same idea evaluated at the zero
-crossing instead of at the peak. (Lesson 18's flowgraph also leaves the
-detector's gain at GNU Radio's default of 1, so its loop bandwidth isn't
-quite the 0.045 it asks for. `psk.py` computes Gardner's gain from the pulse
-shape, `gardner_gain()`, to set its loops exactly.)
+likelihood" detector, *x* · d*x*/d*t*: at the right instant the pulse is at
+its peak, so its slope is zero. The lesson asks why the average of this
+should be a straight line through zero, when one symbol's value scatters so
+widely (left of the detector picture).
+
+The answer: averaged over random data, it is
+Σ<sub>*j*</sub> *g*(*jT* + τ) *g*′(*jT* + τ), where *g* is the whole
+raised-cosine pulse. Its slope at τ = 0 has two parts:
+
+- the curvature of the pulse's own peak, *g*″(0), which does the work;
+- Σ<sub>*j*≠0</sub> *g*′(*jT*)<sup>2</sup> from the neighbouring symbols. The
+  neighbours' slopes average to zero at τ = 0 but scatter from symbol to
+  symbol (that's the "self-noise"), and they make the slope *shallower*:
+  for α = 0.35, −3.52 + 1.79 = −1.73 per symbol.
+
+Gardner's detector is the same idea, evaluated at the zero crossing instead
+of at the peak.
+
+Lesson 18's flowgraph also leaves the detector's gain at GNU Radio's default
+of 1, so its loop bandwidth isn't quite the 0.045 it asks for. `psk.py`
+computes Gardner's gain from the pulse shape, `gardner_gain()`, to set its
+loops exactly.
 
 </details>
 
 **Try this:**
 
-- Two boards: `python3 psk.py /dev/ttyUSB0 /dev/ttyUSB1`, with A's DAC OUT
-  cabled to B's ADC IN. The crystals' 0.76 ppm ([5.01](5_01_two_clocks.md#501-two-clocks)) is only 4.75 Hz at
-  6.25 MHz, too little to see in one 655 µs record; a crystal 2000 ppm off
-  (`--sim --ppm 2000`) shows both offsets coming from one cause.
-- `fll.py --pullin --bnt-carrier 0.05`: a wider Costas loop pulls in further
-  (to about 80 kHz through the cable). What does that cost at 6 dB
-  (`--ebn0 6`)? Then `--tau 1000` and watch the FLL not arrive within one
-  record, and raise `--cfo` to a megahertz to find where each coarse
-  estimator gives up.
-- Run `--ber 0:9 --diff` and check that differential coding costs about
-  twice the errors.
-- learnSDR's lessons [12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md) and [13](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson13.md) run a Costas loop on every sample of square
+- **Use two boards**: `python3 psk.py /dev/ttyUSB0 /dev/ttyUSB1`, with A's
+  DAC OUT cabled to B's ADC IN. The crystals' 0.76 ppm ([5.01](5_01_two_clocks.md#501-two-clocks)) is only
+  4.75 Hz at 6.25 MHz, too little to see in one 655 µs record. A crystal
+  2000 ppm off (`--sim --ppm 2000`) shows both offsets coming from one cause.
+- **Widen the Costas loop**: `fll.py --pullin --bnt-carrier 0.05` pulls in
+  further (to about 80 kHz through the cable). What does that cost at 6 dB
+  (`--ebn0 6`)?
+- **Slow the FLL**: with `fll.py --tau 1000`, watch it not arrive within one record.
+  Then raise `--cfo` to a megahertz to find where each coarse estimator gives
+  up.
+- **Check differential coding**: run `psk.py --ber 0:9 --diff` and check that
+  it costs about twice the errors.
+- **Swap the order**: learnSDR's lessons [12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md) and [13](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson13.md) run a Costas loop on every sample of square
   pulses 100 samples long, with no timing recovery at all. Try that order
   here: what does it need, and why do real receivers find the timing first?
 

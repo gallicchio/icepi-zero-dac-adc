@@ -5,11 +5,11 @@
 
 ![Each board watching the other's 1 MHz sine: the phase turns steadily, 0.76 turns a second, because the two crystals differ by 0.76 ppm](img/tb_beat_top.png)
 
-Load [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in into both boards and set both to 1 MHz. Each lock-in
-multiplies what arrives, the other board's sine, by its own reference and
+Both boards run [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in at 1 MHz, each listening to the other
+board's sine. A lock-in multiplies what arrives by its own reference and
 averages for 42 ms. If the two crystals agreed exactly, X and Y would sit still.
 They don't, so the phase turns at the *difference* of the two frequencies.
-`lockin_log.py` records both boards at once, and `beat.py` fits the phase:
+`lockin_log.py` records both boards at once; `beat.py` fits the phase.
 
 <details>
 <summary>The whole file: <code>lockin_log.py</code></summary>
@@ -132,15 +132,24 @@ board1: 1431 points over 60 s; beat +0.759076 Hz = +0.7591 ppm of 1000000 Hz; am
 
 ![Two crystals beating](img/tb_beat.png)
 
-Board A sees B's sine slipping back by 0.759 turns per second, and B sees A's
-pulling ahead by the same amount. B's crystal is 0.759 ppm slower than A's. (Both are within 3 ppm of nominal,
-[4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference): a quartz watch is allowed
-±15 seconds a month, 6 ppm.) Each
-board timed its own results by its own clock (result *k* is *k* × 2<sup>20</sup> / 25 MHz),
+Board A sees B's sine slip back 0.759 turns a second, and B sees A's pull
+ahead by the same amount: B's crystal is 0.759 ppm slower than A's. (Both are
+within 3 ppm of nominal, [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference). A quartz watch is allowed ±15 seconds a
+month, 6 ppm.)
+
+Each board timed its results by its own clock (result *k* is *k* × 2<sup>20</sup> / 25 MHz),
 and still the two numbers agree to six digits, as they must. A 1 MHz comparison
-resolves a few parts in 10<sup>10</sup> in a few seconds; at that level what you see
-is the crystals, not the instrument. That
-is the power of a lock-in: it measures phase, and phase keeps accumulating.
+resolves a few parts in 10<sup>10</sup> in a few seconds, so what you see is the
+crystals, not the instrument. That is the power of a lock-in: it measures
+phase, and phase keeps accumulating.
+
+> [!TIP]
+> **Let the boards settle first.** A new design changes how much power the
+> FPGA burns, so its crystal warms or cools for minutes
+> ([5.02](5_02_warming_a_crystal.md#502-warming-a-crystal)). On a second pair, measured just after a bigger design was
+> swapped for the lock-in, the beat climbed from 4.1 to 4.3 Hz within the
+> first minute, leaving 277° rms of phase off the straight line. Two minutes
+> later it was still climbing (4.6 Hz, 54° rms).
 
 The lower panel is what's left after a smooth fit. It isn't noise in either
 measurement, because the two boards' views are exact mirror images. It's the

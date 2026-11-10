@@ -14,6 +14,8 @@ K_A = 0, K_B > 0 is a phase-locked loop (B follows A).  K_A = K_B > 0 is mutual
 coupling (Kuramoto / Adler): the two lock when |natural detuning| < K_A + K_B.
 
     python3 coupled.py PORT_A PORT_B --KA 0.5 --KB 0.5 --seconds 60 [--detune 0.3] -o out.npz
+
+Run it first with --KA 0 --KB 0: the slip it prints is the natural detuning, and a lock needs more coupling than that.
 """
 import argparse
 import threading
@@ -89,3 +91,5 @@ if __name__ == "__main__":
     print("%d updates in %.1f s; final half: phi_A %.1f +- %.1f deg, phi_B %.1f +- %.1f deg; f_B - f_A %.4f Hz" %
           (len(r), r[-1, 0], np.degrees(np.mean(r[len(r)//2:, 1])), np.degrees(np.std(np.unwrap(r[len(r)//2:, 1]))),
            np.degrees(np.mean(r[len(r)//2:, 2])), np.degrees(np.std(np.unwrap(r[len(r)//2:, 2]))), np.mean(r[len(r)//2:, 6] - r[len(r)//2:, 5])))
+    h = r[len(r)//2:]                       # the slip: how fast phi_A turns.  Uncoupled, it is the natural detuning f_B - f_A
+    print("slip %+.3f Hz (locked if near 0)" % ((np.unwrap(h[:, 1])[-1] - np.unwrap(h[:, 1])[0]) / (2 * np.pi * (h[-1, 0] - h[0, 0]))))

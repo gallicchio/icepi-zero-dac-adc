@@ -5,14 +5,13 @@
 
 ![The letter H as a serial line, the two tones the DAC plays for it, and the receiving board's energy at each tone and its decision](img/tb_modem_intro.png)
 
-Until now the laptop did the thinking. This experiment needs no laptop arithmetic at
-all. `modem.sv` is a *frequency-shift-keying* modem, like the Bell 103 modems
-that first put computers on telephone lines, at 300 baud. This one carries
-the 115,200 baud of the terminals below, nearly four hundred times faster, and
-keeps working to 2.5 Mbaud, eight thousand times. The
-line from your laptop picks the transmitted tone, and the receiver turns tones back
-into a line to the other laptop. Type into one board's terminal, and the text
-comes out of the other's.
+Until now the laptop did the arithmetic. Here it does none. `modem.sv` is a
+*frequency-shift-keying* (FSK) modem, like the 300-baud Bell 103 modems that
+first put computers on telephone lines. This one carries the terminals'
+115,200 baud, nearly 400 times faster, and works up to 2.5 Mbaud. **Type into
+one board's terminal, and the text comes out of the other's:** the line from
+your laptop picks the tone the DAC plays, and the other board's receiver turns
+the tones back into a line to its laptop.
 
 - **Transmit:** a DDS whose tuning word follows the laptop's serial line: 6.25 MHz
   for a 1 (*mark*), 3.125 MHz for a 0 (*space*). Only the step size changes,
@@ -404,13 +403,14 @@ B# killall cat; ls -l /tmp/rx.bin; md5sum /tmp/rx.bin
 59a83427647b4d109a532a400ddb2448  /tmp/rx.bin
 ```
 
-That is 32 kB in 3.2 s (10 kB/s, near the 11.5 kB/s that 115,200 baud allows),
-from one Linux computer to another through two FPGAs, a DAC, a cable and an ADC.
-It worked in both directions (three files A → B and one B → A), with one
-exception. The very first file, sent seconds after B had booted, arrived
-6% short, because B's start-up scripts were still running and its receive
-FIFO overflowed. Bytes sent to a serial port that nobody has open are thrown
-away too, so the receiver has to be listening first.
+That is 32 kB in 3.2 s (10 kB/s; 115,200 baud allows 11.5 kB/s), from one
+Linux computer to another through two FPGAs, a DAC, a cable and an ADC. It
+worked both ways: three files A → B and one B → A.
+
+**Start the receiver first, after it has finished booting.** Bytes sent to a
+serial port that nobody has open are thrown away. The very first file, sent
+seconds after B booted, arrived 6% short: B's start-up scripts were still
+running, and its receive FIFO overflowed.
 
 ## A network
 

@@ -5,66 +5,78 @@
 
 ![An FT8-style frame through the cable: the 79 tones as a waterfall with the three Costas arrays shaded; the Costas search over start time and frequency offset at a symbol energy 7 dB above the noise density; the eight tone magnitudes at every symbol with the sent tones marked and the decoded text; and the symbol error rate and the fraction of messages decoded against Es/N0, with non-coherent 8-FSK theory and the point where real FT8 decodes](img/comms_ft8.png)
 
-[5.07](5_07_radio_link.md#507-a-radio-link) took the cable away and put
-a loop of wire on each end: a radio, at 9600 baud, that needs tens of
-millivolts at the ADC and reaches about a metre. This page asks the
-question that follows: how far apart can two boards send each other a
-text message with nothing but a bit of wire, and what does each step up
-from there buy? The answer has a modulation half and an antenna half. The
-modulation half is FT8, the mode that let radio amateurs work the world
-on a few watts by sending slowly, narrowly, and with a code; a simplified
-version of it runs here through the cable at forty thousand times its
-speed, and at its real speed through a new piece of gateware. The antenna
-half is a ladder, from minigrabber leads to a half-wave dipole, with a
-calculator for each rung and a strong recommendation to beat it with a
-tape measure.
+[5.07](5_07_radio_link.md#507-a-radio-link) replaced the cable with a
+loop of wire on each end: a 9600-baud radio that needs tens of millivolts
+at the ADC and reaches about a metre. This page asks: **how far apart can
+two boards send each other a text message** with nothing but a bit of
+wire, and what does each step up from there buy? The answer has two
+halves:
 
-Where things run: `ft8.py` is laptop Python, driving `awgcap.sv` for the
-fast frame and `ddc.sv` for the slow one; `ddc.sv` is gateware that does
-what [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in did,
-continuously, and streams the result; `air.py` is a calculator that needs
-no board at all.
+- **Modulation: FT8**, the mode that let radio amateurs work the world on
+  a few watts by sending slowly, narrowly, and with a code. A simplified
+  version runs here through the cable at forty thousand times its speed,
+  and at its real speed through new gateware.
+- **Antennas: a ladder** from minigrabber leads to a half-wave dipole,
+  with a calculator for each rung, and a strong recommendation to beat
+  the calculator with a tape measure.
+
+Where things run:
+
+- `ft8.py` is laptop Python. It drives `awgcap.sv` for the fast frame and
+  `ddc.sv` for the slow one.
+- `ddc.sv` is gateware that does what
+  [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s lock-in did,
+  continuously, and streams the result.
+- `air.py` is a calculator. It needs no board at all.
 
 ## What FT8 is
 
-In 2017 Joe Taylor (a Nobel laureate for the binary pulsar, and K1JT) and
-Steve Franke released FT8 in WSJT-X, and within a year it was most of the
-digital traffic on the amateur bands. It is a *weak-signal* mode: it
-decodes at a [signal-to-noise ratio](https://en.wikipedia.org/wiki/Signal-to-noise_ratio) of −21 dB in a 2.5 kHz voice channel,
-where a human hears only noise and a 1990s modem hears nothing at all. It
-does this with nothing clever, done carefully:
+Joe Taylor (K1JT, and a Nobel laureate for the binary pulsar) and Steve
+Franke released FT8 in 2017, in WSJT-X. Within a year it carried
+most of the digital traffic on the amateur bands. It is a *weak-signal*
+mode: it decodes at a [signal-to-noise ratio](https://en.wikipedia.org/wiki/Signal-to-noise_ratio)
+of −21 dB in a 2.5 kHz voice channel, where a human hears only noise and a
+1990s modem hears nothing at all. It does this with nothing clever, done
+carefully:
 
-- **Slow and narrow.** 6.25 symbols a second, so a symbol is 160 ms and a
-  tone 6.25 Hz wide. The noise in a 6.25 Hz bin is 400 times less (26 dB)
-  than in the 2.5 kHz channel. That is the whole trick: −21 dB in 2.5 kHz
-  is +5 dB in the bin, and +5 dB is decodable.
+- **Slow and narrow.** 6.25 symbols a second: a symbol is 160 ms and a
+  tone 6.25 Hz wide. A 6.25 Hz bin holds 400 times (26 dB) less noise than
+  the 2.5 kHz channel. That is the whole trick: −21 dB in 2.5 kHz is +5 dB
+  in the bin, and +5 dB is decodable.
 - **8-FSK, detected by magnitude.** Eight tones, 1/*T* apart, which makes
-  them orthogonal over a symbol exactly as OFDM's subcarriers are
+  them orthogonal over a symbol, exactly like OFDM's subcarriers
   ([6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)). The
-  receiver correlates each symbol with all eight and picks the biggest. No
-  carrier phase to track ([6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
-  [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) would never lock at this SNR); a 20 ppm crystal is tolerated,
-  because a frequency offset just moves all eight tones together.
-- **Costas arrays for sync.** Three 7-symbol blocks of known tones at the
-  start, middle and end of the frame, in a pattern (3 1 4 0 6 5 2) whose
-  autocorrelation in time *and* frequency has one peak: a two-dimensional
-  search over start time and frequency offset, the same search a GPS
-  receiver makes ([6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)),
-  with 21 symbols voting.
-- **A code.** 77 message bits and a 14-bit CRC become 174 code bits through
-  an LDPC(174,91) code ([6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)),
-  58 symbols of three bits each; the CRC is how the receiver knows that
-  the decoder's answer is right rather than merely plausible.
+  receiver correlates each symbol with all eight tones and picks the
+  biggest. There is no carrier phase to track
+  ([6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
+  [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) would never lock
+  at this SNR). A 20 ppm crystal is fine, because a frequency offset just
+  moves all eight tones together.
+- **Costas arrays for sync.** Three 7-symbol blocks of known tones, at the
+  start, middle and end of the frame, in the pattern 3 1 4 0 6 5 2. Its
+  autocorrelation in time *and* frequency has a single peak. Finding the
+  frame is a two-dimensional search over start time and frequency offset,
+  with 21 symbols voting: the same search a GPS receiver makes
+  ([6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)).
+- **A code.** An LDPC(174,91) code
+  ([6.09](6_09_error_correcting_codes.md#609-error-correcting-codes))
+  turns 77 message bits and a 14-bit CRC into 174 code bits: 58 symbols of
+  three bits each. The CRC tells the receiver that the decoder's answer is
+  right, not merely plausible.
 
 ![The FT8-style frame: three Costas arrays around two blocks of 29 data symbols; the encoding chain from 12 characters through the CRC, the convolutional code and the Gray map to 58 tones; one symbol as one of eight orthogonal tones; the receiver from eight correlations through the Costas search and soft bits to the Viterbi decoder and the CRC; and the three speeds, fast on the cable, slow at 6.78 MHz, and real FT8](img/comms_d_ft8.png)
 
 `ft8.py` keeps FT8's frame, tones, Gray map, CRC polynomial and free-text
-alphabet, and makes two honest simplifications: [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)'s
-K = 7 convolutional code with soft Viterbi decoding in place of the LDPC
-code, which costs one of the thirteen characters (twelve fit), and no
-Gaussian smoothing of the tone switches (they are phase-continuous, which
-is most of the point). The real code's generator matrix is in WSJT-X's
-source, and swapping it in is the last "Try this".
+alphabet. It makes two honest simplifications:
+
+- **A simpler code:** [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)'s
+  K = 7 convolutional code, with soft Viterbi decoding, in place of the
+  LDPC code. This costs one of the thirteen characters: twelve fit.
+- **No Gaussian smoothing** of the tone switches. They are
+  phase-continuous, which is most of the point.
+
+The real code's generator matrix is in WSJT-X's source, and swapping it in
+is the last "Try this".
 
 <details>
 <summary>The whole file: <code>ft8.py</code></summary>
@@ -504,13 +516,17 @@ if __name__ == "__main__":
 
 ## The frame, forty thousand times faster
 
-On `awgcap.sv` a symbol is 200 DAC samples, 4 µs instead of 160 ms, so the
-tones are 250 kHz apart around 6.25 MHz and the 79 symbols take 316 µs of
-the loop. Nothing else changes: the receiver code is the same function
-that runs at real speed below, with 100 samples per symbol instead of 512.
-The honest axis is *E*<sub>s</sub>/*N*<sub>0</sub>, the energy per symbol over the
-noise density; FT8's "SNR in 2.5 kHz" is that minus 26 dB, so FT8's −21 dB
-is *E*<sub>s</sub>/*N*<sub>0</sub> = +5 dB:
+On `awgcap.sv` a symbol is 200 DAC samples: 4 µs instead of 160 ms. So the
+tones are 250 kHz apart, around 6.25 MHz, and the 79 symbols take 316 µs
+of the loop. Nothing else changes: the receiver is the same function that
+runs at real speed below, with 100 samples per symbol instead of 512.
+
+The honest axis is *E*<sub>s</sub>/*N*<sub>0</sub>, the energy per symbol
+over the noise density. FT8's "SNR in 2.5 kHz" is that minus 26 dB, so
+FT8's −21 dB is *E*<sub>s</sub>/*N*<sub>0</sub> = +5 dB.
+
+With `awgcap.sv` loaded, **loop the DAC back to the ADC** with the cable
+and run:
 
 <!-- FT8_HW -->
 ```console
@@ -530,17 +546,21 @@ tones heard: 5 of 58 data symbols wrong, 2 of 21 Costas symbols wrong
 decoded: 'CQ HMC JASON'  CRC ok
 ```
 
-Ten of 58 data symbols wrong, and the message is right: that is what a
-code is for, and the figure's lower-left panel marks the wrong ones in its
-own run. The
-third run puts the transmitter half a tone spacing high and the Costas
-search finds it (the figure's upper-right panel is that search: a ridge
-in time, a ridge in frequency, one peak). The sweep in the last panel
-gives the threshold: every message decodes from 8 dB up, two thirds at 6
-and 7, none at 5 and below, where two fifths of the symbols are wrong.
-Real FT8 decodes at 5. The 2 to 3 dB between them is the LDPC code against
-the convolutional one, plus a sixteenth of a tone spacing of frequency
-grid, and it is a fair price for a decoder that fits in
+What to see:
+
+- **The second run** has 10 of its 58 data symbols wrong, and the message
+  is still right: that is what a code is for. The figure's lower-left
+  panel marks the wrong ones in its own run.
+- **The third run** puts the transmitter half a tone spacing high, and the
+  Costas search finds it. The figure's upper-right panel is that search: a
+  ridge in time, a ridge in frequency, one peak.
+- **The threshold** comes from the sweep in the figure's last panel: every
+  message decodes from 8 dB up, two thirds at 6 and 7 dB, and none at
+  5 dB and below, where two fifths of the symbols are wrong.
+
+Real FT8 decodes at 5 dB. The 2 to 3 dB between them is the LDPC code
+against the convolutional one, plus a sixteenth of a tone spacing of
+frequency grid. That is a fair price for a decoder that fits in
 [6.09](6_09_error_correcting_codes.md#609-error-correcting-codes)'s twenty
 lines.
 
@@ -548,15 +568,19 @@ lines.
 <summary><b>Detail:</b> three soft bits from eight magnitudes</summary>
 
 The Viterbi decoder wants, for each code bit, a number whose sign is the
-bit and whose size is the confidence. A symbol gives eight magnitudes.
-For bit *b* of the three, take the largest magnitude among the four tones
-whose Gray label has that bit 0, minus the largest among the four that
-have it 1. A clean symbol gives three confident bits. A near miss between
-two tones that *agree* on a bit (Gray neighbours agree on two of three)
-leaves that bit confident and only the disagreeing one near zero, which
-is exactly the right thing to tell the decoder. This is the "max-log"
-approximation to the true log-likelihood ratio, and it is what every FSK
-receiver with a soft decoder does.
+bit and whose size is the confidence. A symbol gives eight magnitudes. For
+bit *b* of the three, take
+
+- the largest magnitude among the four tones whose Gray label has that
+  bit 0,
+- minus the largest among the four that have it 1.
+
+A clean symbol gives three confident bits. Gray neighbours agree on two
+bits of three, so a near miss between two neighbouring tones leaves the
+two bits they *agree* on confident, and only the third near zero: exactly
+the right thing to tell the decoder. This is the "max-log" approximation
+to the true log-likelihood ratio, and it is what every FSK receiver with
+a soft decoder does.
 
 </details>
 
@@ -564,18 +588,22 @@ receiver with a soft decoder does.
 
 For the air the frame has to be slow, and `awgcap.sv`'s 327.68 µs loop
 cannot hold a 13-second frame. `ddc.sv` can. It is
-[5.07](5_07_radio_link.md#507-a-radio-link)'s radio generalized: a
-transmitter whose tone comes from a table of eight tuning words, played
-from a queue one every 2<sup>23</sup> clocks (167.77 ms) with the phase never
-jumping, and a receiver that is [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
-lock-in run continuously: multiply every ADC sample by cos and −sin of a
-numerically controlled oscillator, add up 2<sup>13</sup> of them, send the two
-sums to the laptop as seven bytes, start again. That is a *digital
-down-converter*, and 3052 complex samples a second at 1 Mbaud is a stream
-the laptop can keep up with forever. The tones are 25 MHz / 2<sup>22</sup> =
-5.96 Hz apart (FT8: 6.25) at 6.78 MHz, inside the band
-[5.07](5_07_radio_link.md#507-a-radio-link) chose; the symbol is 512 of
-those samples; the laptop's receiver is the same code as above.
+[5.07](5_07_radio_link.md#507-a-radio-link)'s radio, generalized:
+
+- **The transmitter** plays tones from a queue, one every
+  2<sup>23</sup> clocks (167.77 ms), with the phase never jumping. Each
+  tone comes from a table of eight tuning words.
+- **The receiver** is [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
+  lock-in, run continuously: multiply every ADC sample by cos and −sin of
+  a numerically controlled oscillator, add up 2<sup>13</sup> of them, send
+  the two sums to the laptop as seven bytes, start again. That is a
+  *digital down-converter*. Its 3052 complex samples a second, at
+  1 Mbaud, are a stream the laptop can keep up with forever.
+
+The tones are 25 MHz / 2<sup>22</sup> = 5.96 Hz apart (FT8: 6.25 Hz), at
+6.78 MHz, inside the band [5.07](5_07_radio_link.md#507-a-radio-link)
+chose. A symbol is 512 of the receiver's samples, and the laptop's
+receiver is the same code as above.
 
 <details>
 <summary>The whole file: <code>ddc.sv</code></summary>
@@ -1147,11 +1175,20 @@ if __name__ == "__main__":
 
 </details>
 
-The laptop talks to it in a byte protocol (`ddc.py` wraps it): `W` sets a
-tone's tuning word, `A` the amplitude, `T` the symbol length, `M` queues
-up to 255 tone indices, `C` plays one tone continuously for tuning an
-antenna, `R` sets the receiver's oscillator, `D` the decimation, `S`
-starts the stream. Through the cable, on one board:
+The laptop talks to it in a byte protocol, which `ddc.py` wraps:
+
+| byte | does |
+| --- | --- |
+| `W` | sets a tone's tuning word |
+| `A` | sets the amplitude |
+| `T` | sets the symbol length |
+| `M` | queues up to 255 tone indices |
+| `C` | plays one tone continuously, for tuning an antenna |
+| `R` | sets the receiver's oscillator |
+| `D` | sets the decimation |
+| `S` | starts the stream |
+
+**Try it through the cable, on one board:**
 
 ```console
 $ cd src/twoboard
@@ -1173,17 +1210,22 @@ $ python3 ddc.py --monitor
 |z| =    0.969 codes    -0.3 dB   phase   148.8 deg   offset    -0.007 Hz
 ```
 
-The cable's 0.776 again (78.4 codes from 100), steady to three decimals;
-the phase creeps by 2° a second because the receiver's tuning word for
-6.78 MHz rounds 0.006 Hz differently from the transmitter's, which is the
-resolution of a 32-bit phase accumulator at 25 MS/s; one tone spacing of
-offset reads 5.955 Hz, which is 25 MHz / 2<sup>22</sup>; and a tone of one DAC
-code, 0.97 of a code at the ADC, reads as cleanly as the big one, which is
-what a lock-in with 2<sup>13</sup> samples per output does for you.
+What to see:
 
-Then the frame itself. `--send` queues the 79 tones and `--listen` reads
-the stream for 20 seconds and runs the receiver on it, so on one board
-looped back the two together are a complete link:
+- **The amplitude** is the cable's 0.776 again (78.4 codes from 100),
+  steady to three decimals.
+- **The phase creeps by 2° a second**, because the receiver's tuning word
+  for 6.78 MHz rounds 0.006 Hz differently from the transmitter's. That is
+  the resolution of a 32-bit phase accumulator at 25 MS/s.
+- **One tone spacing of offset** reads 5.955 Hz, which is
+  25 MHz / 2<sup>22</sup>.
+- **A tone of one DAC code**, 0.97 of a code at the ADC, reads as cleanly
+  as the big one. That is what a lock-in with 2<sup>13</sup> samples per
+  output does for you.
+
+**Then send the frame itself.** `--send` queues the 79 tones; `--listen`
+reads the stream for 20 seconds and runs the receiver on it. On one board,
+looped back, the two together are a complete link:
 
 ```console
 $ cd src/comms
@@ -1207,36 +1249,36 @@ decoded: 'CQ HMC JASON'  CRC ok
 ```
 
 (The frame starts a tenth of a second before the listener's first sample,
-because `--send` queues it first; the receiver finds it anyway and reports
-the start as negative.)
+because `--send` queues it first. The receiver finds it anyway, and
+reports the start as negative.)
 
-The third run is the point of the page. A tone of one DAC code, about a
-code at the ADC, no bigger than the converter's step, decodes with every one
-of its 79 symbols right, because 512 samples of lock-in output per symbol
-and 2<sup>13</sup> ADC samples per lock-in output make a bin 5.96 Hz wide, and
-in 5.96 Hz the ADC's own noise is 8 µV against a signal of 30 mV.
-[5.07](5_07_radio_link.md#507-a-radio-link)'s modem managed the same
-signal at 9600 baud only just; this one has 60 dB in hand if the floor
+**The third run is the point of the page.** A tone of one DAC code (about
+a code at the ADC, no bigger than the converter's step) decodes with all
+79 symbols right. That is because 512 lock-in outputs per symbol, each the
+sum of 2<sup>13</sup> ADC samples, make a bin 5.96 Hz wide, and in 5.96 Hz
+the ADC's own noise is 8 µV, against a signal of 30 mV.
+[5.07](5_07_radio_link.md#507-a-radio-link)'s modem only just managed the
+same signal at 9600 baud. This one has 60 dB in hand if the floor
 arithmetic below is right (the third "Try this" tests it), and 60 dB is
 distance.
 
-With two boards there is one more thing to find: their crystals differ.
-The two boards of [5.01](5_01_two_clocks.md#501-two-clocks) are 0.76 ppm
-apart, and each is within 3 ppm of nominal, so another pair could be 6 ppm
-apart; at 6.78 MHz every ppm is 6.78 Hz, 1.14 tone spacings.
+**With two boards there is one more thing to find: their crystals
+differ.** The two boards of [5.01](5_01_two_clocks.md#501-two-clocks) are
+0.76 ppm apart, and each is within 3 ppm of nominal, so another pair could
+be 6 ppm apart. At 6.78 MHz every ppm is 6.78 Hz, 1.14 tone spacings.
 
-The board's half of the receiver does not care. The lock-in runs at the
-*receiving* board's idea of 6.78 MHz, and its output, 3052 samples a second,
-is a band ±1.5 kHz wide, which holds a 20 ppm error (136 Hz) with room to
-spare. Finding the offset is the laptop's job, and it does it afresh on
-every record: the Costas search runs over ±25 tone spacings (±22 ppm) and
-reports what it found.
+- **The board's half of the receiver does not care.** The lock-in runs at
+  the *receiving* board's idea of 6.78 MHz. Its output, 3052 samples a
+  second, is a band ±1.5 kHz wide, which holds a 20 ppm error (136 Hz)
+  with room to spare.
+- **The laptop finds the offset**, afresh on every record: the Costas
+  search runs over ±25 tone spacings (±22 ppm) and reports what it found.
 
-That was tested with one board and the cable, by making the transmitter
+**Test it with one board and the cable**, by making the transmitter
 pretend to be a bad crystal: `--ppm` scales its tones and its symbol clock
-together. At 3, 10 and 20 ppm every frame decodes with no symbol wrong, and
-the search reports the offset to within 1 Hz. (The first version searched
-±3 spacings, which is ±2.6 ppm, and failed every frame at 10 ppm.)
+together. At 3, 10 and 20 ppm every frame decodes with no symbol wrong,
+and the search reports the offset to within 1 Hz. (A search of only ±3
+spacings, which is ±2.6 ppm, fails every frame at 10 ppm.)
 
 ```console
 $ python3 ft8.py --slow --send "CQ HMC JASON" --ppm 10 --listen --seconds 20
@@ -1246,8 +1288,8 @@ tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
 decoded: 'CQ HMC JASON'  CRC ok
 ```
 
-And with two real boards, A's DAC cabled to B's ADC (about 2 m of coax),
-`ddc.sv` in both, A sending and B listening. B finds A's carrier 1.5 Hz
+**Then two real boards:** `ddc.sv` in both, A's DAC cabled to B's ADC
+(about 2 m of coax), A sending and B listening. B finds A's carrier 1.5 Hz
 off, a quarter of a tone spacing: these two crystals are 0.2 ppm apart.
 Every symbol is right at 100, 4 and 1 DAC codes, as on one board:
 
@@ -1262,39 +1304,48 @@ tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
 decoded: 'CQ HMC JASON'  CRC ok
 ```
 
-(A listener that sent nothing doesn't know the tones, so it counts the
-wrong ones against the text it decoded, when the CRC passes.)
+(A listener that sent nothing doesn't know the tones. When the CRC passes,
+it counts the wrong ones against the text it decoded.)
 
-A crystal that drifts *during* a frame smears it across tones.
-`dev/tools/comms/ft8_crystal.py` plays that too, by rewriting the tone words
-while the frame goes out. A transmitter drifting by 1 ppm in the 13 seconds
-still decodes (2 symbols of 58 wrong, which the code corrects); one at
-5 ppm drifting by 2 ppm does not.
+**A crystal that drifts *during* a frame** smears it across tones.
+`dev/tools/comms/ft8_crystal.py` plays that too, by rewriting the tone
+words while the frame goes out:
 
-Real crystals are far slower: the fastest
-drift in [5.02](5_02_warming_a_crystal.md#502-warming-a-crystal) is a board
-heating itself, 0.8 ppm in a minute, which is 0.2 ppm in a frame. Between
-frames the drift does not matter at all, because every record is searched
-from scratch. The frame also drifts in *time*, by 13 µs per ppm over its
-13 seconds, which nothing notices against a 168 ms symbol.
+- drifting by 1 ppm in the 13 seconds, the frame still decodes (2 symbols
+  of 58 wrong, which the code corrects);
+- at 5 ppm and drifting by 2 ppm, it does not.
+
+Real crystals drift far more slowly. The fastest drift in
+[5.02](5_02_warming_a_crystal.md#502-warming-a-crystal) is a board heating
+itself: 0.8 ppm in a minute, which is 0.2 ppm in a frame. Drift between
+frames does not matter at all, because every record is searched from
+scratch. The frame also drifts in *time*, by 13 µs per ppm over its 13
+seconds, which nothing notices against a 168 ms symbol.
 
 ## The air, rung by rung
 
 ![The antenna ladder at 6.78 MHz, with what each rung adds and how far it reaches: minigrabber leads with the DAC at a quarter of full scale (the 9600 bit/s modem 2 cm, the 5 bit/s FT8-style frame 20 cm); tuned 30 cm loops (80 cm and 9 m); a 40 dB low-noise amplifier before the ADC (4 m and 1 km); a half-wave dipole receiving (5 km); and a licence, a 5 W power amplifier (23 dB above the DAC's 24 mW at most) and real FT8 (the world); the near- and far-field laws on the left, and each rung's reach on a log scale on the right](img/comms_d_air.png)
 
-Two laws and one floor decide everything. Within λ/2π of the transmitter
-(7 m at 6.78 MHz) the fields are the *near* fields of a dipole, electric
-for a wire, magnetic for a loop, and they fall as 1/*r*<sup>3</sup>: twice as
-far is 18 dB weaker. Beyond that distance the radiated field takes over
-and falls as 1/*r*: twice as far is 6 dB. The floor is the ADC's: eight
-bits of 39 mV, with the converter's own noise, is about 0.3 of a code rms
-over 12.5 MHz, which is 3.4 µV per √Hz, 8 µV in a 6 Hz bin, and a quarter of a
-millivolt in [5.07](5_07_radio_link.md#507-a-radio-link)'s 6 kHz. A small passive
-antenna delivers microvolts, and whether that is above or below the floor
-is the whole question; the sky's own radio noise, which is what a real
-receiver is limited by, is far below the ADC's floor until an amplifier
-brings it up. `air.py` works the ladder out, with the exact dipole fields
-so that one formula covers the bench and the far side of campus:
+Two laws and one floor decide everything:
+
+- **Near field, 1/*r*<sup>3</sup>.** Within λ/2π of the transmitter (7 m
+  at 6.78 MHz) the fields are the *near* fields of a dipole: electric for
+  a wire, magnetic for a loop. They fall as 1/*r*<sup>3</sup>: twice as
+  far is 18 dB weaker.
+- **Far field, 1/*r*.** Beyond that distance the radiated field takes
+  over and falls as 1/*r*: twice as far is 6 dB weaker.
+- **The floor is the ADC's.** Its 39 mV steps, with the converter's own
+  noise, give about 0.3 of a code rms over 12.5 MHz. That is 3.4 µV per
+  √Hz: 8 µV in a 6 Hz bin, and a quarter of a millivolt in
+  [5.07](5_07_radio_link.md#507-a-radio-link)'s 6 kHz.
+
+A small passive antenna delivers microvolts, and whether that is above or
+below the floor is the whole question. The sky's own radio noise, which is
+what limits a real receiver, is far below the ADC's floor until an
+amplifier brings it up.
+
+`air.py` works out the ladder. It uses the exact dipole fields, so one
+formula covers the bench and the far side of campus:
 
 <details>
 <summary>The whole file: <code>air.py</code></summary>
@@ -1478,6 +1529,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Run it** in `src/comms`. It needs no board:
+
 ```console
 $ python3 air.py --amp 25              # no board; 5.07's legal estimate for the loop
 f = 6.78 MHz (lambda = 44.2 m, near field within lambda/2pi = 7.0 m); AMP = 25 (0.77 V peak); LNA 0 dB; ADC input 50 ohm; site noise Fa = 50 dB
@@ -1503,36 +1556,49 @@ half-wave dipole   half-wave dipole     8.81e+03        NO*  (far field)        
 | 4 | a half-wave dipole receiving (22 m of wire, 11 m at 13.56 MHz) | 1/*r* | tens of metres | kilometres, in free space |
 | 5 | a licence, 7.074 MHz, a few watts and real FT8 | the ionosphere | | the world |
 
-Read the computed column with the right suspicion. The [near-field](https://en.wikipedia.org/wiki/Near_and_far_field) rungs
-depend on the ADC module's input impedance, which this tutorial has not
-measured (`--zin` takes yours); the far-field rungs assume free space,
-and a 7 MHz ground wave over a campus of buildings loses more than that;
-the site noise is a textbook median. What the calculator is good for is
-the *ratios*: each rung is 10 to 20 dB, the FT8-style frame is worth 60 dB
-over the modem on every rung (ten times the distance in the near field, a
-thousand in the far: 30 dB from the bandwidth and 30 dB because the modem
-needs a whole code where the frame needs 7 dB over the noise), and an
-amplifier in front of the ADC is worth more than any antenna until the
-sky's noise is what you hear. Then
-go and measure, which is the experiment: the first number a student
-should get is the distance at which rung 1 stops decoding, and whether
-it scales as 1/*r*<sup>3</sup>.
+**Read the calculator's numbers with the right suspicion:**
+
+- The [near-field](https://en.wikipedia.org/wiki/Near_and_far_field) rungs
+  depend on the ADC module's input impedance, which this tutorial has not
+  measured (`--zin` takes yours).
+- The far-field rungs assume free space, and a 7 MHz ground wave over a
+  campus of buildings loses more than that.
+- The site noise is a textbook median.
+
+What the calculator is good for is the *ratios*:
+
+- Each rung is worth 10 to 20 dB.
+- The FT8-style frame is worth 60 dB over the modem on every rung: ten
+  times the distance in the near field, a thousand times in the far. That
+  is 30 dB from the bandwidth, and 30 dB because the modem needs a whole
+  code where the frame needs 7 dB over the noise.
+- An amplifier in front of the ADC is worth more than any antenna, until
+  the sky's noise is what you hear.
+
+**Then go and measure: that is the experiment.** The first number to get
+is the distance at which rung 1 stops decoding, and whether the signal
+scales as 1/*r*<sup>3</sup>.
 
 <details>
 <summary><b>Detail:</b> why the ADC needs an amplifier before it needs an antenna</summary>
 
-A 30 cm loop is a terrible antenna: its radiation resistance is forty
-microohms against a tenth of an ohm of wire loss, so it radiates (and
-receives) a few ten-thousandths of what a dipole would, −35 dB. That does not
-matter for the field-strength rule, which limits the field and not the
-power, and it does not matter for receiving *if* the receiver's own noise
-is below the sky's. The sky at 7 MHz, in a suburb, is about 50 dB above
-thermal (ITU-R P.372), which in a 6 Hz bin is −116 dBm, and through a
-−35 dB loop −151 dBm: 0.006 µV. The ADC's floor is 8 µV. So the loop's
-signal must beat the *ADC*, not the sky, by 60 dB of margin that an
-efficient antenna and a [low-noise amplifier](https://en.wikipedia.org/wiki/Low-noise_amplifier) would give for free. Rung 3 is
-that amplifier: 40 dB of gain and a noise figure of a few dB, which is
-what an active receiving loop (the MLA-30+ of
+A 30 cm loop is a terrible antenna. Its radiation resistance is forty
+microohms, against a tenth of an ohm of wire loss, so it radiates (and
+receives) a few ten-thousandths of what a dipole would: −35 dB. That does
+not matter for the field-strength rule, which limits the field and not the
+power. And it does not matter for receiving *if* the receiver's own noise
+is below the sky's. The numbers:
+
+- The sky at 7 MHz, in a suburb, is about 50 dB above thermal
+  (ITU-R P.372): −116 dBm in a 6 Hz bin.
+- Through a −35 dB loop that is −151 dBm: 0.006 µV.
+- The ADC's floor is 8 µV.
+
+So the loop's signal must beat the *ADC*, not the sky, by 60 dB of margin
+that an efficient antenna and a
+[low-noise amplifier](https://en.wikipedia.org/wiki/Low-noise_amplifier)
+would give for free. Rung 3 is that amplifier: 40 dB of gain and a noise
+figure of a few dB, which is what an active receiving loop (the MLA-30+ of
 [5.07](5_07_radio_link.md#507-a-radio-link), or a wideband HF amplifier
 module) provides. After it, the sky is the limit and the calculator's
 far-field rows apply.
@@ -1541,16 +1607,19 @@ far-field rows apply.
 
 ## The rules, and the band the calculator likes
 
-[5.07](5_07_radio_link.md#507-a-radio-link) has the rules for 6.78 MHz:
-in the US, FCC Part 15 §15.209 allows an unlicensed transmitter anywhere
-from 1.705 to 30 MHz a field of 30 µV/m at 30 m, which the 30 cm loop
-meets at `AMP` = 25. The ISM designation of 6.765–6.795 MHz buys nothing
-in the US (Part 18's ISM bands are for industrial equipment, not
-communication, and Part 15's limit is the same inside them as outside);
-what it buys is a slot nobody will complain about. There is one band
-below 30 MHz where Part 15 is generous: 13.553–13.567 MHz, the RFID
-band, where §15.225 allows 15,848 µV/m at 30 m, five hundred times the
-field, 54 dB more power. The calculator at 13.56 MHz:
+[5.07](5_07_radio_link.md#507-a-radio-link) has the rules for 6.78 MHz.
+In the US, FCC Part 15 §15.209 allows an unlicensed transmitter anywhere
+from 1.705 to 30 MHz a field of 30 µV/m at 30 m. The 30 cm loop meets
+that at `AMP` = 25.
+
+The ISM designation of 6.765–6.795 MHz buys nothing in the US: Part 18's
+ISM bands are for industrial equipment, not communication, and Part 15's
+limit is the same inside them as outside. What it does buy is a slot
+nobody will complain about.
+
+**One band below 30 MHz is generous: 13.553–13.567 MHz**, the RFID band.
+There §15.225 allows 15,848 µV/m at 30 m: five hundred times the field,
+54 dB more power. The calculator at 13.56 MHz:
 
 ```console
 $ python3 air.py --f 13.56e6 --amp 25
@@ -1560,38 +1629,49 @@ $ python3 air.py --f 13.56e6 --amp 25
 half-wave dipole   half-wave dipole     8.81e+03        yes  (far field)         38 m        40.7 km
 ```
 
-A milliwatt and a half into a dipole is legal there, and 41 km of free
-space is what the frame could cross with that; the ground will take its share, but
-a campus is not in doubt. The band is 14 kHz wide and the frame 50 Hz,
-the required frequency tolerance (±0.01%, 1.4 kHz) is met by any crystal,
-and both converters reach it: the DAC makes 13.56 MHz directly (its [sinc](https://en.wikipedia.org/wiki/Sinc_function)
-roll-off is 0.88 there), and the ADC at 25 MS/s sees it folded to
-11.44 MHz, spectrum inverted, so `ddc.sv`'s oscillator goes to 11.44 MHz
-and the receiver swaps *I* and *Q*. The one unknown is the ADC *module*'s
-input amplifier above 12.5 MHz, which [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s
-sweep can measure with the DAC as the source. In Europe the same band is
-for inductive short-range devices under ERC Recommendation 70-03, Annex 9,
-with its own field limit at 10 m; elsewhere, look it up.
+A milliwatt and a half into a dipole is legal there, and the frame could
+cross 41 km of free space with it. The ground will take its share, but a
+campus is not in doubt. The band also suits the hardware:
 
-And the other route, which is the one radio amateurs take: a licence. In
-the US a Technician licence allows data modes on 28.0–28.3 MHz at up to
-200 W, and 28.074 MHz is where FT8 lives on the 10 m band, within reach of
-the DAC's second image and the ADC's alias with a band-pass filter at
-both; a General licence adds 7.074 MHz, the busiest FT8 frequency on
-Earth, which both converters reach directly, with a dipole on a roof and
-a few watts from a kit amplifier. With the real LDPC code in `ft8.py` and
-a real frame clock, WSJT-X on any laptop decodes you, and
-[PSKReporter](https://pskreporter.info) shows who heard you, which is a
-better range measurement than a tape measure.
+- It is 14 kHz wide, and the frame is 50 Hz.
+- Any crystal meets the required frequency tolerance (±0.01%, 1.4 kHz).
+- The DAC makes 13.56 MHz directly (its
+  [sinc](https://en.wikipedia.org/wiki/Sinc_function) roll-off is 0.88
+  there).
+- The ADC at 25 MS/s sees it folded to 11.44 MHz, spectrum inverted, so
+  `ddc.sv`'s oscillator goes to 11.44 MHz and the receiver swaps *I* and
+  *Q*.
+
+The one unknown is the ADC *module*'s input amplifier above 12.5 MHz,
+which [1.08](1_08_lockin.md#108-a-lock-in-amplifier)'s sweep can measure
+with the DAC as the source. In Europe the same band is for inductive
+short-range devices under ERC Recommendation 70-03, Annex 9, with its own
+field limit at 10 m. Elsewhere, look it up.
+
+**The other route is the one radio amateurs take: a licence.** In the US:
+
+- A **Technician** licence allows data modes on 28.0–28.3 MHz at up to
+  200 W. FT8 lives at 28.074 MHz on the 10 m band, within reach of the
+  DAC's second image and the ADC's alias, with a band-pass filter at both.
+- A **General** licence adds 7.074 MHz, the busiest FT8 frequency on
+  Earth. Both converters reach it directly; add a dipole on a roof and a
+  few watts from a kit amplifier.
+
+With the real LDPC code in `ft8.py` and a real frame clock, WSJT-X on any
+laptop decodes you, and [PSKReporter](https://pskreporter.info) shows who
+heard you: a better range measurement than a tape measure.
 
 > [!WARNING]
 > The near-field rungs radiate almost nothing and are legal anywhere. The
-> far-field ones are where the rules bite: keep the transmitter turned
-> down to the field strength your country allows, measure the field if
-> you can (an RTL-SDR with a calibrated antenna is the cheap way), and
-> remember that a dipole fed with the DAC's full 23 mW is twelve hundred
-> times over the field limit at 6.78 MHz, and still three hundred times
-> over when turned down to 1.4 mW.
+> far-field ones are where the rules bite:
+>
+> - **Keep the transmitter turned down** to the field strength your
+>   country allows.
+> - **Measure the field** if you can (an RTL-SDR with a calibrated antenna
+>   is the cheap way).
+> - Remember that a dipole fed with the DAC's full 23 mW is twelve hundred
+>   times over the field limit at 6.78 MHz, and still three hundred times
+>   over when turned down to 1.4 mW.
 
 ## Parts
 
@@ -1611,31 +1691,34 @@ out what a loop printed on a 100 mm board would reach.
 
 **Try this:**
 
-- Rung 1 on one board: a minigrabber lead on DAC OUT and another on ADC
-  IN, `ddc.py --tone 6.78e6 --monitor`, and move the leads apart until the
-  signal falls into the noise. Plot the signal against distance on log
+- **Rung 1 on one board:** a minigrabber lead on DAC OUT and another on
+  ADC IN, and `ddc.py --tone 6.78e6 --monitor`. Move the leads apart until
+  the signal falls into the noise. Plot the signal against distance on log
   axes: is the slope −3?
-- `ft8.py --slow --send ... --listen` at that distance, then twice it.
-- Lower `--amp` on the cable until the frame stops decoding, in steps of
-  3 dB; where is the threshold in codes at the ADC, and does it match the
-  8 µV floor plus 7 dB?
-- Two boards, a tuned loop each ([5.07](5_07_radio_link.md#507-a-radio-link)),
+- **The frame at that distance:** `ft8.py --slow --send ... --listen`
+  there, then at twice the distance.
+- **The threshold:** on the cable, lower `--amp` in steps of 3 dB until
+  the frame stops decoding. Where is the threshold in codes at the ADC,
+  and does it match the 8 µV floor plus 7 dB?
+- **Two boards, a tuned loop each** ([5.07](5_07_radio_link.md#507-a-radio-link)),
   one sending and one listening: how far down the corridor? Then turn one
   loop by 90°.
-- The 13.56 MHz version: `ddc.py --tone 13.56e6` on the DAC, the receiver's
-  oscillator at 11.44 MHz, and a `--invert` flag in the receiver that
-  conjugates the stream. First measure the ADC module's response there.
-- A continuous listener: read one second at a time, keep the last 30, and
-  try a decode every second, so that the two ends need not be started in
-  order. Then the FT8 *protocol*: 15-second slots, a reply, a QSO.
-- Real FT8: WSJT-X's LDPC(174,91) generator matrix and its 77-bit message
-  packing in place of the convolutional code, 13 characters, and a
+- **The 13.56 MHz version:** `ddc.py --tone 13.56e6` on the DAC, the
+  receiver's oscillator at 11.44 MHz, and a `--invert` flag in the
+  receiver that conjugates the stream. First measure the ADC module's
+  response there.
+- **A continuous listener:** read one second at a time, keep the last 30,
+  and try a decode every second, so that the two ends need not be started
+  in order. Then the FT8 *protocol*: 15-second slots, a reply, a QSO.
+- **Real FT8:** WSJT-X's LDPC(174,91) generator matrix and its 77-bit
+  message packing in place of the convolutional code, 13 characters, and a
   160 ms symbol (`--symbol 8000000` and tones 6.25 Hz apart). Then an
   RTL-SDR, WSJT-X, and a decode of your own board on a laptop that has
   never heard of it.
-- PySDR's [link budgets chapter](https://pysdr.org/content/link_budgets.html)
-  does the far-field arithmetic in decibels, which is how everyone else
-  does it; redo rung 4 that way and check `air.py`.
+- **The far field in decibels:** PySDR's
+  [link budgets chapter](https://pysdr.org/content/link_budgets.html) does
+  the far-field arithmetic in decibels, which is how everyone else does
+  it. Redo rung 4 that way and check `air.py`.
 
 <!-- nav -->
 [← 6.11 The modem in the FPGA](6_11_the_modem_in_the_fpga.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [6.13 More ideas, and a radar chapter →](6_13_more_ideas.md)

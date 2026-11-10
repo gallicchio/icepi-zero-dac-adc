@@ -5,37 +5,58 @@
 
 ![The loop: setpoint, the PID in the FPGA in two clocks, the DAC, the plant, the ADC, and back; and where the 280 nanoseconds of latency hide: 160 in the ADC's pipeline, 40 in the gateware, 10 in the DAC's latch, 35 in the analog path, and the wait for the next sampling edge](img/dsp_control_d_loop.png)
 
-[4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant) worked
-out feedback control of an RC on paper and could not test it, because a
-loop that goes through the laptop closes in milliseconds and an RC with a
-microsecond time constant is gone by then. A controller in gateware
-closes in two clocks. This page builds one, a PID at 25 million updates
-a second, and uses it to measure the one number that decides how fast
-any feedback loop can be: not the gain, not the processor, but the
-*latency* around the loop. That number is 280 ns here, and it is what a
-laser lock, an intensity noise-eater and a superconducting qubit's
-readout feedback have in common with this board, which is the author's
-reason for the page: control at these rates is training, or a proxy,
-for the control of quantum systems and of light.
+[4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)
+worked out feedback control of an RC on paper but could not test it: a
+loop through the laptop closes in milliseconds, and an RC with a
+microsecond time constant has settled long before that. A controller in
+gateware closes in two clocks.
+
+This page builds one, a PID that updates 25 million times a second, and
+uses it to measure the one number that decides how fast any feedback
+loop can be: not the gain, not the processor, but the *latency* around
+the loop. Here it is 280 ns.
+
+Latency is what this board has in common with a laser lock, an intensity
+noise-eater and a superconducting qubit's readout feedback. That is why
+control at these rates is practice for controlling light and quantum
+systems.
 
 ## The loop, and where the time goes
 
-Every ADC sample, `control.sv` computes the error *e* = setpoint −
-measurement, then *u* = *K*<sub>p</sub> *e* + *K*<sub>i</sub> Σ*e* + *K*<sub>d</sub> Δ*e*, and
-the DAC plays 128 + *u*, saturated. The gains are 16-bit words with a
-scale each (*K*<sub>p</sub> in 1/1024, *K*<sub>i</sub> per sample in 1/65536, *K*<sub>d</sub> in
-1/256, as the Red Pitaya's PID does it); the integrator has anti-windup
-(it holds while the DAC is pinned, and sits at zero while *K*<sub>i</sub> = 0,
-which a simulation taught the hard way: without that rule the sum wound
-silently to its clamp during a P-only run and dumped 3000 codes into the
-DAC the moment *K*<sub>i</sub> was switched on). From the ADC's word being
-registered to the DAC's word changing is **two clocks, 40 ns**. The rest
-of the figure's bar is the converters: the AD9280's three-stage pipeline
-delivers a sample 145 ns after it was taken and the FPGA registers it on
-the next edge at 160; the AD9708 latches 10 ns later and settles in
-about 35 with the cable; then the loop waits for the next sampling edge.
-About 280 ns, seven samples, round the loop, of which the controller is
-one seventh and the ADC's pipeline four.
+Every ADC sample, `control.sv`:
+
+1. computes the error *e* = setpoint − measurement;
+2. computes *u* = *K*<sub>p</sub> *e* + *K*<sub>i</sub> Σ*e* + *K*<sub>d</sub> Δ*e*;
+3. sends 128 + *u* to the DAC, saturated.
+
+The gains are 16-bit words, each with its own scale, as in the Red
+Pitaya's PID:
+
+- *K*<sub>p</sub> in 1/1024;
+- *K*<sub>i</sub> in 1/65536, per sample;
+- *K*<sub>d</sub> in 1/256.
+
+The integrator has anti-windup:
+
+- it holds while the DAC is pinned at a rail;
+- it sits at zero while *K*<sub>i</sub> = 0. Without this rule the sum
+  winds silently to its clamp during a P-only run, then dumps 3000 codes
+  into the DAC the moment *K*<sub>i</sub> is switched on.
+
+Where the time goes (the figure's bar):
+
+- **ADC, 160 ns:** the AD9280's three-stage pipeline delivers a sample
+  145 ns after taking it, and the FPGA registers it on the next edge.
+- **Controller, two clocks, 40 ns:** from the ADC's word being
+  registered to the DAC's word changing.
+- **DAC latch, 10 ns:** the AD9708 latches the word 10 ns after it
+  changes.
+- **Analog path, about 35 ns:** the DAC's output settling, with the
+  cable.
+- **The wait** for the ADC's next sampling edge.
+
+That is about **280 ns, seven samples,** round the loop. The controller
+is one seventh of it; the ADC's pipeline is four sevenths.
 
 <details>
 <summary>The whole file: <code>control.sv</code></summary>
@@ -500,27 +521,40 @@ endmodule
 
 </details>
 
-The laptop sets everything over the [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter) (`P`, `I`, `D`, the setpoint
-`S` and a step `J` that toggles every 2<sup>N</sup> samples, the plant
-mode `M`, `E` to close the loop, `C` to capture 16384 samples of any two of
-setpoint, measurement, error, output and plant state, aligned to a step,
-and `?` to read every register back), and `control.py` wraps it. The
-first line it prints after any command is what the board says it holds,
-which is the first thing to look at when a loop misbehaves.
+The laptop sets everything over the
+[UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter),
+one letter per command, and `control.py` wraps it:
+
+- `P`, `I`, `D`: the three gains;
+- `S`: the setpoint; `J`: a step that toggles every 2<sup>N</sup> samples;
+- `M`: the plant mode;
+- `E`: close the loop;
+- `C`: capture 16384 samples of any two of setpoint, measurement, error,
+  output and plant state, aligned to a step;
+- `?`: read every register back.
+
+After any command, the first line `control.py` prints is what the board
+says it holds. **When a loop misbehaves, look at that line first.**
 
 ![The three plants: mode 0, the real world between DAC OUT and ADC IN, a pure delay with the cable or an RC; mode 1, a first-order lag inside the FPGA with the ADC added as a disturbance; mode 2, a lightly damped resonator inside the FPGA; with the model's own step responses](img/dsp_control_d_plants.png)
 
-Three plants. **Mode 0** is the real world: whatever is between DAC OUT
-and ADC IN, which with the loopback cable is a pure delay with a gain
-of 0.776, and with [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)'s
-RC is [4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)'s plant at last. **Mode 1** is a first-order lag inside the
-FPGA, *y* ← *y* + (*u* − *y*)/2<sup>*K*</sup>, with `L` extra samples of delay so
-that it can be given the real loop's seven-sample round trip, and with
-the ADC added to its output as a *disturbance*: the function generator
-kicks the loop and the controller fights back. **Mode 2** is a lightly
-damped resonator at 100 kHz with a *Q* of about 25, the kind of plant a
-piezo-mounted mirror is. Modes 1 and 2 were measured with the ADALM2000 on the bench as the
-disturbance; mode 0 with the loopback cable back in place.
+There are three plants:
+
+- **Mode 0, the real world:** whatever is between DAC OUT and ADC IN.
+  With the loopback cable it is a pure delay with a gain of 0.776. With
+  [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)'s RC it is
+  [4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)'s
+  plant at last.
+- **Mode 1, a first-order lag** inside the FPGA,
+  *y* ← *y* + (*u* − *y*)/2<sup>*K*</sup>. `L` adds extra samples of
+  delay, so it can be given the real loop's seven-sample round trip. The
+  ADC is added to its output as a *disturbance*: the function generator
+  kicks the loop and the controller fights back.
+- **Mode 2, a lightly damped resonator** at 100 kHz with a *Q* of about
+  25: the kind of plant a piezo-mounted mirror is.
+
+**Wiring:** modes 1 and 2 were measured with the ADALM2000's W1 in ADC
+IN as the disturbance; mode 0 with the loopback cable.
 
 ## A step, and the gain at which it sings
 
@@ -1326,6 +1360,10 @@ if __name__ == "__main__":
 
 </details>
 
+**Load the controller**, check what the board holds (`--show`), then
+**step a PI loop** on the lag plant (mode 1), with `--L 5` making the
+round trip seven samples:
+
 ```console
 $ cd src/dsp
 $ make load-control
@@ -1336,9 +1374,12 @@ board: mode 1  Kp 2048/1024 Ki 3277/65536 Kd 0/256  S 0 J 40 N 12 T 1  B 0  K 4 
 step +38 codes: delay 280 ns, rise 320 ns, overshoot 8 %, settles in 3.52 us, steady-state error -4.0 codes
 ```
 
-A PI loop on the lag with a seven-sample round trip: 280 ns of nothing
-(the delay), a 320 ns rise, 8% overshoot, settled in 3.5 µs. Then raise
-*K*<sub>p</sub> with the integrator off until the loop oscillates:
+**You should see** 280 ns of nothing (the delay), a 320 ns rise, 8%
+overshoot, settled in 3.5 µs.
+
+**Raise *K*<sub>p</sub>** with the integrator off until the loop
+oscillates: first with the seven-sample round trip, then with no extra
+delay:
 
 ```console
 $ python3 control.py --mode 1 --K 4 --L 5 --gain-sweep 1:6:0.5 --step 40
@@ -1361,17 +1402,30 @@ critical gain Kp = 16.500; oscillates at 4.401 MHz, period 5.7 samples = 227 ns
 
 ![Measured: the ringing left at the end of each record against the proportional gain, with the model's critical gain, and the frequency it rings at](img/dsp_control_sweep_m1.png)
 
-The model says 4.39 at 1.10 MHz with the seven-sample delay and exactly
-2<sup>*K*</sup> = 16 at 4.3 MHz without; the board says 4.25 at 1.10 MHz and 16.5 at
-4.4 MHz. That is the measurement the page is built around. A loop goes
-unstable where its phase lag reaches 180° with the gain still at one.
-The lag plant contributes up to 90°; a pure delay τ contributes ωτ,
-without limit, so there is always a frequency where the two add to 180°,
-and the delay sets it: the extra five samples of delay cut the critical
-gain by four and the ringing frequency by four. In mode 0, where the
-plant is *only* the delay, a P loop sings at *f* = 1/(2τ) when
-*K*<sub>p</sub>*G* = 1, so the period of the oscillation is twice the loop delay:
-a ruler for τ with a resolution of one sample. On the cable:
+The critical gain, where the loop starts to oscillate:
+
+| delay | model | board |
+| --- | --- | --- |
+| seven-sample round trip (`--L 5`) | 4.39 at 1.10 MHz | 4.25 at 1.10 MHz |
+| no extra delay (`--L 0`) | exactly 2<sup>*K*</sup> = 16 at 4.3 MHz | 16.5 at 4.4 MHz |
+
+This is the measurement the page is built around. A loop goes unstable
+where its phase lag reaches 180° with the gain still at one:
+
+- the lag plant contributes up to 90°;
+- a pure delay τ contributes ωτ, without limit.
+
+So there is always a frequency where the two add to 180°, and the delay
+sets it: the five extra samples of delay cut both the critical gain and
+the ringing frequency by four.
+
+In mode 0 the plant is *only* the delay. A P loop then sings at
+*f* = 1/(2τ) when *K*<sub>p</sub>*G* = 1, so the period of the
+oscillation is twice the loop delay: a ruler for τ with a resolution of
+one sample.
+
+**Put the loopback cable back** (DAC OUT to ADC IN), sweep the gain in
+mode 0, then step a PI loop:
 
 ```console
 $ python3 control.py --mode 0 --gain-sweep 0.9:1.6:0.05
@@ -1391,20 +1445,28 @@ step +20 codes: delay 280 ns, rise 3320 ns, overshoot 5 %, settles in 5.36 us, s
 
 ![Measured on the cable: the ringing against the proportional gain, 1.786 MHz below the critical gain, and the oscillation that takes over above it, at three times that frequency](img/dsp_control_sweep.png)
 
-Below the critical gain the loop hums at 1.786 MHz, which is 1/(2τ) for
-τ = 280 ns to the last digit: seven samples round the loop, exactly as
-the bar at the top of the page counts them. The critical gain, 1.33
-against the model's 1.29, is the cable's 0.776 read back as 1/*K*<sub>p</sub>.
-And then a surprise worth the page: at 1.35 the loop ran away not at
-1.79 MHz but at 5.4 MHz, three times it. A pure delay has 180° of phase
-lag at *every* odd multiple of 1/(2τ), and a model with a flat gain cannot
-say which one goes first; the real path through the DAC, the cable and
-the ADC has a few percent of gain ripple, and at 5.4 MHz it happened to
-be the higher. The ruler still reads 280 ns, from the hum, and the
-lesson is one textbooks skip: a delay is not one phase crossing but a
-comb of them.
+What the cable shows:
+
+- **The hum.** Below the critical gain the loop hums at 1.786 MHz. That
+  is 1/(2τ) for τ = 280 ns to the last digit: seven samples round the
+  loop, exactly as the bar at the top of the page counts them.
+- **The critical gain,** 1.33 against the model's 1.29, is the cable's
+  gain of 0.776 read back as 1/*K*<sub>p</sub>.
+- **A surprise:** at 1.35 the loop ran away not at 1.79 MHz but at
+  5.4 MHz, three times the hum.
+
+Why? A pure delay has 180° of phase lag at *every* odd multiple of
+1/(2τ), and a model with a flat gain cannot say which one goes first.
+The real path through the DAC, the cable and the ADC has a few percent
+of gain ripple, and at 5.4 MHz the gain happened to be higher. The hum
+still reads 280 ns. The lesson, which textbooks skip: a delay is not one
+phase crossing but a comb of them.
 
 ## Fighting a disturbance
+
+**Connect the ADALM2000's W1 to ADC IN** in place of the loopback cable.
+`--m2k` plays a square wave on W1 and measures with the loop closed, then
+open; `--bode` plays sines and measures the sensitivity function:
 
 ```console
 $ python3 control.py --mode 1 --K 4 --L 5 --kp 2 --ki 0.05 --m2k         # W1: a 5 kHz, ±25-code square wave into ADC IN
@@ -1417,28 +1479,36 @@ $ python3 control.py --mode 1 --K 4 --L 5 --kp 2 --ki 0.05 --bode 2e3:3e6:20
 
 ![Measured: a 5 kHz square wave from the generator into the ADC with the loop open and closed, and the controller's output pushing back; and the sensitivity function against frequency, with the model's curve: rejection below the loop bandwidth, amplification above it](img/dsp_control_reject_m1.png)
 
-The function generator plays a square wave into ADC IN, which the lag
-plant adds to its output: a disturbance the controller can see but did
-not cause. With the loop open the measurement is the disturbance; closed,
-3 codes of 25 are left and the DAC is doing the opposite of the generator.
-Sweep the disturbance's frequency and you get the *sensitivity function*
-*S* = 1/(1 + *CH*), the fraction of a disturbance that gets through: −40 dB
-at 2 kHz, rising with frequency, crossing 0 dB at 643 kHz (the loop
-bandwidth), and then *above* 0 dB, +6 dB at 945 kHz: the loop makes those
-disturbances *worse*. That is the waterbed: for a plant with delay, the
-area under log |*S*| is conserved (Bode's integral), so rejection pushed
-down at low frequencies comes up somewhere else. The model's curve runs
-through the measured points to three digits. The resonator (mode 2, with
-the derivative term as its damping) gives −9 dB at 5 kHz, a −23 dB notch
-at its own 100 kHz (a plant's resonance is free loop gain there), and
-+3.7 dB at 138 kHz.
+The square wave goes into ADC IN, and the lag plant adds it to its
+output: a disturbance the controller can see but did not cause.
+
+- **Loop open:** the measurement is the disturbance.
+- **Loop closed:** 3 codes of the 25 are left, and the DAC does the
+  opposite of the generator.
+
+Sweeping the disturbance's frequency gives the *sensitivity function*
+*S* = 1/(1 + *CH*), the fraction of a disturbance that gets through:
+
+- −40 dB at 2 kHz, rising with frequency;
+- 0 dB at 643 kHz: the loop bandwidth;
+- *above* 0 dB beyond that, +6 dB at 945 kHz: the loop makes those
+  disturbances *worse*.
+
+That is the waterbed: for a plant with delay, the area under log |*S*|
+is conserved (Bode's integral), so rejection pushed down at low
+frequencies comes up somewhere else. The model's curve runs through the
+measured points to three digits.
+
+The resonator (mode 2, with the derivative term as its damping) gives
+−9 dB at 5 kHz, a −23 dB notch at its own 100 kHz (a plant's resonance
+is free loop gain there), and +3.7 dB at 138 kHz.
 
 ## Latency sets the speed, and nothing else does
 
 ![Computed from the model: proportional-only steps on the cable at several gains, the oscillation at the critical gain with its 14-sample period, a PI loop finding the setpoint, and loop bandwidth against round-trip delay with the regimes marked: laser locks, qubit feedback, piezo mirrors, drones, thermostats, and this board](img/dsp_control_latency.png)
 
-Three rules of thumb, and the figure's last panel is the whole of
-control engineering on one axis:
+The figure's last panel puts the whole of control engineering on one
+axis. Three rules of thumb:
 
 - A P loop on a pure delay oscillates at *f* = 1/(2τ).
 - Once there is an integrator (90° spent already), the delay eats the
@@ -1447,42 +1517,57 @@ control engineering on one axis:
 - A loop with a comfortable 45–60° of phase margin sits at 1/(8τ) to
   1/(12τ); call it 1/(10τ), 360 kHz here.
 
-A faster processor would shave the 40 ns of gateware out of the 280; the
-ADC's pipeline, the DAC's latch and the cable would remain. That is the
-lesson, and it is why the serious loops of physics are built the way this
-one is, in gateware next to the converters: a [Pound–Drever–Hall](https://en.wikipedia.org/wiki/Pound%E2%80%93Drever%E2%80%93Hall_technique) laser
-lock's fast path (the cavity's error signal through a [photodiode](https://en.wikipedia.org/wiki/Photodiode), a
-mixer and a servo to the laser's current) has a round trip of 100 ns to
-a microsecond and a bandwidth of a megahertz; an intensity noise-eater is
-mode 0 with [4.07](4_07_optical_link.md#407-an-optical-link)'s LED and
-photodiode as the plant; a superconducting qubit's readout feedback (the
-readout resonator's ring-up, the amplifier chain, the ADC, the FPGA, a
-conditional π pulse) is a few hundred nanoseconds to a microsecond
-against a *T*<sub>1</sub> of tens of microseconds, so the whole game is latency.
-A drone's attitude loop is the same loop with milliseconds of ESC, motor
-and propeller, hence tens of hertz. A thermostat is seconds. The board
-sits at the left edge of the figure, with the laser locks, and that is
-the answer to whether it can teach the fast end: yes, because the fast
-end is about latency, and its latency is a quarter of a microsecond.
+A faster processor would shave only the 40 ns of gateware out of the
+280: the ADC's pipeline, the DAC's latch and the cable would remain.
+That is why the serious loops of physics are built the way this one is,
+in gateware next to the converters:
+
+- **A [Pound–Drever–Hall](https://en.wikipedia.org/wiki/Pound%E2%80%93Drever%E2%80%93Hall_technique) laser lock:**
+  the fast path (the cavity's error signal through a
+  [photodiode](https://en.wikipedia.org/wiki/Photodiode), a mixer and a
+  servo to the laser's current) has a round trip of 100 ns to a
+  microsecond and a bandwidth of a megahertz.
+- **An intensity noise-eater** is mode 0 with
+  [4.07](4_07_optical_link.md#407-an-optical-link)'s LED and photodiode
+  as the plant.
+- **A superconducting qubit's readout feedback** (the readout
+  resonator's ring-up, the amplifier chain, the ADC, the FPGA, a
+  conditional π pulse) takes a few hundred nanoseconds to a microsecond,
+  against a *T*<sub>1</sub> of tens of microseconds: the whole game is
+  latency.
+- **A drone's attitude loop** is the same loop with milliseconds of ESC,
+  motor and propeller, hence tens of hertz.
+- **A thermostat** is seconds.
+
+The board sits at the left edge of the figure, with the laser locks. So
+it can teach the fast end: the fast end is about latency, and the
+board's latency is a quarter of a microsecond.
 
 <details>
 <summary><b>Detail:</b> the bug that passed every testbench</summary>
 
-The first bitstream of this page did nothing on the board: the plant's
-state sat at its lower wall from the first sample, whatever the gains.
-Every RTL simulation had passed. The cause was one expression, a
-negated size cast, `-22'(YMAX)`, which Icarus evaluates as −524032 and
-which Yosys synthesized as +524032, so the plant's lower-wall test was
-true for every value and the plant was clamped for ever. The tool that
-found it was a *gate-level* replay: `control.py --dump-bytes` records the
-exact bytes the laptop sends, and a port-only testbench plays them into
-the synthesized netlist instead of the RTL; the netlist reproduced the
-board's DAC = 255 at once. "Passes every testbench, fails on the board"
-has three usual causes, timing, the pins, and synthesis disagreeing
-with simulation, and the third is the one you never suspect. The fix is
-two literals (`22'sd524032` and `-22'sd524032`), the gate-level check is
-`make sim-control-gl`, and every other design in this repository has
-been grepped for the pattern.
+"Passes every testbench, fails on the board" has three usual causes:
+
+- timing;
+- the pins;
+- synthesis disagreeing with simulation: the one you never suspect.
+
+The first build of `control.sv` hit the third. On the board the plant's
+state sat at its lower wall from the first sample, whatever the gains,
+though every RTL simulation had passed. The cause was one expression, a
+negated size cast, `-22'(YMAX)`: Icarus evaluates it as −524032, Yosys
+synthesized it as +524032. The plant's lower-wall test was then true for
+every value, and the plant was clamped for ever. The fix is two
+literals, `22'sd524032` and `-22'sd524032`.
+
+The tool that found it is a *gate-level* replay:
+
+1. `control.py --dump-bytes` records the exact bytes the laptop sends.
+2. A testbench that uses only the ports plays them into the synthesized
+   netlist instead of the RTL.
+
+The netlist reproduced the board's DAC = 255 at once. **Run the check
+with** `make sim-control-gl`.
 
 </details>
 
@@ -1503,19 +1588,21 @@ of the accessory board sketched in [Appendix D](D_coming_soon.md#an-amod-a-board
 
 **Try this:**
 
-- Mode 0 again with 10 m more cable: the hum moves down, the critical
-  gain down, and the runaway's frequency changes; count the samples.
-- Why 5.4 MHz? Put a low-pass in the loop (the `--tau` of the model, or
+- **Add 10 m more cable** and run mode 0 again: the hum moves down, the
+  critical gain down, and the runaway's frequency changes. Count the
+  samples.
+- **Why 5.4 MHz?** Put a low-pass in the loop (the model's `--tau`, or
   an RC on the bench) and watch the runaway move back to 1.79 MHz.
-- Derivative on the measurement instead of on the error (one line:
-  `kd * (meas_prev - meas)`): the derivative kick on a setpoint step goes
-  away. Then watch the derivative amplify the ADC's one-code noise in *u*.
-- The smallest *K*<sub>i</sub> that still removes the one-code offset the ADC's
-  127 leaves, and how long it takes.
-- Mode 2 with `--kd 0`: where is the critical gain now, and why does the
-  loop sing at the plant's own frequency?
-- An LC between DAC OUT and ADC IN, and the whole page again on a plant
-  that rings for real.
+- **Take the derivative of the measurement** instead of the error (one
+  line: `kd * (meas_prev - meas)`): the derivative kick on a setpoint
+  step goes away. Then watch the derivative amplify the ADC's one-code
+  noise in *u*.
+- **Find the smallest *K*<sub>i</sub>** that still removes the one-code
+  offset the ADC's 127 leaves, and how long it takes.
+- **Mode 2 with `--kd 0`:** where is the critical gain now, and why does
+  the loop sing at the plant's own frequency?
+- **Put an LC between DAC OUT and ADC IN** and run the whole page again
+  on a plant that rings for real.
 
 <!-- nav -->
 [← 7.05 Trading speed for bits](7_05_trading_speed_for_bits.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.07 Bigger ideas: NMR, MRI and qubits →](7_07_bigger_ideas.md)

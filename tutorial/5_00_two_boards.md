@@ -5,16 +5,21 @@
 
 <img src="img/stack_two_boards.png" alt="Seen from above: two boards side by side; A's DAC OUT goes to B's ADC IN, and B's DAC OUT to A's ADC IN" width="800">
 
-**What you need first:** Chapter 1 through [1.08](1_08_lockin.md#108-a-lock-in-amplifier), and a second board for most of it (the TIP
-below says what one board can do). Only the network part of [5.05](5_05_fsk_modem.md#505-a-modem) needs Chapter 3.
+**What you need first:**
+* Chapter 1 through [1.08](1_08_lockin.md#108-a-lock-in-amplifier)
+* a second board, for most of it (the TIP below says what one board can do)
+* Chapter 3, only for the network part of [5.05](5_05_fsk_modem.md#505-a-modem)
 
-Everything so far used one board, and so one clock. Connect two boards, the DAC
-of each to the ADC of the other, and something new appears: two clocks that
-don't quite agree. Most of this chapter is about that. It covers how to compare two
-clocks to parts per billion, how to agree on what time it is when every message
-takes time to arrive, how two oscillators that can hear each other fall into
-step, and how much information a 16 cm cable can carry. It ends with a show: the two boards
-drawing in 3D on an oscilloscope, one axis each, kept in step through the cable.
+So far there was one board, and so one clock. Connect two boards, the DAC of
+each to the ADC of the other, and you have two clocks that don't quite agree.
+This chapter is mostly about that:
+* comparing two clocks to parts per billion
+* agreeing on the time when every message takes time to arrive
+* two oscillators that hear each other falling into step
+* how much information a 16 cm cable can carry
+
+It ends with a show: the two boards drawing in 3D on an oscilloscope, one axis
+each, kept in step through the cable.
 
 | | |
 | --- | --- |
@@ -22,14 +27,11 @@ drawing in 3D on an oscilloscope, one axis each, kept in step through the cable.
 | board B | the same; its DAC → A's ADC through a second 16.5 cm cable |
 | (any one board) | looped back, its own DAC → its own ADC |
 
-This chapter builds on Chapter 1 only. It uses a few of its files (`uart.sv`,
-`sine.sv`, `loopback.sv`, `lockin.sv`, `pll100.sv` and `icepi_adda.lpf`), and
-the new ones are in [`src/twoboard/`](../src/twoboard/), where you work:
-`cd src/twoboard`. Everything is plain SystemVerilog plus Python. The FPGAs do
-the work that has to be on time, to the nanosecond, and the laptop does the
-arithmetic. (Each experiment could later move into a LiteX peripheral or a
-Linux driver, as Chapters 2 and 3 did for the single board, but plain
-SystemVerilog keeps the physics in view.)
+**Work in [`src/twoboard/`](../src/twoboard/)** (`cd src/twoboard`). The designs
+are plain SystemVerilog plus Python, and they reuse a few of Chapter 1's files
+(`uart.sv`, `sine.sv`, `loopback.sv`, `lockin.sv`, `pll100.sv` and
+`icepi_adda.lpf`). The FPGAs do what must be on time to the nanosecond; the
+laptop does the arithmetic.
 
 > [!TIP]
 > **Only one board?** Most of this chapter still works, with the board's DAC
@@ -40,11 +42,11 @@ SystemVerilog keeps the physics in view.)
 
 ## Telling the boards apart
 
-With several boards plugged in, `/dev/ttyUSB0` and friends stop being useful.
-The numbers are handed out in the order the boards appear, and every
-`openFPGALoader` command makes its board vanish and come back, often under a
-new number. Use each board's FT231X serial number instead. (On a Mac, the ports are
-already named after it: `/dev/cu.usbserial-DP051TLX`.)
+With two boards plugged in, `/dev/ttyUSB0` and `/dev/ttyUSB1` are no use: the
+numbers go in the order the boards appear, and every `openFPGALoader` command
+makes its board vanish and come back, often under a new number. **Name each
+board by its FT231X serial number instead.** (On a Mac the ports already carry
+it: `/dev/cu.usbserial-DP051TLX`.)
 
 ```console
 $ openFPGALoader --scan-usb
@@ -57,26 +59,30 @@ usb-FTDI_FT231X_USB_UART_DP051TLX-if00-port0
 usb-FTDI_FT231X_USB_UART_DP0525BU-if00-port0
 ```
 
-The names in `/dev/serial/by-id/` follow the board wherever its `ttyUSB` number
-goes. `src/twoboard/Makefile` takes the serial number as a variable:
-`make load-awgcap SERIAL=DP0525BU`. (Below, board A is DP0525BU and board B
-is DP051TLX, and `$A` and `$B` are their `/dev/serial/by-id/...` names; put in
-your own.)
+The names in `/dev/serial/by-id/` follow the board whatever its `ttyUSB`
+number. The Makefile takes the serial number too: `make load-awgcap SERIAL=DP0525BU`.
 
-One more trap. When a board sends you data, Linux keeps about 4 kB of it for
-you. If your program is busy reading the *other* board, the rest is lost. Read
-each port in its own thread, as `awgcap.record_many()` in [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there) does.
+**Set `$A` and `$B` in each terminal you use**, with your own serial numbers.
+The commands in this chapter use them. Here board A is DP0525BU and board B
+is DP051TLX:
+
+```bash
+A=/dev/serial/by-id/usb-FTDI_FT231X_USB_UART_DP0525BU-if00-port0    # on a Mac: A=/dev/cu.usbserial-DP0525BU
+B=/dev/serial/by-id/usb-FTDI_FT231X_USB_UART_DP051TLX-if00-port0
+```
+
+**Read each board in its own thread.** Linux keeps only about 4 kB of what a
+board sends. If your program is busy reading the *other* board, the rest is
+lost. `awgcap.record_many()` in [5.03](5_03_time_transfer.md#503-what-time-is-it-over-there) does it this way.
 
 ## Checking the links
 
-`loopback.sv` from [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc) keeps playing its pattern after
-each command and records its own ADC. Load it into both boards and send each a
-command: each board's record is now the *other* board's pattern, starting at an
-arbitrary point, because nothing ties one board's sample 0 to the other's. Line
-the staircase up at its one big drop and it measures each direction. With
-a third board looped to itself for comparison
-([`dev/tools/twoboard/module_test.py`](../dev/tools/twoboard/module_test.py)
-did this):
+Load [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s `loopback.sv` into both boards and send each a
+command. Each board then records the *other* board's staircase, starting at an
+arbitrary point, since nothing ties one board's sample 0 to the other's. Lined
+up at its one big drop, the staircase measures each direction of the link.
+Here are both links, and a third board looped to itself for comparison
+([`dev/tools/twoboard/module_test.py`](../dev/tools/twoboard/module_test.py)):
 
 | path | ADC code per DAC code | offset (codes) | worst nonlinearity (codes) | missing ADC codes |
 | --- | ---: | ---: | ---: | --- |
@@ -84,9 +90,8 @@ did this):
 | B → A | 0.7818 | 27.21 | 0.50 | none in 29–225 |
 | a module looped to itself | 0.7761 | 27.57 | 0.53 | none in 29–224 |
 
-So every data bit of both converters works on both modules, and the two
-modules differ in gain by 0.7%. Each module has a potentiometer, left as it
-came, and that is a likely cause.
+Every data bit of both converters works, and the two modules differ in gain by
+0.7%, probably because each module's potentiometer was left as it came.
 
 ## The experiments
 

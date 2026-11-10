@@ -5,68 +5,76 @@
 
 ![Measured on the M2k's scope: eight microseconds of a second-order one-bit delta-sigma stream, DAC codes 0 and 255 only, with the sine it encodes; the spectra the instrument records for a plain comparator, dithered rounding, and first- and second-order noise shaping, the shaped noise climbing 20 and 40 decibels a decade; the four streams after a low-pass to 195 kilohertz, where the shaped ones are clean sines; and the effective bits recovered from one bit against the oversampling ratio, measured against the textbook](img/dsp_sigma_delta.png)
 
-You might be disappointed that the converters on your board are "only" 8-bit converters.
-Audio is 16 or 24 bits. But yours are fast with sampling at 50 or 25 MHz.
-Audio is 48 kHz. 
+The converters on your board are "only" 8 bits. Audio converters have 16
+or 24 bits, but they sample at 48 kHz. Yours are fast: the DAC samples at
+50 MS/s and the ADC at 25 MS/s.
 
-There is a technique for trading speed
-for bits. It goes under the names *oversampling*, *noise shaping*, and
-*delta-sigma* (ΔΣ) or *sigma-delta* (ΣΔ), depending on whether the people
-naming it differenced before they summed or after. 
+You can trade that speed for bits. The technique goes by the names
+*oversampling*, *noise shaping*, and *delta-sigma* (ΔΣ) or *sigma-delta*
+(ΣΔ), depending on whether the people naming it differenced before they
+summed or after.
 
-At the extreme are
-*one-bit* converters that, with an analog low-pass filter, give amazing
-audio quality; your phone's audio DAC is one. The
-key to these techniques is some analog filtering, digital or analog
-feedback, and processing power, which our FPGA has plenty of. This page
-does it in both directions, on the hardware we have, and is honest about
-where that hardware stops.
+At the extreme are *one-bit* converters: with an analog low-pass filter
+they give excellent audio, and your phone's audio DAC is one. The
+ingredients are:
+
+* some analog filtering,
+* digital or analog feedback,
+* processing power, which the FPGA has plenty of.
+
+This page trades speed for bits in both directions, ADC and DAC, and
+shows where this hardware stops.
 
 ## What a bit is worth
 
-Round a signal to *N* bits and the error is uniform between ±half a step:
-power Δ<sup>2</sup>/12, whatever the sample rate. A full-scale sine against that
-error has a [signal-to-noise ratio](https://en.wikipedia.org/wiki/Signal-to-noise_ratio) of 6.02 dB per bit plus 1.76 dB (the Analog Devices
-tutorial [MT-001](https://www.analog.com/media/en/training-seminars/tutorials/MT-001.pdf)
-derives it in a page), and turning a measured SNR back through that
-formula gives the *effective number of bits*, the ENOB, which is the only
-number on this page that matters. An 8-bit converter is 49.9 dB, 7.99
-bits; this module's ADC, measured through its own quantization and its
-0.1 code of noise, reads about 7.3 at the full 25 MS/s.
+Round a signal to *N* bits and the error is uniform between ±half a step
+Δ. Its power is Δ<sup>2</sup>/12, whatever the sample rate. Against that error,
+a full-scale sine has a [signal-to-noise ratio](https://en.wikipedia.org/wiki/Signal-to-noise_ratio)
+(SNR) of 6.02 dB per bit plus 1.76 dB. (The Analog Devices tutorial
+[MT-001](https://www.analog.com/media/en/training-seminars/tutorials/MT-001.pdf)
+derives it in a page.)
+
+Turn a measured SNR back through that formula and you get the *effective
+number of bits*, the **ENOB**: the only number on this page that matters.
+
+* An ideal 8-bit converter: 49.9 dB, 7.99 bits.
+* This module's ADC, measured with its own quantization and its 0.1 code
+  of noise: about 7.3 bits at the full 25 MS/s.
 
 Three facts turn that fixed Δ<sup>2</sup>/12 into something you can shrink:
 
 1. **It is only *noise* if something makes it so.** A sine rounded to 8
-   bits is a staircase, and a staircase's error is its harmonics, not
-   white noise: average it all you like and the harmonics stay. The error
-   becomes white, and independent of the signal, when the signal has
-   *dither* on it, a little noise of about a step's size. Then averaging
-   works.
+   bits is a staircase. A staircase's error is harmonics, not white noise:
+   average all you like and the harmonics stay. Put *dither* on the
+   signal, a little noise of about a step's size, and the error becomes
+   white and independent of the signal. Then averaging works.
 2. **Oversampling spreads the fixed noise over more bandwidth.** The
-   Δ<sup>2</sup>/12 is spread from 0 to *f*<sub>s</sub>/2; keep only the band *B* you
+   Δ<sup>2</sup>/12 is spread from 0 to *f*<sub>s</sub>/2. Keep only the band *B* you
    want with a low-pass filter and you keep 2*B*/*f*<sub>s</sub> = 1/OSR of it:
-   half a bit per doubling of the oversampling ratio.
-3. **Feedback pushes the noise out of the band.** Subtract last sample's
-   rounding error from this sample before rounding, and the error that
-   reaches the output is *e*[*n*] − *e*[*n* − 1]: differenced, which is a
+   half a bit per doubling of the oversampling ratio (OSR).
+3. **Feedback pushes the noise out of the band.** Subtract the last
+   sample's rounding error from this sample before rounding. The error that
+   reaches the output is then *e*[*n*] − *e*[*n* − 1]: differenced, which is a
    high-pass, |1 − *z*<sup>−1</sup>|<sup>2</sup> = (2 sin π*f*/*f*<sub>s</sub>)<sup>2</sup>. Most of it
    now lives near *f*<sub>s</sub>/2, where the low-pass throws it away. That is
    first-order noise shaping: 1.5 bits per doubling. Do it twice (second
-   order): 2.5 bits per doubling. The modulator is ten lines.
+   order) for 2.5 bits per doubling. The modulator is ten lines of code.
 
 ![Computed: effective bits against the oversampling ratio for dithered rounding, first-, second- and third-order noise shaping, with this 8-bit ADC's ceiling and the 16- and 24-bit lines of CD and studio audio; and where feedback puts the noise, the noise transfer functions 1 minus z to the minus one to the power 2n](img/dsp_enob.png)
 
 The left panel is the arithmetic: ENOB = log<sub>2</sub>(2<sup>*N*</sup> − 1) + (*n* + ½)
 log<sub>2</sub> OSR − *c*<sub>*n*</sub>, with *c* = 0.86, 2.14 and 3.55 bits for orders 1,
 2 and 3, from the in-band noise (Δ<sup>2</sup>/12)(π<sup>2*n*</sup>/(2*n* + 1)) OSR<sup>−(2*n*+1)</sup>.
-One bit, second order, at 256 times oversampling is 17.9 bits; at 64
-times it is 12.9, so the slogan "one bit at 64× is 16 bits" needs a
-third-order loop, which is what the DSD of the SACD uses (fifth to
-seventh, in fact, at 64 × 44.1 kHz). The dashed line is this ADC's own
-ceiling as a measuring instrument, 7.5 bits plus half a bit per doubling:
-anything the DAC side does better than that, the ADC cannot see, which
-is why the DAC experiments below use the ADALM2000's 12-bit scope as the
-instrument instead.
+
+* One bit, second order, at 256 times oversampling: 17.9 bits.
+* The same at 64 times: 12.9 bits. So the slogan "one bit at 64× is 16
+  bits" needs a third-order loop. The DSD of the SACD in fact uses fifth
+  to seventh order, at 64 × 44.1 kHz.
+
+The dashed line is this ADC's own ceiling as a measuring instrument: 7.5
+bits plus half a bit per doubling. The ADC cannot see anything the DAC
+side does better than that, so the DAC experiments below use the
+ADALM2000's 12-bit scope as the instrument instead.
 
 ## The ADC side: averaging buys bits only from noise
 
@@ -337,6 +345,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Connect the ADALM2000's W1 to ADC IN**, then run:
+
 ```console
 $ cd src/dsp
 $ python3 oversample_adc.py --m2k /dev/ttyUSB0      # W1 into ADC IN: a 1.5-code sine at 9.155 kHz, with and without noise
@@ -349,20 +359,26 @@ shaped       5.54     8.14     9.61    10.24    10.74      1.124       128.044
 theory for white error of 1.58 ADC codes rms: 5.54, 6.54, 7.54, 8.54, 9.54
 ```
 
-A sine a code and a half high is a staircase of three levels, and
-averaging the staircase 256 times over gives a smoother staircase: the
-"none" row gains a bit in eight doublings, and its fitted amplitude is
-wrong. Add two codes of white noise at the source and the single
-sample is worse (5.8 bits: the noise is there) but every doubling
-returns half a bit, exactly on the textbook line, and the sine comes
-back with the right amplitude. Add the same noise *high-passed* instead
-(first-differenced, so it lives where the low-pass will remove it) and
-it costs nothing at the start and returns more than half a bit per
-doubling: 10.7 bits from an 8-bit ADC at OSR 256, which is the whole
-page in one row. The ADC's own noise, a tenth of a code, is not enough
-to do this by itself; a real ADC with 0.5 code of noise would be, and
-that is why datasheets that quote "8 bits" with half a code of noise
-are being generous twice.
+The three rows:
+
+* **none**: a sine a code and a half high is a staircase of three levels.
+  Averaging the staircase 256 times over gives a smoother staircase: the
+  row gains a bit in eight doublings, and its fitted amplitude is wrong.
+* **dither**: two codes of white noise added at the source. The single
+  sample is worse (5.8 bits: the noise is there), but every doubling
+  returns half a bit, exactly on the textbook line, and the sine comes
+  back with the right amplitude.
+* **shaped**: the same noise *high-passed* instead (first-differenced, so
+  it lives where the low-pass will remove it). It costs nothing at the
+  start and returns more than half a bit per doubling: 10.7 bits from an
+  8-bit ADC at OSR 256. That row is the whole page.
+
+The ADC's own noise, a tenth of a code, is not enough to do this by
+itself. A real ADC with 0.5 code of noise would be, which is why
+datasheets that quote "8 bits" with half a code of noise are being
+generous twice.
+
+**Add `--dc`** to read DC levels, without and with noise:
 
 ```console
 $ python3 oversample_adc.py --m2k /dev/ttyUSB0 --dc
@@ -378,21 +394,27 @@ DAC code   ADC mean, no noise   with 2.0 codes of noise (+- its standard error)
   132         131.000               131.122 +- 0.011
 ```
 
-A DC level without noise is read as a whole code, however many samples
-you average, because every sample is the same wrong answer. With two
-codes of noise the mean of 16384 samples resolves a hundredth of a code
-and its standard error is a hundredth: an 8-bit converter reading to
-thirteen bits, and the differences between the rows are the converters'
-real *[differential nonlinearity](https://en.wikipedia.org/wiki/Differential_nonlinearity)*, measured for free. (The "DAC code"
-column here is the generator's setting through its own gain, so the
-model line of the loopback cable in the figure's last panel does not
-apply to it.) This is also why [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s
-lock-in read 78.380 codes to three decimals: a 157-code tone at a
-frequency incommensurate with the sampling sweeps the ADC's rounding
-through every code, so the signal is its own dither, and 2<sup>13</sup> samples
-average it down ninety times. A one-code tone cannot dither itself,
-which is [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)'s bias
-at small signals.
+Without noise, a DC level reads as a whole code however many samples you
+average: every sample is the same wrong answer. With two codes of noise,
+the mean of 16384 samples resolves a hundredth of a code, and its
+standard error is a hundredth:
+
+* an 8-bit converter reading to thirteen bits;
+* the differences between the rows are the converters' real
+  *[differential nonlinearity](https://en.wikipedia.org/wiki/Differential_nonlinearity)*,
+  measured for free.
+
+(The "DAC code" column here is the generator's setting through its own
+gain, so the loopback cable's model line in the figure's last panel does
+not apply to it.)
+
+This is also why [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s
+lock-in read 78.380 codes to three decimals. Its 157-code tone, at a
+frequency incommensurate with the sampling, sweeps the ADC's rounding
+through every code: the signal is its own dither, and 2<sup>13</sup> samples
+average it down ninety times. A one-code tone cannot dither itself: that
+is [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral)'s bias at
+small signals.
 
 ## The DAC side: one bit, flopping around wildly
 
@@ -857,17 +879,22 @@ if __name__ == "__main__":
 </details>
 
 `sigma_delta.py` takes a slow sine (three cycles per `awgcap.sv` loop,
-9.155 kHz, 64 codes), re-quantizes it four ways to 1, 2, 4 or 8 bits
-(plain rounding, rounding with TPDF dither, first-order and second-order
-error-feedback delta-sigma), and plays the result through the DAC. The
-one-bit versions use DAC codes 0 and 255 only. The modulator runs at
-25 MS/s and each output is held for two DAC samples: this hardware's
-first limitation, because the shaped noise has to stay below the ADC's
-12.5 MHz [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), or the loopback would fold the loudest part
-of it onto the quietest. Then the instrument (the ADC through the cable,
-or here the M2k's scope on the DAC pin) records the stream, a digital
-low-pass and decimation by OSR recover the sine, and a sine fit's
-residual gives the ENOB:
+9.155 kHz, 64 codes) and:
+
+1. re-quantizes it to 1, 2, 4 or 8 bits, four ways: plain rounding,
+   rounding with TPDF dither, and first- and second-order error-feedback
+   delta-sigma. The one-bit versions use DAC codes 0 and 255 only.
+2. plays the result through the DAC. The modulator runs at 25 MS/s and
+   each output is held for two DAC samples. This is the hardware's first
+   limitation: the shaped noise has to stay below the ADC's 12.5 MHz
+   [Nyquist frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), or
+   the loopback would fold the loudest part of it onto the quietest.
+3. records the stream with the instrument: the ADC through the cable, or
+   here the M2k's scope on the DAC pin.
+4. recovers the sine with a digital low-pass and decimation by OSR, and
+   gets the ENOB from a sine fit's residual.
+
+**Put the M2k's scope on the DAC pin**, then run:
 
 ```console
 $ python3 sigma_delta.py --m2k /dev/ttyUSB0 --table
@@ -892,44 +919,56 @@ bits  method          OSR 1         OSR 4        OSR 16        OSR 64       OSR 
 the instrument's own ceiling (0.43 DAC codes rms, white):   8.41   9.41  10.41  11.41  12.41
 ```
 
-Read it in three passes. **The plain and dithered rows follow the
-textbook to a tenth of a bit**: a comparator (1 bit, plain) is worth
-nothing however much you average, because its error is the signal's own
-shape; dithered, it gains exactly half a bit per doubling and reaches
-three bits from one. **The shaped rows start on the textbook and leave
-it**: 2-bit first-order rounding is 1.5 bits at the full rate, 3.8 at
-OSR 4, 6.7 at 16, 8.6 at 64 and nearly 9 at 256, which is a two-bit DAC
-behaving like a nine-bit one, and the bottom-left panel of the opening
-figure is the clean sine it makes. **And then they stop**, far below both
-the textbook and the instrument's 12-bit ceiling: the one-bit streams at
-4.5 to 5.3 bits, the four- and eight-bit shaped ones near 9. The
-simulation, with an ideal DAC, does not do this (the 1-bit second-order
-row reaches 11 bits there), so the stop is the hardware, and it is the
+Read the table in three passes:
+
+* **The plain and dithered rows follow the textbook to a tenth of a
+  bit.** A comparator (1 bit, plain) is worth nothing however much you
+  average, because its error is the signal's own shape. Dithered, it
+  gains exactly half a bit per doubling and reaches three bits from one.
+* **The shaped rows start on the textbook and leave it.** 2-bit
+  first-order rounding is 1.5 bits at the full rate, 3.8 at OSR 4, 6.7 at
+  16, 8.6 at 64 and nearly 9 at 256: a two-bit DAC behaving like a
+  nine-bit one. The bottom-left panel of the opening figure is the clean
+  sine it makes.
+* **And then they stop**, far below both the textbook and the
+  instrument's 12-bit ceiling: the one-bit streams at 4.5 to 5.3 bits,
+  the four- and eight-bit shaped ones near 9.
+
+The simulation, with an ideal DAC, does not stop (the 1-bit second-order
+row reaches 11 bits there), so the stop is the hardware. That is the
 page's second lesson:
 
 <details>
 <summary><b>Detail:</b> why the real one-bit stream stops at five bits</summary>
 
 A one-bit DAC is "linear by construction": two levels can only be wrong
-by a gain and an offset, which is the whole reason the audio world went
-to one bit. But that argument is about the *levels*. A real DAC also has
+by a gain and an offset. That is the whole reason the audio world went
+to one bit. But the argument is about the *levels*. A real DAC also has
 *edges*, and an 8-bit AD9708 asked to jump between codes 0 and 255
-twelve million times a second does not make every edge identical: each
-transition carries a little glitch energy and a slew that differs for
-rising and falling, and the stream's low-frequency content then depends
-on how many transitions it has, which depends on the signal. That is
-inter-symbol interference, a nonlinearity that no amount of filtering
-removes, and it grows with the number of transitions: the second-order
-stream, which switches more often than the first-order, comes out no
-better. A purpose-built one-bit DAC spends its design on making edges
-identical (return-to-zero coding, matched current switches), and a
-multi-bit delta-sigma DAC avoids the problem by switching less and
-*randomizes* which of its unit elements it uses so that their mismatch
-becomes noise rather than distortion (dynamic element matching). Our
-8-bit DAC pretending to be a 1-bit one shows exactly why those designs
-exist; the 2-bit first-order row, with fewer transitions, is the best
-compromise this hardware can make, and nine bits from two is still the
-point.
+twelve million times a second does not make every edge identical:
+
+* each transition carries a little glitch energy, and a slew that
+  differs for rising and falling;
+* so the stream's low-frequency content depends on how many transitions
+  it has, which depends on the signal.
+
+That is inter-symbol interference: a nonlinearity that no amount of
+filtering removes, and it grows with the number of transitions. The
+second-order stream, which switches more often than the first-order,
+comes out no better.
+
+Converters built for this avoid it:
+
+* a purpose-built one-bit DAC spends its design on making edges
+  identical (return-to-zero coding, matched current switches);
+* a multi-bit delta-sigma DAC switches less, and *randomizes* which of its
+  unit elements it uses, so that their mismatch becomes noise rather
+  than distortion (dynamic element matching).
+
+Our 8-bit DAC pretending to be a 1-bit one shows exactly why those
+designs exist. The 2-bit first-order row, with fewer transitions, is the
+best compromise this hardware can make, and nine bits from two is still
+the point.
 
 </details>
 
@@ -937,14 +976,17 @@ point.
 <summary><b>Detail:</b> the loop has to bite its own tail</summary>
 
 `awgcap.sv` plays its 16384 samples for ever, so the modulator's state at
-the end of the loop must equal its state at the start, or there is a
-glitch of up to a whole level once per loop, and at OSR 256 that glitch
-alone capped the one-bit stream near nine bits in the first attempt.
-`sigma_delta.py` searches for a starting state that makes the loop close
-(for a first-order modulator: any start whose accumulated error over the
-loop is zero; for second order, one linear step more), to a part in
-10<sup>9</sup>. The gateware version below has no loop and no such problem,
-which is a nice question to ask a student: why?
+the end of the loop must equal its state at the start. Otherwise there is
+a glitch of up to a whole level once per loop, and at OSR 256 that glitch
+alone caps the one-bit stream near nine bits.
+
+`sigma_delta.py` searches for a starting state that makes the loop
+close, to a part in 10<sup>9</sup>:
+
+* first order: any start whose accumulated error over the loop is zero;
+* second order: one linear step more.
+
+The gateware version below has no loop and no such problem. Why?
 
 </details>
 
@@ -1177,36 +1219,26 @@ endmodule
 </details>
 
 `sigma_delta.sv` is the modulator and the decimator with no laptop in
-the loop: a 16-bit sine from a DDS, re-quantized on the fly in one of
-four modes (8-bit plain, 1-bit first order, 1-bit second order, 8-bit
-first-order shaped), the DAC playing it at 25 MS/s held twice; and on the
-ADC side a three-stage *CIC* decimator (a boxcar of boxcars, Hogenauer's
-1981 filter, the standard way to decimate a delta-sigma stream with no
-multipliers) by 2<sup>*d*</sup>, streaming 24-bit samples to the laptop at
-25 MHz / 2<sup>*d*</sup>. The bits grow in the decimator: 8 in, 24 out. Its
-testbench plays a 1 kHz sine at 64 codes through all four modes and
-reads it back through the CIC at 63.3 to 63.4 codes (the 1% is the
-[sinc](https://en.wikipedia.org/wiki/Sinc_function)<sup>3</sup> droop of the CIC at the band edge), then a 1.5-code sine: 1.49
-codes through the shaped mode and 1.19 with a 22% third harmonic
-through plain rounding, the staircase again. On the bench, with the
-scope on the DAC pin and the gateware playing a 1 kHz sine at 64 codes
-in each mode, the live stream reads what the Python one did: the 1-bit
-first- and second-order streams 4.4 and 5.2 bits at OSR 256, the 8-bit
-shaped one 8.4, plain 8-bit 8.3 (the DAC's edges, again). With the cable back and the
-8-bit ADC as the instrument (`sigma_delta.py PORT --table`), the same
-streams read a little *higher* than on the scope: the 1-bit second-order
-stream 7.0 bits at OSR 256, 4-bit second-order 10.8, plain 8-bit 10.9
-against the ADC's own 11.6 ceiling, because a 25 MS/s ADC behind a cable
-sees less of the DAC's edges than a 100 MS/s scope on the pin does. The
-edges are still the wall. The ADC side through the cable
-(`oversample_adc.py PORT`) gives 9.5 bits with white dither and 11.3 with
-high-passed dither at OSR 256, on the W1 numbers above. And the
-gateware's own CIC, reading its 1-bit second-order stream back through
-the cable at 24 kS/s (`sigma_delta_live.py --mode 2 --amp 64 --monitor`),
-reports the 64-code sine at 47.5 codes with 2.9 codes of shaped noise
-left below 6 kHz, where 0.776 × 64 × the CIC's 0.99 is 49; the
-1.5-code sine reads 0.82 codes through plain rounding and 1.03 codes through
-the shaped mode against 1.16 expected: the staircase and its cure, live.
+the loop:
+
+* **DAC side:** a 16-bit sine from a DDS, re-quantized on the fly in one
+  of four modes (8-bit plain, 1-bit first order, 1-bit second order,
+  8-bit first-order shaped). The DAC plays it at 25 MS/s, each sample
+  held twice.
+* **ADC side:** a three-stage *CIC* decimator by 2<sup>*d*</sup>, streaming
+  24-bit samples to the laptop at 25 MHz / 2<sup>*d*</sup>. A CIC is a
+  boxcar of boxcars (Hogenauer's 1981 filter), the standard way to
+  decimate a delta-sigma stream with no multipliers. The bits grow in the
+  decimator: 8 in, 24 out.
+
+**Run the testbench.** It plays a 1 kHz sine at 64 codes through all
+four modes and reads it back through the CIC:
+
+* 64 codes read back as 63.3 to 63.4 codes. The 1% is the
+  [sinc](https://en.wikipedia.org/wiki/Sinc_function)<sup>3</sup> droop of the
+  CIC at the band edge.
+* A 1.5-code sine reads 1.49 codes through the shaped mode, and 1.19
+  with a 22% third harmonic through plain rounding: the staircase again.
 
 ```console
 $ make sim                      # the four modes, 1 kHz, through the CIC
@@ -1219,25 +1251,51 @@ mode 0,   1.50 codes: DAC stream amplitude   1.200 (3rd harmonic  0.222) ...  73
 PASS
 ```
 
+**On the bench:**
+
+* **The gateware, scope on the DAC pin** (a 1 kHz sine at 64 codes in
+  each mode): the live stream reads what the Python one did. The
+  1-bit first- and second-order streams give 4.4 and 5.2 bits at OSR 256,
+  the 8-bit shaped one 8.4, plain 8-bit 8.3 (the DAC's edges, again).
+* **Cable back, the 8-bit ADC as the instrument**
+  (`sigma_delta.py PORT --table`): the same streams read a little
+  *higher* than on the scope. The 1-bit second-order stream gives 7.0
+  bits at OSR 256, 4-bit second-order 10.8, plain 8-bit 10.9, against the
+  ADC's own 11.6 ceiling. A 25 MS/s ADC behind a cable sees less of the
+  DAC's edges than a 100 MS/s scope on the pin does. The edges are still
+  the wall.
+* **The ADC side through the cable** (`oversample_adc.py PORT`): 9.5
+  bits with white dither and 11.3 with high-passed dither at OSR 256, on
+  the W1 numbers above.
+* **The gateware's own CIC**, reading its 1-bit second-order stream back
+  through the cable at 24 kS/s
+  (`sigma_delta_live.py --mode 2 --amp 64 --monitor`): the 64-code sine
+  reads 47.5 codes, with 2.9 codes of shaped noise left below 6 kHz,
+  where 0.776 × 64 × the CIC's 0.99 is 49. The 1.5-code sine reads 0.82
+  codes through plain rounding and 1.03 codes through the shaped mode,
+  against 1.16 expected: the staircase and its cure, live.
+
 ## What this hardware cannot show, and what would
 
 - An 8-bit DAC playing a 1-bit stream: its edges, above. A real 1-bit
-  DAC is one FPGA pin and an RC; this module's DAC is the wrong tool for
-  the job it was asked to do here, and shows why.
+  DAC is one FPGA pin and an RC. This module's DAC is the wrong tool for
+  this job, and shows why.
 - No analog reconstruction filter: the scope and the ADC see the raw
   stream, and the low-pass is digital. With a 1 kΩ and 10 nF on DAC OUT
   and a pair of headphones you would *hear* the one-bit stream as a pure
-  tone, which is the demonstration this page wants and could not make.
+  tone: the demonstration this page wants and could not make.
 - The ADC's 25 MS/s folds everything above 12.5 MHz, so the modulator
   runs at 25 and not 50 MS/s.
 - The ADC as an instrument: a white floor of 7.5 bits plus half a bit
   per doubling, and its own nonlinearity for multi-level streams.
-- Too little intrinsic dither (0.1 code), and on this module the ADC
+- Too little intrinsic dither (0.1 code). And on this module the ADC
   reads 0.776 of a DAC code, so the ADC's rounding error against the
   DAC's whole codes repeats every 4.5 codes: two codes of noise are
   needed, not one.
 - The 327.68 µs loop makes the spectrum a comb of lines 3052 Hz apart,
   and forces the tail-biting trick.
+
+Parts that would show it:
 
 | part | for | about |
 | --- | --- | --- |
@@ -1248,29 +1306,37 @@ PASS
 The RC and jack, an LC reconstruction filter and the comparator are three
 tiles of the accessory board sketched in [Appendix D](D_coming_soon.md#an-amod-a-board-of-analog-blocks).
 
-Wikipedia's [delta-sigma modulation](https://en.wikipedia.org/wiki/Delta-sigma_modulation),
-[oversampling](https://en.wikipedia.org/wiki/Oversampling),
-[noise shaping](https://en.wikipedia.org/wiki/Noise_shaping) and
-[dither](https://en.wikipedia.org/wiki/Dither) pages are good; Analog
-Devices' [MT-022](https://www.analog.com/media/en/training-seminars/tutorials/MT-022.pdf)
-and [MT-023](https://www.analog.com/media/en/training-seminars/tutorials/MT-023.pdf)
-are the engineer's version; Schreier and Temes, *Understanding
-Delta-Sigma Data Converters*, is the book; and Lipshitz, Wannamaker and
-Vanderkooy's 1992 survey of dither is where fact 1 comes from.
+Further reading:
+
+* Wikipedia's [delta-sigma modulation](https://en.wikipedia.org/wiki/Delta-sigma_modulation),
+  [oversampling](https://en.wikipedia.org/wiki/Oversampling),
+  [noise shaping](https://en.wikipedia.org/wiki/Noise_shaping) and
+  [dither](https://en.wikipedia.org/wiki/Dither) pages are good.
+* Analog Devices'
+  [MT-022](https://www.analog.com/media/en/training-seminars/tutorials/MT-022.pdf)
+  and [MT-023](https://www.analog.com/media/en/training-seminars/tutorials/MT-023.pdf)
+  are the engineer's version.
+* Schreier and Temes, *Understanding Delta-Sigma Data Converters*, is the
+  book.
+* Lipshitz, Wannamaker and Vanderkooy's 1992 survey of dither is where
+  [fact 1](#what-a-bit-is-worth) comes from.
 
 **Try this:**
 
-- The RC and the headphones. Then stream a WAV file over the [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter) into a
-  FIFO in place of the DDS (88 kB/s carries 44.1 kHz at 16 bits): a USB
-  one-bit DAC of your own.
-- A third-order modulator: what goes unstable, and at what amplitude?
-- Count the transitions in each stream and plot the measured ENOB
+- **Build the RC and plug in the headphones.** Then stream a WAV file
+  over the [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter)
+  into a FIFO in place of the DDS (88 kB/s carries 44.1 kHz at 16 bits):
+  a USB one-bit DAC of your own.
+- **Write a third-order modulator.** What goes unstable, and at what
+  amplitude?
+- **Count the transitions** in each stream and plot the measured ENOB
   against them: the DAC's edge penalty, measured.
-- `--bits 2 --order 1` at OSR 1024 (nine cycles per loop): where does the
-  two-bit stream stop?
-- The dithered DC sweep over all 256 DAC codes: the DAC's DNL, measured.
-- With the loopback cable: `sigma_delta.py PORT --table` with the ADC as
-  the instrument, and `sigma_delta_live.py` on the gateware.
+- **Run `--bits 2 --order 1` at OSR 1024** (nine cycles per loop): where
+  does the two-bit stream stop?
+- **Sweep the dithered DC level over all 256 DAC codes**: the DAC's DNL,
+  measured.
+- **With the loopback cable**, run `sigma_delta.py PORT --table` with the
+  ADC as the instrument, and `sigma_delta_live.py` on the gateware.
 
 <!-- nav -->
 [← 7.04 The filter as a LiteX peripheral](7_04_the_filter_as_a_litex_peripheral.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [7.06 Control at the speed of the cable →](7_06_control.md)

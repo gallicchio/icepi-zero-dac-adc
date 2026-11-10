@@ -7,20 +7,23 @@
 
 [5.05](5_05_fsk_modem.md#505-a-modem)'s modem carried a *line*: whatever
 level the laptop's serial pin had, the DAC played as one of two tones. This
-one carries *bytes*, at 3.125 Mbit/s, as the [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) of
+one carries *bytes*, at 3.125 Mbit/s, using the [QPSK](https://en.wikipedia.org/wiki/Phase-shift_keying#Quadrature_phase-shift_keying_(QPSK)) of
 [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier):
-root-raised-cosine pulses, a matched filter, Gardner's timing loop, a Costas
-loop, frames. Everything `psk.py` did on the laptop with numpy and floating
-point now happens inside the FPGA, one clock at a time, in integers and
-shifts, in one file. Type into the board's serial port and the characters
-come back through the cable 30 µs later. This is the page where "software
-defined radio" meets the hardware, and the honest story is which parts
-were easy (the arithmetic) and which were not (the bookkeeping).
 
-Everything on this page runs *in the FPGA*. The laptop types (`screen`),
-counts errors (`qpsk_modem_test.py`), and runs the Python twin of the
-design (`modem_fpga_model.py`) for the figures; no numpy touches a sample
-on the live link.
+* root-raised-cosine pulses and a matched filter
+* Gardner's timing loop
+* a Costas loop
+* frames
+
+Everything `psk.py` did on the laptop in numpy and floating point now
+happens inside the FPGA, one clock at a time, in integers and shifts, in
+one file. Type into the board's serial port and the characters come back
+through the cable 30 µs later. The arithmetic turns out to be the easy
+part; the bookkeeping is the hard part.
+
+The laptop only types (`screen`), counts errors (`qpsk_modem_test.py`) and
+runs the design's Python twin (`modem_fpga_model.py`) for the figures. No
+numpy touches a sample on the live link.
 
 ![The blocks of qpsk_modem.sv: the transmitter from the serial port through frames, differential coding, the multiplier-free pulse shaper and the carrier to the DAC; the receiver from the ADC through the mixer, the half-band filter, the decimator, the matched filter, the interpolator and timing loop, the Costas loop, the differential decoder and the frame lock to the serial port, with the clock budget under each row](img/comms_d_modem_fpga.png)
 
@@ -657,38 +660,43 @@ endmodule
 
 ## The transmitter
 
-One DAC sample per 50 MHz clock, 32 per symbol, 1.5625 Msymbol/s, as
-`psk.py` sends it. Four ideas make it small.
+The transmitter makes one DAC sample per 50 MHz clock, 32 per symbol:
+1.5625 Msymbol/s, as `psk.py` sends it. Four ideas keep it small.
 
-- **Frames.** Sixteen bits make a frame of eight symbols: Barker's 7-bit
-  sync word 1110010, a "valid" bit, and the byte from the serial port, or
-  eight bits of a shift register when there is none. That is 195,312 frames
-  a second, more than a 1 Mbaud serial port can fill, so a byte never
-  waits for more than one frame and nothing queues. The filler bits matter:
-  the loops need transitions to lock to, and an idle line of all ones
-  would starve them.
+- **Frames.** A frame is sixteen bits, eight symbols:
+  - Barker's 7-bit sync word, 1110010
+  - a "valid" bit
+  - the byte from the serial port or, when there is none, eight bits of a
+    shift register
+
+  195,312 frames a second is more than a 1 Mbaud serial port can fill, so a
+  byte never waits more than one frame and nothing queues. The filler bits
+  matter: the loops need transitions to lock to, and an idle line of all
+  ones would starve them.
 - **Differential QPSK.** Each pair of bits is Gray-coded and sent as a
   *change* of phase: 00, 01, 11, 10 turn the carrier by 0°, 90°, 180°, 270°
   from the previous symbol. The receiver's [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) can lock a quarter
   turn off ([6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)),
-  and in a difference of two phases a constant offset cancels, so no
+  but a constant offset cancels in a difference of two phases, so no
   unique word is needed to find which way is up. The price is the
   2*p*(1 − *p*) of [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier):
   twice the errors at high SNR, which costs 0.3 dB at 10<sup>−5</sup>, and
   almost nothing extra where *p* is already large.
-- **A pulse shaper with no multipliers.** The symbols are ±1 ± *j*, so the
-  root-raised-cosine pulse, cut at six symbols each side, is thirteen
-  overlapping pulses at any instant, each *added or subtracted*. Thirteen
-  small tables (32 phases each) and two adder trees, one for I and one for
-  Q. The table is 384 times the pulse, so the DAC swings 48 codes rms (the
-  same as `psk.py`'s waveform) and 108 at the very worst, when all
+- **A pulse shaper with no multipliers.** The symbols are ±1 ± *j* and the
+  root-raised-cosine pulse is cut at six symbols each side, so at any
+  instant thirteen pulses overlap, each *added or subtracted*. That takes
+  thirteen small tables (32 phases each) and two adder trees, one for I and
+  one for Q. The table is 384 times the pulse, so the DAC swings 48 codes
+  rms (the same as `psk.py`'s waveform) and 108 at the very worst, when all
   thirteen line up: it cannot clip.
-- **The carrier at *f*<sub>s</sub>/8.** At 6.25 MHz cos and sin of the
+- **The carrier at *f*<sub>s</sub>/8.** At 6.25 MHz, cos and sin of the
   carrier take only the values 0, ±1 and ±0.707, so *I* cos − *Q* sin is
   one of *I*, 0.707(*I* − *Q*), −*Q*, 0.707(−*I* − *Q*), and so on round
-  the eight phases, and 0.707 = 181/256 is a shift and an add. The choice
-  of 6.25 MHz back in [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
-  was made for this page.
+  the eight phases. 0.707 = 181/256 is a shift and an add. This is why
+  [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
+  chose 6.25 MHz.
+
+**Try it** on one board, with **DAC OUT cabled to ADC IN**:
 
 ```console
 $ cd src/twoboard
@@ -698,64 +706,78 @@ $ screen /dev/ttyUSB0 1000000            # type; each character comes back 30 µ
 
 ## The receiver
 
-The receiver gets an ADC sample every two clocks, and from the decimator
-on, eight clocks per sample and thirty-two per symbol. Those eight clocks
-are the budget everything below is spent from.
+The receiver gets an ADC sample every two clocks. From the decimator on it
+has eight clocks per sample, thirty-two per symbol, and those eight clocks
+are the budget for everything below.
 
 **The mixer, and the holes.** Mixing down by 6.25 MHz = *f*<sub>s</sub>/4 is
-multiplication by 1, −*j*, −1, *j*: free. But look at what it leaves. The
-even samples carry only *I* and the odd ones only *Q*, with a hole in each
-where the other should be. The first version of this receiver summed four
-samples and kept one in four, which "fills" the holes by averaging, and
-nothing downstream, not even in floating point, could get past 27 dB of
-MER. Two things are wrong with the sum. It centres *I* at one sample and
-*Q* at the next, a skew of a sixteenth of a symbol between the two axes.
-And it rejects the image at twice the carrier, 12.5 MHz ± 1 MHz, by only
-18 dB before the decimation folds it onto the signal. `psk.py`'s 193-tap
-filter interpolates the holes properly; that is why it reads 39 dB. The
-fix is the classic one for *f*<sub>s</sub>/4: a *half-band* filter, [−1 0 9 16 9
-0 −1]/32, which passes the even samples through untouched (its even taps are
-0, 16, 0) and interpolates *Q* at each even sample from its four odd
-neighbours: two adds and a ×9, 60 dB of image rejection. Keep the even
-samples: 12.5 MS/s. Then [1 2 1] and keep one in two: 6.25 MS/s, four
-samples per symbol. [1 2 1] droops to 0.93 at the band edge; a three-tap
-filter with a coefficient of 9/128 (shifts) lifts it back, and is worth
-about 5 dB of MER.
+multiplication by 1, −*j*, −1, *j*: free. But it leaves the even samples
+carrying only *I* and the odd ones only *Q*, each with a hole where the
+other should be.
 
-**The matched filter.** The same root-raised cosine, 49 taps at four
+The obvious way to fill the holes is to sum four samples and keep one in
+four. Built that way, nothing downstream, not even in floating point,
+could get past 27 dB of MER. The sum has two faults:
+
+- It centres *I* at one sample and *Q* at the next, a skew of a sixteenth
+  of a symbol between the two axes.
+- It rejects the image at twice the carrier, 12.5 MHz ± 1 MHz, by only
+  18 dB before the decimation folds it onto the signal.
+
+`psk.py`'s 193-tap filter interpolates the holes properly; that is why it
+reads 39 dB. The FPGA uses the classic fix for *f*<sub>s</sub>/4:
+
+1. A *half-band* filter, [−1 0 9 16 9 0 −1]/32. It passes the even samples
+   through untouched (its even taps are 0, 16, 0) and interpolates *Q* at
+   each even sample from its four odd neighbours: two adds and a ×9, for
+   60 dB of image rejection.
+2. Keep the even samples: 12.5 MS/s.
+3. [1 2 1], keeping one in two: 6.25 MS/s, four samples per symbol.
+4. [1 2 1] droops to 0.93 at the band edge. A three-tap filter with a
+   coefficient of 9/128 (shifts) lifts it back, and is worth about 5 dB of
+   MER.
+
+**The matched filter.** The same root-raised cosine: 49 taps at four
 samples per symbol, integer taps of 256 times the pulse. It is symmetric,
-so 24 pairs of taps and the middle one: 25 multiplies per axis per sample.
-Four multipliers for *I* and four for *Q*, each doing seven pairs in seven of
-the eight clocks: the work of 98 multiply-accumulates per sample, done as
-50 multiplies by symmetry on eight multipliers.
-Its output, divided by 2<sup>13</sup>, fits 16 bits: a symbol is about 1190 per axis
+so 24 pairs of taps and the middle one: 25 multiplies per axis per sample,
+50 in all instead of 98 multiply-accumulates. Four multipliers for *I* and
+four for *Q* each do seven pairs in seven of the eight clocks. The output,
+divided by 2<sup>13</sup>, fits 16 bits: a symbol is about 1190 per axis
 with the cable's 0.776, and the worst adversarial input reaches 7900.
 
-**The timing loop, in integers.** A counter `tau`, with 16 bits below the
-sample, says how far away the next symbol centre is, and loses one sample
-per sample. When it drops below one, the centre falls before the next
-sample: a *strobe*, the fraction `mu = tau`, and `tau += period − prop − 1`,
-which is `psk.py`'s `t += sps − (k1·e + integ)`. Half a period earlier
-the same test gives a *mid* strobe with its own `mu`, for Gardner's
-half-way sample. The interpolator works two samples behind, because it
-needs the sample after the one it interpolates past, and uses the `mu`
-decided for that sample. It is Catmull-Rom's cubic (Keys's kernel with
-*a* = −½), whose coefficients are all halves: three multiplies by `mu` per
-axis, Horner's way. Gardner's *e* = Re(*y*<sub>mid</sub> (*y*<sub>now</sub> −
-*y*<sub>prev</sub>)\*) is two multiplies.
+**The timing loop, in integers.**
+
+- A counter `tau`, with 16 bits below the sample, says how far away the
+  next symbol centre is. It counts down one sample per sample.
+- When it drops below one, the centre falls before the next sample: a
+  *strobe*. The fraction is `mu = tau`, and `tau += period − prop − 1`,
+  which is `psk.py`'s `t += sps − (k1·e + integ)`.
+- Half a period earlier the same test gives a *mid* strobe, with its own
+  `mu`, for Gardner's half-way sample.
+- The interpolator works two samples behind, because it needs the sample
+  after the one it interpolates past, and uses the `mu` decided for that
+  sample. It is Catmull-Rom's cubic (Keys's kernel with *a* = −½), whose
+  coefficients are all halves: three multiplies by `mu` per axis, Horner's
+  way.
+- Gardner's *e* = Re(*y*<sub>mid</sub> (*y*<sub>now</sub> −
+  *y*<sub>prev</sub>)\*) is two multiplies.
 
 <details>
 <summary><b>Detail:</b> why a cubic interpolator, measured</summary>
 
 At four samples per symbol the band edge is at 0.17 of the sample rate,
 which is where cheap interpolators fail. Measured on the model's receiver
-in isolation, over a sweep of channel delays: the piecewise-parabolic
-interpolator (taps [−1 5 5 −1]/8) loses 13 dB of MER when the symbol
-centre falls half-way between samples, because its response peaks by
-0.7 dB at the band edge; cubic Lagrange loses nothing; Catmull-Rom loses
-nothing in integers; a 32-phase polyphase matched filter, with no
-interpolator at all, loses nothing and costs eight times the table. The
-cubic is the cheapest one that does not care where the centre falls.
+in isolation, over a sweep of channel delays:
+
+- The piecewise-parabolic interpolator (taps [−1 5 5 −1]/8) loses 13 dB
+  of MER when the symbol centre falls half-way between samples, because
+  its response peaks by 0.7 dB at the band edge.
+- Cubic Lagrange loses nothing.
+- Catmull-Rom loses nothing, in integers.
+- A 32-phase polyphase matched filter, with no interpolator at all, loses
+  nothing and costs eight times the table.
+
+The cubic is the cheapest one that does not care where the centre falls.
 
 </details>
 
@@ -763,20 +785,25 @@ cubic is the cheapest one that does not care where the centre falls.
 1024-entry table of 2047 sin, in one block RAM with two read ports, gives
 cos and sin; rotating the symbol is four multiplies. The nearest of the
 four points is just the quadrant, and Im(*z* *d*\*) for *d* = ±1 ± *j* is ±*Q*
-∓ *I*: no multiplies. Then the quadrant minus the previous quadrant,
-un-Grayed, is the two bits; a 16-bit shift register; the sync word in the
-right place three times running (24 symbols) is *locked*; eight frames
-without it unlocks; while locked, every frame with the valid bit set drops
-its byte into a FIFO for the serial port.
+∓ *I*: no multiplies.
+
+**Bits, frames and lock.**
+
+- The quadrant minus the previous quadrant, un-Grayed, is the two bits.
+  They go into a 16-bit shift register.
+- The sync word in the right place three times running (24 symbols) is
+  *locked*; eight frames without it unlocks.
+- While locked, every frame with the valid bit set drops its byte into a
+  FIFO for the serial port.
 
 ## How the loop gains became shifts
 
 `psk.py` set its loops by bandwidth and damping ([6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
 Detail): *B*<sub>n</sub>*T* = 0.010 and ζ = 0.71 for timing, 0.020 and 0.71 for
 the carrier. In the FPGA the gains are shifts, so the question runs the
-other way: *which* shifts give those loops? The detectors' gains have to
-be measured first, because in integers they are whatever the integers
-make them. `modem_fpga_model.py --gains` does that on the model and
+other way: *which* shifts give those loops? First the detectors' gains
+have to be measured, because in integers they are whatever the integers
+make them. `modem_fpga_model.py --gains` measures them on the model and
 inverts [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
 formulas:
 
@@ -1316,6 +1343,8 @@ if __name__ == "__main__":
 
 </details>
 
+**Run it:**
+
 ```console
 $ cd src/comms
 $ python3 modem_fpga_model.py --sim --ppm 2000 --cfo -9500 --gains
@@ -1336,24 +1365,29 @@ Costas loop:  carrier offset found +2994 Hz
 | carrier | `phi += e << 7` | `freq += e << 2`, in units of 2π/2<sup>24</sup> | *k*<sub>d</sub> 2<sup>7</sup> · 2π/2<sup>24</sup>, *k*<sub>d</sub> 2<sup>2</sup> · 2π/2<sup>24</sup> | 0.022, 0.68 |
 
 The nearest shifts land within a factor of 1.1 in bandwidth and 0.03 in
-damping of the floating-point loops, which is as close as powers of two
-get. The integrator keeps eight extra bits below the sample so that small
-errors still move it; without them a 1 ppm offset would never accumulate.
-One thing the shifts cannot do that `psk.py` could: the detectors' gains
-scale with the signal's amplitude (Gardner's with its square, Costas's
-linearly), so the loop bandwidths are set for the cable's 0.776 codes per
-code, and at half the amplitude the gains are a quarter, which halves the loop's
-bandwidth and halves its damping (ζ = 0.34): slow, and ringing.
-There is no AGC. Real receivers have one, and the first "Try this" is to
-add it.
+damping of the floating-point loops: as close as powers of two get. The
+integrator keeps eight extra bits below the sample so that small errors
+still move it; without them a 1 ppm offset would never accumulate.
+
+One thing `psk.py` could do that shifts cannot: the detectors' gains scale
+with the signal's amplitude (Gardner's with its square, Costas's
+linearly). The loop bandwidths are set for the cable's 0.776 codes per
+code. At half the amplitude the gains are a quarter, which halves the
+loop's bandwidth and halves its damping (ζ = 0.34): slow, and ringing.
+There is no AGC. Real receivers have one, and the first "Try this" adds
+it.
 
 ## Checking it without a board
 
-The model is the same arithmetic in Python, integer for integer, and
+The model is the same arithmetic in Python, integer for integer.
 `qpsk_modem_check.py` makes the Verilog prove it, with iverilog and no
-board: a testbench that plays the laptop (bytes at 1 Mbaud) and the analog
-world (the cable, or a file of ADC samples), and dumps every DAC code,
-every frame and the loops' state at every symbol.
+board. Its testbench:
+
+- plays the laptop (bytes at 1 Mbaud),
+- plays the analog world (the cable, or a file of ADC samples),
+- dumps every DAC code, every frame and the loops' state at every symbol.
+
+**Run it:**
 
 ```console
 $ cd src/twoboard
@@ -1378,53 +1412,78 @@ PASS
 
 "Bit for bit" is the standard. A design that agrees with its model at
 every one of 5624 symbols, through a channel 2000 ppm fast and 3 kHz off,
-has no arithmetic bug left to find on the board; what the board can still
-add is the real cable's ringing, the converters' real distortion, and a
-real second clock. The model's own numbers: 40.0 dB of MER at zero offset,
-39.7 to 40.5 at ±2000 ppm, ±3 kHz and ±20 kHz; lock in 37 to 85 symbols;
-timing jitter 0.021 samples, half a percent of a symbol, at every channel
-delay; with ADC noise of 3, 8 and 12 codes rms, 30.0, 21.9 and 18.4 dB and
-no errors in 300 bytes each. `psk.py` measured 38 dB on the real cable, so
-the fixed point costs nothing measurable.
+has no arithmetic bug left to find on the board. What the board can still
+add:
+
+- the real cable's ringing,
+- the converters' real distortion,
+- a real second clock.
+
+The model's own numbers:
+
+- MER 40.0 dB at zero offset, 39.7 to 40.5 at ±2000 ppm, ±3 kHz and
+  ±20 kHz
+- lock in 37 to 85 symbols
+- timing jitter 0.021 samples, half a percent of a symbol, at every
+  channel delay
+- with ADC noise of 3, 8 and 12 codes rms: 30.0, 21.9 and 18.4 dB, and no
+  errors in 300 bytes each
+
+`psk.py` measured 38 dB on the real cable, so the fixed point costs
+nothing measurable.
 
 <details>
 <summary><b>Detail:</b> the three bugs in the NCO, and one in Verilog</summary>
 
 Each of these made a link that *worked* and was wrong by 5 to 15 dB, or by
-hundreds of ppm in the reported rate, which is the dangerous kind of bug.
-(1) The mid-symbol sample needs its own strobe and its own `mu`: whenever
-`mu` wraps past zero the strobes are three or five samples apart, not four,
-and "the sample two after the symbol" is half a sample off. (2) The
-proportional correction must go into the *next period* at the strobe, not
-into the running countdown: a nudge towards "earlier" cannot move a strobe
-already decided, which clamps the loop on one side and biases it. (3) The
-symbol must be processed before the NCO decides, or a three-sample spacing
-skips one correction and applies the previous one twice. And in Verilog,
-`tau + period − prop − ONE` with an *unsigned* `ONE` zero-extends a negative
-`prop`, and the receiver "worked" at 16 dB. Then yosys: an array indexed by
-a computed expression became a 61,000-LUT barrel shifter, 253% of the
-chip; written as a `case` with constant indices it is 7000. Constant
-multiplies by 9, 5 and 3 took hardware multipliers until written as
-shift-adds. None of this is in a textbook, and all of it is the job.
+hundreds of ppm in the reported rate: the dangerous kind of bug.
+
+1. The mid-symbol sample needs its own strobe and its own `mu`. Whenever
+   `mu` wraps past zero the strobes are three or five samples apart, not
+   four, and "the sample two after the symbol" is half a sample off.
+2. The proportional correction must go into the *next period* at the
+   strobe, not into the running countdown. A nudge towards "earlier"
+   cannot move a strobe already decided, which clamps the loop on one side
+   and biases it.
+3. The symbol must be processed before the NCO decides, or a three-sample
+   spacing skips one correction and applies the previous one twice.
+
+In Verilog, `tau + period − prop − ONE` with an *unsigned* `ONE`
+zero-extends a negative `prop`, and the receiver "worked" at 16 dB.
+
+Then yosys:
+
+- An array indexed by a computed expression became a 61,000-LUT barrel
+  shifter, 253% of the chip; written as a `case` with constant indices it
+  is 7000.
+- Constant multiplies by 9, 5 and 3 took hardware multipliers until
+  written as shift-adds.
+
+None of this is in a textbook, and all of it is the job.
 
 </details>
 
 <details>
 <summary><b>Detail:</b> the DAC's image, and why the stress tests cheat</summary>
 
-`channel.py`'s model of the DAC holds each code for a sample, which puts
-an image of the signal 50 MHz × ppm away, 21 dB down: 100 kHz at the
-pretend 2000 ppm, 38 Hz at the real 0.76 ppm of two boards. A mixer error
-moves it 2 × *f*<sub>cfo</sub> away. The 2000 ppm tests above therefore give
-the model's DAC an ideal reconstruction filter (the model's `recon`,
-on by default whenever ppm or cfo is not zero); a real second board at
-2000 ppm would show that interferer, and at 0.76 ppm it would not.
+`channel.py`'s model of the DAC holds each code for a sample. That puts an
+image of the signal 50 MHz × ppm away, 21 dB down: 100 kHz at the pretend
+2000 ppm, 38 Hz at the real 0.76 ppm of two boards. A mixer error moves it
+2 × *f*<sub>cfo</sub> away. So the 2000 ppm tests above give the model's
+DAC an ideal reconstruction filter (the model's `recon`, on by default
+whenever ppm or cfo is not zero). A real second board at 2000 ppm would
+show that interferer; at 0.76 ppm it would not.
 
 </details>
 
 ## On the board
 
-The first run on the board, looped back through the cable:
+1. **Cable DAC OUT to ADC IN** and **load the modem** (commands below).
+2. **Run `qpsk_modem_test.py`**: it sends 20,000 bytes at 1 Mbaud and
+   counts what comes back. Expect every byte back and 0 bit errors, as at
+   the end of this section.
+
+The first version of the modem lost bytes:
 
 ```console
 $ cd src/twoboard
@@ -1435,30 +1494,34 @@ $ python3 qpsk_modem_test.py /dev/ttyUSB0 --bytes 200000
 200000 bytes sent at 1000000 baud, 199232 received; 8016 bit errors in 1600000 bits: BER 5.0e-03
 ```
 
-Sixty-four bytes of twenty thousand lost, 768 of two hundred thousand:
-one in 250, steadily, after the first eight thousand. That is not what
-a noisy link does (a noisy link corrupts bytes, it does not lose them),
-and it is not what the bit-exact model does. It is what a *repeater with
-no flow control* does when its way out is slower than its way in. The
-laptop delivers a byte every 500 clocks (ten bits at 1 Mbaud, back to
-back); the modem's serial transmitter, a stock `uart_tx` that rests a
-clock after each stop bit and a FIFO that started it a clock after that,
-sent one every 502. The 32-byte FIFO filled after 32 × 251 ≈ 8000 bytes
-and then overwrote itself once every 251: one byte in 250, from byte
-8000 on, exactly as measured. The testbench reproduced it to the byte
-(19,936 of 20,000) once it was told to send bytes back to back, which the
-first testbench, politely, had not.
+64 bytes of 20,000 lost, 768 of 200,000: one in 250, steadily, after the
+first 8000. That is not what a noisy link does (it corrupts bytes, it does
+not lose them), nor what the bit-exact model does. It is what a *repeater
+with no flow control* does when its way out is slower than its way in:
 
-The fix is the rule every repeater without flow control obeys: send at
-least as fast as you receive. The modem now has its own transmitter that
-starts the next byte in the clock after the stop bit, with a bit time of
-49 clocks instead of 50, two percent fast, because "equal" is not enough
-when two crystals are involved and a [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter) re-times every byte from its
-start bit anyway. Bytes leave 490 clocks apart against 500 arriving, the
-FIFO never holds more than one, and the five-test check (which now
-includes 1500 bytes landing at every phase of the frame clock, through a
-FIFO shrunk to two bytes) passes with zero errors. And on the board,
-once the cable was back:
+- The laptop delivers a byte every 500 clocks (ten bits at 1 Mbaud, back
+  to back).
+- The modem's serial transmitter, a stock `uart_tx` that rests a clock
+  after each stop bit, fed by a FIFO that started it a clock after that,
+  sent one every 502.
+- The 32-byte FIFO filled after 32 × 251 ≈ 8000 bytes and then overwrote
+  itself once every 251: one byte in 250, from byte 8000 on, exactly as
+  measured.
+
+The testbench reproduced it to the byte (19,936 of 20,000) once it sent
+bytes back to back, which the first testbench, politely, had not.
+
+The fix is the rule every repeater without flow control obeys: **send at
+least as fast as you receive.** The modem now has its own serial
+transmitter. It starts the next byte in the clock after the stop bit, with
+a bit time of 49 clocks instead of 50: two percent fast, because "equal"
+is not enough when two crystals are involved, and a [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter) re-times every
+byte from its start bit anyway. Bytes leave 490 clocks apart against 500
+arriving, and the FIFO never holds more than one. The five-test check
+(which now includes 1500 bytes landing at every phase of the frame clock,
+through a FIFO shrunk to two bytes) passes with zero errors.
+
+On the board, the fixed modem gives this, and so should yours:
 
 ```console
 $ python3 qpsk_modem_test.py /dev/ttyUSB0
@@ -1467,42 +1530,47 @@ $ python3 qpsk_modem_test.py /dev/ttyUSB0 --bytes 200000
 200000 bytes sent at 1000000 baud, 200000 received; 0 bit errors in 1600000 bits: BER 0.0e+00
 ```
 
-Two hundred thousand bytes, 1.6 million bits, none wrong, where the
-first bitstream lost 768. (A two-million-byte run stalled inside the
-laptop's serial driver after the data had gone and was killed; the
-position probe on a fresh 20,000 found nothing. Two hundred thousand is
-the longest clean run on record.)
+200,000 bytes, 1.6 million bits, none wrong, where the first version lost
+768. (A two-million-byte run stalled inside the laptop's serial driver
+after the data had gone, and was killed. 200,000 is the longest clean run
+on record.)
 
 <details>
 <summary><b>Detail:</b> why a 115,200-baud port half-works</summary>
 
-The modem's ports are 1 Mbaud, full stop, and a run with the laptop's
-port at 115,200 should have been garbage. It returned all 20,000 bytes
-with 6% of them wrong, which is the more interesting answer. A
-115,200-baud start bit lasts 8.68 µs; `uart_rx`, expecting 1 µs bits,
-sees a start bit, samples eight "data bits" inside it, delivers a byte,
-and takes the still-low line as the next start bit. It is acting as a
-1 MS/s *digitizer of the serial line*, eight samples per byte, and the
-modem carries those bytes across and replays them: the low stretches of
-the original waveform come back with a 1 µs stop-bit gap cut into every
-10 µs of them. The laptop's UART samples once per bit, at the centre, and
-lands on one of those gaps about one time in nine per low bit: 6%. Like
-[5.05](5_05_fsk_modem.md#505-a-modem)'s modem, this one is transparent to
-the line at 1 µs resolution, which is why the wrong baud rate half-works,
-and `qpsk_modem_test.py` now refuses any baud rate but 1,000,000 and says
-so.
+The modem's ports are 1 Mbaud, full stop, so a run with the laptop's port
+at 115,200 should have been garbage. It returned all 20,000 bytes with 6%
+of them wrong, which is the more interesting answer:
+
+- A 115,200-baud start bit lasts 8.68 µs. `uart_rx`, expecting 1 µs bits,
+  sees a start bit, samples eight "data bits" inside it, delivers a byte,
+  and takes the still-low line as the next start bit.
+- So it acts as a 1 MS/s *digitizer of the serial line*, eight samples
+  per byte. The modem carries those bytes across and replays them: the
+  low stretches of the original waveform come back with a 1 µs stop-bit
+  gap cut into every 10 µs of them.
+- The laptop's UART samples once per bit, at the centre, and lands on one
+  of those gaps about one time in nine per low bit: 6%.
+
+Like [5.05](5_05_fsk_modem.md#505-a-modem)'s modem, this one is transparent to
+the line at 1 µs resolution, which is why the wrong baud rate half-works.
+`qpsk_modem_test.py` now refuses any baud rate but 1,000,000, and says so.
 
 </details>
 
-The LEDs: the leftmost is frame lock, on as soon as the cable is in; pull
-the cable and it goes out within 41 µs, plug it back and it returns, no
-reset needed. The next two blink for 0.3 s on a received and on a typed
-byte; the fourth is the ADC clipping, which should stay off. One known
-weakness, shared with every modem that has no preamble: the frame sync
-locks at symbol 37 to 85, before the Costas loop's frequency has settled
-(about 300 symbols), so a byte sent in the first 200 µs after a signal
-appears can be wrong. Real modems send a preamble, or make the lock wait
-for the loops.
+**The LEDs**, from the left:
+
+1. Frame lock: on as soon as the cable is in. **Pull the cable** and it
+   goes out within 41 µs; **plug it back** and it returns, no reset needed.
+2. Blinks for 0.3 s on a received byte.
+3. Blinks for 0.3 s on a typed byte.
+4. The ADC clipping: should stay off.
+
+One known weakness, shared with every modem that has no preamble: the
+frame sync locks at symbol 37 to 85, before the Costas loop's frequency
+has settled (about 300 symbols). So a byte sent in the first 200 µs after
+a signal appears can be wrong. Real modems send a preamble, or make the
+lock wait for the loops.
 
 ## What it costs
 
@@ -1514,25 +1582,37 @@ for the loops.
 | block RAM | 1 | the 1024-entry sine table |
 | clock | 69.1 MHz | passes at 50 |
 
-Where the sixteen multipliers went: eight in the matched filter, six in
-the interpolator, four in the rotation and two in Gardner's detector by
-the design's count, of which yosys put four into LUTs. The critical path
-is the NCO's adder chain from the integrator through the period to `tau`.
+Where the sixteen multipliers went, by the design's count:
+
+- eight in the matched filter
+- six in the interpolator
+- four in the rotation
+- two in Gardner's detector
+
+Of those, yosys put four into LUTs. The critical path is the NCO's adder
+chain from the integrator through the period to `tau`.
+
 [5.05](5_05_fsk_modem.md#505-a-modem)'s modem used no multipliers at all
 and ran 115,200 baud; this one uses 16 and runs 3.125 Mbit/s with every
 loop [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)
 had. The ratio of effort is about right for the ratio of speed.
 
-learnSDR builds each of these blocks in GNU Radio: the Costas loop
-(lessons [12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md)
-and [13](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson13.md)),
-PSK ([16](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson16.md)),
-symbol timing ([18](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson18.md)),
-frame sync and differential coding ([19](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson19.md),
-[20](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson20.md)).
-What the blocks hide, and this page shows, is the integer widths, where the
-multipliers go, the NCO's bookkeeping, the holes at *f*<sub>s</sub>/4, and that
-a real receiver's loop gains depend on the signal level.
+learnSDR builds each of these blocks in GNU Radio:
+
+- the Costas loop (lessons [12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md)
+  and [13](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson13.md))
+- PSK ([16](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson16.md))
+- symbol timing ([18](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson18.md))
+- frame sync and differential coding ([19](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson19.md),
+  [20](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson20.md))
+
+What the blocks hide, and this page shows:
+
+- the integer widths
+- where the multipliers go
+- the NCO's bookkeeping
+- the holes at *f*<sub>s</sub>/4
+- that a real receiver's loop gains depend on the signal level
 
 **Try this:**
 
@@ -1548,10 +1628,10 @@ a real receiver's loop gains depend on the signal level.
 - Swap Catmull-Rom for the parabolic interpolator in the model (one
   function) and plot MER against `mu`: the 13 dB dip is the band edge.
 - Two boards: `qpsk_modem_test.py PORT_A PORT_B`, A's DAC to B's ADC.
-  Done, across about 2 m of coax and two crystals 0.2 ppm apart: 200,000
-  bytes each way, 0 bit errors in 1.6 million. The loops' integrators
-  should settle at the real offset, which the board cannot report but
-  `awgcap.bit` on a third board and the model can.
+  Measured across about 2 m of coax and two crystals 0.2 ppm apart:
+  200,000 bytes each way, 0 bit errors in 1.6 million. The loops'
+  integrators should settle at the real offset, which the board cannot
+  report but `awgcap.bit` on a third board and the model can.
 - Drive it from Linux: swap `modem.sv` for `qpsk_modem.sv` in
   [5.05](5_05_fsk_modem.md#505-a-modem)'s `make_modem_linux.py` and run
   `ping` across the cable at 3 Mbit/s instead of 115 kbaud.

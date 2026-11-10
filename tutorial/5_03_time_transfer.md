@@ -5,16 +5,16 @@
 
 ![The two-way exchange as a space-time diagram: each board's loop start, the two waveforms in flight, and the delays each board measures](img/tt_spacetime.png)
 
-Two observers, each with a clock, want to agree on what time it is. The only
-way to compare clocks at a distance is to send a signal, and the signal takes
-time to arrive. If A sends "it's noon" and B receives it, B knows only that it
-was noon when A sent it, plus however long the trip took. That isn't known
-unless the clocks already agree. Einstein met this in 1905 and settled it by
-convention: *send a signal from A to B and straight back, and define the event
-at B to be halfway through the round trip.* National time laboratories compare
-their atomic clocks the same way across the Atlantic. Each station transmits
-at once through a satellite, so the trip out and the trip back cancel. It is
-called *two-way satellite time and frequency transfer*.
+Two observers, each with a clock, want to agree on the time. The only way to
+compare clocks at a distance is to send a signal, and the signal takes time to
+arrive. If A sends "it's noon", B learns only that it was noon when A sent it,
+plus the trip time, and that isn't known unless the clocks already agree.
+
+Einstein settled this in 1905 by convention: *send a signal from A to B and
+straight back, and define the event at B to be halfway through the round
+trip.* National time laboratories compare atomic clocks across the Atlantic
+the same way (*two-way satellite time and frequency transfer*): both stations
+transmit at once through a satellite, so the trip out and the trip back cancel.
 
 ## The idea
 
