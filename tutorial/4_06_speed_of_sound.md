@@ -265,7 +265,7 @@ separates the transducers from the air.
 - **The delay.** **318 µs**, which at 22 °C (*c* = 344.6 m/s) is
   **10.9 cm** of air. On the bench it was 353 µs, 12.2 cm: the pair moved
   closer when it went onto the box. Two caveats: the room's temperature
-  wasn't measured (each 3 K is a millimetre), and the "about 10 cm" was by
+  wasn't measured (each 5 K is a millimetre: 318 µs × 0.6 m/s per K), and the "about 10 cm" was by
   eye between the faces, while each diaphragm sits a few millimetres behind
   its face.
 - **The phase, for two minutes** at 40.3 kHz. On the box it slipped once, by
