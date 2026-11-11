@@ -11,7 +11,7 @@
 // streak, and the return's overshoot a row of dots above the first point; shear from a long period is the lesser evil).
 //
 // Cables: A.DAC -> tee -> scope X and B.ADC; B.DAC -> tee -> scope Y (and A.ADC, unused).  The X board's drawing is
-// moved up X_OFFSET (to8x), to codes 16..255, so its lowest point stays clear of the burst's gap (code 0) on the Y
+// moved up X_OFFSET (dq, below), to codes 16..255, so its lowest point stays clear of the burst's gap (code 0) on the Y
 // board's ADC; the Y board's spans codes 9..248 (make_show.py's ICEPI_SCREEN_SCALE).
 //
 // The register bus (regbus.v, 1 Mbaud over the FT231X; host/show.py uses it): 7-bit addresses, 32-bit data.
@@ -32,6 +32,7 @@
 //   1F SYNC_TICKS (the X board: the period between bursts in ticks of 40 ns; show_params.vh's SYNC_TICKS)  12 {min_k[7:4], step_shift[3:0]}
 //   0B ADC {max[15:8], min[7:0]} of this board's own ADC over the last millisecond (what it sees of the other board's DAC)
 //   0C DAC_FORCE [8] on, [7:0] the code: the DAC holds that code instead of the show (for checking the cables)
+//   13 DITHER [0]: the sub-code dither of the 12-bit codes into the 8-bit DAC (1 at power-up; 0 = rounded, the stairs)
 //   0D RING_WRITES {ring 2's writes[15:0], ring 1's[15:0]} since power-up  0E RING1 {wp[26:16], every[11:0]}  0F RING2 the same
 //   03 TWIN_DIFF (Y board) at the last burst, its Lorenz twin's x minus the burst's, Q14.24 >> 8  07 the same for the Chua twin
 module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
@@ -48,11 +49,6 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
     `include "scene_layout.vh"
     `include "show_params.vh"
     localparam W = 920;                  // the burst's payload
-    // the engine's 12-bit codes to the 8-bit DAC, rounded: code k covers 16k - 8 .. 16k + 7, so the screen's centre line (2048,
-    // where the upright globe's equator lies) is in the middle of code 128, not on the edge between 127 and 128
-    function [7:0] to8(input [11:0] v); reg [12:0] r; begin r = {1'b0, v} + 13'd8; to8 = r[12] ? 8'd255 : r[11:4]; end endfunction
-    // the X board's: the same, X_OFFSET higher (show_params.vh), so the drawing uses codes 16..255
-    function [7:0] to8x(input [11:0] v); reg [13:0] r; begin r = {2'b0, v} + {2'b0, X_OFFSET} + 14'd8; to8x = (r[13:12] != 2'b0) ? 8'd255 : r[11:4]; end endfunction
     // ---- the register bus ----
     wire [7:0] rx_data, tx_data; wire rx_valid, tx_start, tx_busy;
     uart_rx #(.DIV(UART_DIV)) urx (.clk(clk), .rx(uart_rx), .data(rx_data), .valid(rx_valid));
@@ -67,7 +63,7 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
     reg [31:0] range_h [0:2]; initial begin range_h[0] = 0; range_h[1] = 0; range_h[2] = 0; end
     reg [25:0] mat_w = 0; reg mat_we = 0; reg [12:0] vaddr_h = 0; reg [35:0] vxy_h = 0; reg [17:0] vz_h = 0; reg vmem_we = 0;
     reg [15:0] step_ticks = STEP_PERIOD; reg [11:0] ring_every = RING_EVERY; reg signed [31:0] off_z = 25 << 24; reg load_w = 0;
-    reg [15:0] kx = KX, ky = KY, kz = KZ; reg signed [15:0] tx_delay = TX_DELAY; reg [7:0] thr_gap = THR_GAP; reg [8:0] dac_force = 9'd0;
+    reg [15:0] kx = KX, ky = KY, kz = KZ; reg signed [15:0] tx_delay = TX_DELAY; reg [7:0] thr_gap = THR_GAP; reg [8:0] dac_force = 9'd0; reg dither = 1'b1;
     reg [7:0] adc_max = 0, adc_min = 0, mx_acc = 8'd0, mn_acc = 8'd255; reg [15:0] adc_ms = 0;
     reg [15:0] step_ticks2 = STEP_PERIOD2; reg [11:0] ring_every2 = RING_EVERY2; reg load2_w = 0; reg [15:0] kx2 = KX2, ky2 = KY2, kz2 = KZ2; reg [15:0] hold_h = TAIL_HOLD;
     wire [15:0] frames, fps; wire [15:0] good, bad; wire [7:0] lo, hi; wire [31:0] interval; wire [31:0] trim;
@@ -80,7 +76,7 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
             7'h11: begin dwell_h <= wdata[15:0]; dwell_hw <= 1; end  7'h12: begin step_shift <= wdata[3:0]; min_k <= wdata[7:4]; end  7'h1f: sync_ticks <= wdata;
             7'h14: wa <= wdata; 7'h15: wb <= wdata; 7'h17: ws <= wdata;  7'h18: dur01 <= wdata;  7'h1e: dur23 <= wdata;
             7'h1b: wla <= wdata; 7'h1c: wlb <= wdata; 7'h1d: wlc <= wdata;
-            7'h19: tx_delay <= wdata[15:0];  7'h1a: thr_gap <= wdata[7:0];  7'h0c: dac_force <= wdata[8:0];
+            7'h19: tx_delay <= wdata[15:0];  7'h1a: thr_gap <= wdata[7:0];  7'h0c: dac_force <= wdata[8:0];  7'h13: dither <= wdata[0];
             7'h20: range_h[0] <= wdata; 7'h21: range_h[1] <= wdata; 7'h22: range_h[2] <= wdata;
             7'h30: begin mat_w <= wdata[25:0]; mat_we <= 1; end
             7'h40: vaddr_h <= wdata[12:0];  7'h41: vxy_h[31:0] <= wdata;  7'h42: begin vxy_h[35:32] <= wdata[19:16]; vz_h <= {wdata[21:20], wdata[15:0]}; vmem_we <= 1; end
@@ -97,7 +93,7 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
     always @(*) case (addr)
         7'h00: rdata = 32'hEC5B5E4C | ROLE;  7'h01: rdata = BUILD_ID;  7'h02: rdata = scratch;
         7'h04: rdata = {frames, fin, mode, 5'b0, btn_q, 1'b1};  7'h05: rdata = {23'b0, leds_r};  7'h06: rdata = {16'b0, fps};
-        7'h08: rdata = {bad, good};  7'h09: rdata = {interval[15:0], hi, lo};  7'h0a: rdata = trim;  7'h0b: rdata = {16'b0, adc_max, adc_min};  7'h0c: rdata = {23'b0, dac_force};
+        7'h08: rdata = {bad, good};  7'h09: rdata = {interval[15:0], hi, lo};  7'h0a: rdata = trim;  7'h0b: rdata = {16'b0, adc_max, adc_min};  7'h0c: rdata = {23'b0, dac_force};  7'h13: rdata = {31'b0, dither};
         7'h03: rdata = twin_diff1;  7'h07: rdata = twin_diff2;  7'h0d: rdata = {nw2, nw1};  7'h0e: rdata = {5'b0, wp, 4'b0, every};  7'h0f: rdata = {5'b0, wp2, 4'b0, every2};
         7'h10: rdata = {18'b0, ctrl};  7'h11: rdata = {16'b0, dwell_h};  7'h12: rdata = {24'b0, min_k, step_shift};  7'h1f: rdata = sync_ticks;
         7'h14: rdata = wa;  7'h15: rdata = wb;  7'h17: rdata = ws;  7'h18: rdata = dur01;  7'h1e: rdata = dur23;  7'h19: rdata = {{16{tx_delay[15]}}, tx_delay};
@@ -209,11 +205,27 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
     reg eng_abort = 0;
     reg [15:0] nrep = 16'd1, nf = 0;     // the period's frames, and this one's number (from 1)
     // the period's frames alternate forwards and backwards (the even ones backwards, on both boards), so each starts where
-    // the last ended
+    // the last ended.  The scene memory's write address is vaddr_h itself: one clock domain here, so the write lands before
+    // the address steps on (top_show.v's vaddr_h - 1 allows for its pulse's crossing into clk_s, by when it has stepped).
+    // With - 1 here, as it was until 2026-11-10, a host drawing lost its first vertex and overwrote the one before it.
     vec3d eng (.clk(clk), .upd(eng_tick), .run(eng_run), .rev(~nf[0]), .abort(eng_abort), .r_src(r_src), .r_start(r_start), .r_count(r_count), .maddr(maddr), .mdata(mdata),
-               .step_shift(step_shift), .min_k(min_k), .dwell(dwell_eng), .hold_n(hold_h), .vw(vmem_ws), .vaddr(vaddr_h - 13'd1), .vxy(vxy_h), .vz(vz_h),
+               .step_shift(step_shift), .min_k(min_k), .dwell(dwell_eng), .hold_n(hold_h), .vw(vmem_ws), .vaddr(vaddr_h), .vxy(vxy_h), .vz(vz_h),
                .rw(rw), .raddr(wp), .rxy(rxy), .rz(rz), .rw2(rw2), .raddr2(wp2), .rxy2(rxy2), .rz2(rz2),
                .x(vx), .y(vy), .beam(vbeam), .frame_done(frame_done), .frames(frames), .fifo_empty(fifo_empty), .drained(drained));
+
+    // ---- the engine's 12-bit codes to the 8-bit DAC ----
+    // Rounded: code k covers 16k - 8 .. 16k + 7, so the screen's centre line (2048, where the upright globe's equator lies)
+    // is in the middle of code 128, not on the edge between 127 and 128.  The X board's X_OFFSET higher (show_params.vh),
+    // so its drawing uses codes 16..255.  And dithered (2026-11-10, Jason: the 8-bit stairs): first-order error feedback
+    // at the DAC's 50 MS/s.  Each clock's rounding error is added to the next clock's value, so a value f sixteenths of a
+    // code above a code spends f/16 of the time one code up, the toggling pushed towards 25 MHz, where the DAC's amplifier
+    // and the scope smooth it out: a line between two codes is drawn between them, not as a stair.  Register 13 = 0: off.
+    reg signed [4:0] derr = 5'sd0;                                      // the last rounding error, -8..7 sixteenths of a code
+    wire [13:0] dsum = {2'b0, (ROLE == 0) ? vx : vy} + ((ROLE == 0) ? {2'b0, X_OFFSET} : 14'd0) + 14'd8;
+    wire signed [15:0] dw = $signed({2'b0, dsum}) + (dither ? derr : 5'sd0);
+    wire dlo = dw < 16'sd0, dhi = dw > 16'sd4095;                        // past the DAC's ends: held there, the error dropped
+    wire [7:0] dq = dlo ? 8'd0 : dhi ? 8'd255 : dw[11:4];
+    always @(posedge clk) derr <= (dither && !dlo && !dhi) ? $signed({1'b0, dw[3:0]}) - 5'sd8 : 5'sd0;
 
     // ---- the frame sequence, per role ----
     reg [15:0] dly = 0;
@@ -289,7 +301,7 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
         wire [W-1:0] payload = {4'b1010, nrep, frame_no, mode, fin, dwell_fr, tcount, every, wp, every2, wp2, 1'b0, stepc_cap, stepc2_cap, ph16, x_t, y_t, z_t, x2_t, y2_t, z2_t, 8'd0};
         sync_tx #(.W(W)) stx (.clk(clk), .tick(tick), .start(sync_start), .payload(payload), .active(sync_active), .level(sync_level), .done(sync_done));
         assign eng_tick = tick && !sync_active;
-        always @(posedge clk) dac_d <= dac_force[8] ? dac_force[7:0] : sync_active ? sync_level : to8x(vx);
+        always @(posedge clk) dac_d <= dac_force[8] ? dac_force[7:0] : sync_active ? sync_level : dq;
         assign sy_valid = 0; assign sy_payload = 0; assign sy_in_burst = 0; assign good = 0; assign bad = 0; assign lo = 0; assign hi = 0; assign interval = 0;
     end else begin : yrole
         // the Y board: wait for a burst, load its state, run the animator, draw the frame; trim the tick rate
@@ -348,7 +360,7 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
         assign eng_tick = tick;
         // during the X board's burst the beam is parked at the bottom (code 0, just below the drawing's codes 9..248), so
         // the burst's streak lies along the bottom edge of the picture; the engine parks it there between frames too
-        always @(posedge clk) dac_d <= dac_force[8] ? dac_force[7:0] : sy_in_burst ? 8'd0 : to8(vy);
+        always @(posedge clk) dac_d <= dac_force[8] ? dac_force[7:0] : sy_in_burst ? 8'd0 : dq;
         assign sync_active = 0; assign sync_done = 0; assign sync_level = 0;
     end endgenerate
     assign led = leds_r[8] ? leds_r[4:0] : {vbeam, (ROLE == 1) ? sy_in_burst : sync_active, mode[2:0]};

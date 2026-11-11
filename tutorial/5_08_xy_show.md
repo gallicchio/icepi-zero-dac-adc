@@ -199,16 +199,34 @@ lines. A hidden vertex costs no beam time at all; the next visible one is reache
 Then perspective: a point at depth *z* appears *P*/(*P* + *z*) times its size, with the eye at
 *P* = 5 (the seal being 2 wide). Dividing is slow in logic, so the factor comes from a table of
 512 entries indexed by *z*, written by Python, and the projection is two more multiplications.
-The result is rounded to the nearest of the engine's 4096 codes, and then to the DAC's 256. (It
-was truncated at first, and the globe's equator, which lies exactly on the centre line, flickered
-between DAC codes 127 and 128 as the globe turned. Rounding fixed it: `to8` in
-[`rtl/top_icepi.v`](../src/xyshow/rtl/top_icepi.v).)
+The result is rounded to the nearest of the engine's 4096 codes. (It was truncated at first, and
+the globe's equator, which lies exactly on the centre line, flickered between DAC codes 127 and
+128 as the globe turned.)
+
+### Between the DAC's codes: dither
+
+The engine has 16 steps for each of the DAC's codes, and the DAC has 256 codes. Rounded to 8 bits,
+a line that is nearly level climbs one code in a single step, and on an analog scope it looks like
+a staircase. So the last 4 bits are not thrown away. Each clock's rounding error is added to the
+next clock's value. A value 5/16 of the way from one code to the next is then output as the
+higher code 5 clocks in 16 and the lower one the rest of the time. This is *error feedback*, the
+simplest form of [noise shaping](https://en.wikipedia.org/wiki/Noise_shaping). The DAC runs at
+50 MS/s, so the toggling sits up near 25 MHz, which the DAC's amplifier and the scope smooth
+out. The beam ends up between the two codes, and the stair becomes a smooth line. From
+[`rtl/top_icepi.v`](../src/xyshow/rtl/top_icepi.v):
 
 ```verilog
-// the engine's 12-bit codes to the 8-bit DAC, rounded: code k covers 16k - 8 .. 16k + 7, so the screen's centre line (2048,
-// where the upright globe's equator lies) is in the middle of code 128, not on the edge between 127 and 128
-function [7:0] to8(input [11:0] v); reg [12:0] r; begin r = {1'b0, v} + 13'd8; to8 = r[12] ? 8'd255 : r[11:4]; end endfunction
+reg signed [4:0] derr = 5'sd0;                                      // the last rounding error, -8..7 sixteenths of a code
+wire [13:0] dsum = {2'b0, (ROLE == 0) ? vx : vy} + ((ROLE == 0) ? {2'b0, X_OFFSET} : 14'd0) + 14'd8;
+wire signed [15:0] dw = $signed({2'b0, dsum}) + (dither ? derr : 5'sd0);
+wire dlo = dw < 16'sd0, dhi = dw > 16'sd4095;                        // past the DAC's ends: held there, the error dropped
+wire [7:0] dq = dlo ? 8'd0 : dhi ? 8'd255 : dw[11:4];
+always @(posedge clk) derr <= (dither && !dlo && !dhi) ? $signed({1'b0, dw[3:0]}) - 5'sd8 : 5'sd0;
 ```
+
+The `+ 8` rounds: code *k* covers 16*k* − 8 to 16*k* + 7, so the screen's centre line (2048) is
+in the middle of code 128. `python3 host/show.py dither 0` turns the dither off on both boards,
+and `dither 1` turns it back on: watch a nearly level line while you do.
 
 ### The line generator, and why there's a FIFO
 
@@ -470,8 +488,8 @@ Every 20 ms, board X stops drawing, parks its beam, and sends a burst on its DAC
 code 0, then 920 bits at four samples each, low at code 0 and high at code 40. That's 148 µs, about
 1% of the time. The burst is drawn too: a short streak along the bottom-left edge of the
 picture, which you can point to. Board X's drawing stays clear of the gap's code 0: it uses codes
-16 to 255, its 12-bit codes rounded to 8 bits 7.5 codes higher than board Y's (`to8x` in
-[`rtl/top_icepi.v`](../src/xyshow/rtl/top_icepi.v)). Board Y's ADC sees board X's DAC through the tee.
+16 to 255, its 12-bit codes turned into 8 bits 7.5 codes higher than board Y's (`X_OFFSET`
+in [`rtl/top_icepi.v`](../src/xyshow/rtl/top_icepi.v)). Board Y's ADC sees board X's DAC through the tee.
 
 ```verilog
 reg [W-1:0] sh = 0; reg [12:0] n = 0; reg [1:0] sc = 0; reg [7:0] acc = 0; reg [9:0] b = 0;
@@ -593,12 +611,11 @@ finale, from the simulation (a finale's tile is all the samples recorded of it):
 the animator, with a model of the beam and its persistence, so a new finale can be judged before
 a build.
 
-**On the bench.** A digital scope (Siglent SDS1104X-E in XY, 10 MS/s) took these on 2026-11-09,
-from the boards running the bitstreams `make` built then. The show has changed a little since:
-the sonic boom has left it, the drone's antenna is horizontal, and the drawing uses more of the
-DACs' range.
+**On the bench.** A digital scope (Siglent SDS1104X-E in XY at 1 V/div, 10 MS/s) took these,
+from the boards running the bitstreams `make` builds (the dots along the bottom edge are the
+burst):
 
-<img src="img/xyshow_siglent.png" alt="Screenshots of a digital oscilloscope in XY mode showing every part of the show from the two boards on 2026-11-09: the seal with its globe, the seal turned over, and the 21 finales then in it" width="800">
+<img src="img/xyshow_siglent.png" alt="Screenshots of a digital oscilloscope in XY mode showing every part of the show from the two boards: the seal with its globe, the seal turned over, and the 20 finales" width="800">
 
 **On an analog scope.** The digital scope samples at 10 MS/s, and its persistence hides what the
 beam does between samples. The analog scope at the top of this page shows everything, and it
@@ -613,7 +630,14 @@ found the problems the simulations didn't:
 | ghost lines in empty parts of the screen | the strokes were in the order they were made, so the jumps between them were as long as the drawing | strokes reordered, nearest end first |
 | the equator jumping up and down a little | it lies exactly on the boundary between DAC codes 127 and 128, and truncation put it on either | round to the nearest code |
 | a rectangle of spots, now and then | board Y computed its matrices from phases a millisecond later than board X's | board X's phases held still from its animator to its burst |
-| nearly level and nearly upright lines drawn as stairs | the 8-bit DAC: a line that climbs one code climbs it in one step, 1/256 of the DAC's range | more of the range: codes 16 to 255 for board X and 9 to 248 for board Y, not 25 to 230; the burst's streak moved to the picture's edge |
+| nearly level and nearly upright lines drawn as stairs | the 8-bit DAC: a line that climbs one code climbs it in one step, 1/256 of the DAC's range | more of the range (codes 16 to 255 for board X and 9 to 248 for board Y, not 25 to 230; the burst's streak moved to the picture's edge), and the dither between codes |
+
+The digital scope found one more: a drawing sent from the laptop lost its first stroke. The
+design came from a board whose engine runs on a second clock, so a write to the scene memory
+reached the engine a clock or two after the address had stepped on, and the engine wrote to
+`vaddr_h - 1`. On the Icepi Zero everything runs on one clock, the write lands before the step, and
+`- 1` put every vertex one place early. The address is now `vaddr_h`. Moving code between clock
+domains moves its off-by-ones too.
 
 ## The finales
 

@@ -8,6 +8,8 @@ write, bits 6:0 the register), then four data bytes, least significant first; a 
     python3 host/show.py mode 1           hold the X board in mode 1 (the seal and its globe) or 2 (the seal turning over)
     python3 host/show.py finale 12        hold the 13th finale (they count from 0, in make_show.py's FINALES order)
     python3 host/show.py auto             back to the show
+    python3 host/show.py dither 0         both boards' DACs rounded to 8 bits: the stairs on nearly level lines; `dither 1`
+                                          puts back the sub-code dither (the default at power-up)
     python3 host/show.py draw "HELLO"     your own drawing: stroke letters into both boards' free scene memory, shown in
                                           mode 4 and turning over as the seal does (auto ends it)
 
@@ -88,6 +90,8 @@ if __name__ == "__main__":
     elif a[0] == "mode": B["X"].wr(0x10, 0x005 | (int(a[1]) << 4)); print(B["X"].status())
     elif a[0] == "finale": B["X"].wr(0x10, 0x005 | (3 << 4) | ((int(a[1]) & 31) << 9)); print(B["X"].status())
     elif a[0] == "auto": B["X"].wr(0x10, 0x007); print(B["X"].status())
+    elif a[0] == "dither":                                                       # register 13; each board dithers its own DAC
+        for r in sorted(B): B[r].wr(0x13, int(a[1]) & 1); print(r, "dither", B[r].rd(0x13))
     elif a[0] == "draw":
         import vector
         print(draw(B, vector.centred_text(" ".join(a[1:]), size=0.5)), "vertices drawn; `python3 host/show.py auto` to go back")

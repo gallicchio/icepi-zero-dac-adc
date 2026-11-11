@@ -3230,3 +3230,15 @@ The show in `src/xyshow/` changed the same way as OpticsPCBs' copy.  Its ten tab
 - **5.08:** 20 finales, the new budgets (7,409 vertices, 2,597 instructions, 783 free), 1 V/div, the burst and threshold paragraphs, a row for the stairs in the analog-scope table, the tek's row, the seal at 1,300 frames a second, and a new simulation sheet.  The bench grid of Siglent screenshots is still 2026-11-09's, now dated in its caption: the Siglent's inputs read 0 V today, presumably because the BNCs are on the Tek.
 
 **Board state:** both boards run the new show from flash, in step.  The Siglent is at 0.8 V/div, XY, as found.
+
+## Prompt 33
+
+(From the OpticsPCBs session, its prompt 90.)  Yes, dither the last code bit, with a "probability" that is proportional to how far between the 12-bit value lies..... or use some more clever deterministic noise-shaping kind of dither. Whatever. But please get rid of the stair steps.
+
+## Response 33 2026-11-10 16:15:00 - 16:50:00 Claude Opus 5.5
+
+`src/xyshow/rtl/top_icepi.v` now dithers the engine's last 4 bits into the 8-bit DAC.  It uses first-order error feedback at the DAC's 50 MS/s: each clock's rounding error is added to the next.  It is on at power-up; `python3 host/show.py dither 0` turns it off, and `dither 1` turns it back on.  On the Siglent, a held line rising 7 codes over 215 shows 7 stairs without the dither and a smooth ramp with it.
+
+The bench also found that a drawing sent from the laptop lost its first stroke.  The write address `vaddr_h - 1` came from the ECP5 board's two clock domains; here there is one, so it is now `vaddr_h`.
+
+5.08 has a section on the dither, with its code, and a note on the address fix.  The bench grid was retaken at 1 V/div with the dither on.  The Verilog is identical to OpticsPCBs' (code lines), and the tables are byte-identical.  Built, `make sim` PASS, flashed into DK0GFLAW (X) and DP051TLX (Y), in step with 0 bad bursts.  `make check`: 0 errors.  The Siglent is back at 0.8 V/div.
