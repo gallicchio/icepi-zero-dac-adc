@@ -12,15 +12,17 @@
   "sagnac": 804,
   "drone": 994,
   "replicate": 1198,
-  "sats": 1293,
-  "ligo": 1485,
-  "pcb": 1627,
-  "spinner": 1758,
-  "top": 1783,
-  "pwave": 1856,
-  "generator": 2223,
-  "governor": 2274,
-  "tek": 2416
+  "transcribe": 1293,
+  "translate": 1428,
+  "sats": 1545,
+  "ligo": 1737,
+  "pcb": 1879,
+  "spinner": 2010,
+  "top": 2035,
+  "pwave": 2108,
+  "generator": 2475,
+  "governor": 2526,
+  "tek": 2668
  },
  "section_lengths": {
   "seal": 52,
@@ -35,6 +37,8 @@
   "sagnac": 190,
   "drone": 204,
   "replicate": 95,
+  "transcribe": 135,
+  "translate": 117,
   "sats": 192,
   "ligo": 142,
   "pcb": 131,
@@ -290,6 +294,6 @@
   "v0.0422447758667": 0.042236328125,
   "v0.0360804471295": 0.03607177734375
  },
- "n_instructions": 2597,
+ "n_instructions": 2849,
  "n_constants": 243
 }

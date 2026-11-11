@@ -3242,3 +3242,13 @@ The show in `src/xyshow/` changed the same way as OpticsPCBs' copy.  Its ten tab
 The bench also found that a drawing sent from the laptop lost its first stroke.  The write address `vaddr_h - 1` came from the ECP5 board's two clock domains; here there is one, so it is now `vaddr_h`.
 
 5.08 has a section on the dither, with its code, and a note on the address fix.  The bench grid was retaken at 1 V/div with the dither on.  The Verilog is identical to OpticsPCBs' (code lines), and the tables are byte-identical.  Built, `make sim` PASS, flashed into DK0GFLAW (X) and DP051TLX (Y), in step with 0 bad bursts.  `make check`: 0 errors.  The Siglent is back at 0.8 V/div.
+
+## Prompt 34
+
+(From the OpticsPCBs session, its prompt 91.)  Put the transcription and translation finales back in.
+
+## Response 34 2026-11-11 07:05:00 - 07:50:00 Claude Opus 5.5
+
+Transcription and translation are back in 5.08's show, after replication, so the three central-dogma schematics play in order.  There are now 22 finales, and a round is still about four minutes.  `src/xyshow/make_show.py` has them in `FINALES` (6.5 s each), and the KINDS comment no longer lists them as spare.  The tables were regenerated and are byte-identical to OpticsPCBs'; the Verilog is unchanged.  Budgets: 8,027 of 8,192 vertices (165 free, enough for a drawing of about two words from `host/show.py draw`), 2,849 of 4,096 instructions, 243 constants.  The viewpoint's swing `pv` now serves fourteen finales.
+
+Built (X 62.96 MHz, Y 62.88 MHz for 50); `make sim` PASS (846 frames, the trim -101.1 ppm for the 100 ppm fast clock).  Flashed into DK0GFLAW (X) and DP051TLX (Y): build 20261111, in step, 0 bad bursts.  5.08: the counts, two rows in the finale table, the simulation sheet (`img/xyshow_sim.png`) and the Siglent grid (`img/xyshow_siglent.png`, 24 tiles at 1 V/div, 0 bad bursts) retaken.  5.00: 22 animations.  The Siglent is back at 0.8 V/div and board X on auto.  `make check`: 0 errors.

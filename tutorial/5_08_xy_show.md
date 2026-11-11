@@ -157,7 +157,7 @@ Every drawing is stored as 3D vertices in block RAM: 8,192 of them, 54 bits each
 
 The seal takes 2,888 vertices: 1,518 for its body, traced from the College's artwork, and 1,370
 for the globe, a 30° grid of latitude and longitude lines and the real coastlines (Natural
-Earth, at 1:110 million). The 20 finales share the rest; 783 are free.
+Earth, at 1:110 million). The 22 finales share the rest; 165 are free.
 
 ### Groups and matrices
 
@@ -275,7 +275,7 @@ carries the beam through the hidden half while the engine catches up.
 
 ## The animator: a small computer for rotations
 
-The matrices change 50 times a second, and there are 20 finales, each moving in its own way: gears
+The matrices change 50 times a second, and there are 22 finales, each moving in its own way: gears
 turning at the ratios of their teeth, an arm with five joints, satellites in inclined orbits,
 twelve pendulums. Writing that in Verilog, finale by finale, would be a lot of logic. Instead
 the matrices are computed by a tiny special-purpose computer,
@@ -349,7 +349,7 @@ default: st <= 0;
 
 The registers hold the constants (around 240 of them), the 32 phases' sines, cosines and values,
 working space, and the 16 matrices, which the engine reads through the RAM's second port. The
-whole program is 2,597 instructions in 4,096 words. The longest section, the pendulum wave's,
+whole program is 2,849 instructions in 4,096 words. The longest section, the pendulum wave's,
 runs in about 60 µs.
 
 The program is written by
@@ -426,15 +426,15 @@ A matrix can do more than rotate, and some finales depend on it.
 
 | resource | used | of |
 |---|---:|---:|
-| scene memory (vertices) | 7,409 | 8,192 |
+| scene memory (vertices) | 8,027 | 8,192 |
 | phases | 32 | 32 |
-| animator program (instructions) | 2,597 | 4,096 |
+| animator program (instructions) | 2,849 | 4,096 |
 | block RAMs (the scene 24, the rings 12, the program 8, and four more) | 48 | 56 |
 | multipliers | 17 | 28 |
 | logic (LUTs), board X | about 12,000 | 24,288 |
 
 The phases are the tightest: several finales share them (the slow swing of the viewpoint serves
-twelve), and a new finale has to make do with rates that exist. The design runs at 50 MHz and
+fourteen), and a new finale has to make do with rates that exist. The design runs at 50 MHz and
 would close at about 60.
 
 ## Not geometry: two chaotic circuits, computed live
@@ -605,7 +605,7 @@ against board Y's, sample by sample, and draws them as the scope would. It also 
 Y's rings match board X's and that its clock trim settles at −100 ppm. Here is every mode and
 finale, from the simulation (a finale's tile is all the samples recorded of it):
 
-<img src="img/xyshow_sim.png" alt="The simulation's frames: the seal and globe, the seal turned over, and the 20 finales, each drawn from the two simulated boards' DAC samples, board X's as x and board Y's as y" width="800">
+<img src="img/xyshow_sim.png" alt="The simulation's frames: the seal and globe, the seal turned over, and the 22 finales, each drawn from the two simulated boards' DAC samples, board X's as x and board Y's as y" width="800">
 
 **A movie of the program.** `make movie` renders the show from `run()`, the bit-exact model of
 the animator, with a model of the beam and its persistence, so a new finale can be judged before
@@ -615,7 +615,7 @@ a build.
 from the boards running the bitstreams `make` builds (the dots along the bottom edge are the
 burst):
 
-<img src="img/xyshow_siglent.png" alt="Screenshots of a digital oscilloscope in XY mode showing every part of the show from the two boards: the seal with its globe, the seal turned over, and the 20 finales" width="800">
+<img src="img/xyshow_siglent.png" alt="Screenshots of a digital oscilloscope in XY mode showing every part of the show from the two boards: the seal with its globe, the seal turned over, and the 22 finales" width="800">
 
 **On an analog scope.** The digital scope samples at 10 MS/s, and its persistence hides what the
 beam does between samples. The analog scope at the top of this page shows everything, and it
@@ -666,6 +666,8 @@ In the order the show plays them, three between the seal's turns. `FINALES` in
 | a Sagnac source | photons flowing both ways round the loop of an entangled-pair source | quantum optics |
 | an oscilloscope in an oscilloscope | a Tektronix 2235 on its handle, its screen showing itself, four levels deep; as it swings, each drawing turns by the swing again, a moment later | recursion: a camera pointed at its own screen, with a delay. Each level's matrix is the last one's times the screen's frame times the view a quarter second earlier |
 | replication | DNA's two strands separate at a fork and each gets a new partner | biology |
+| transcription | a polymerase slides along DNA; the RNA comes out of it as a wave running away | biology |
+| translation | a ribosome slides along the mRNA; tRNAs bring amino acids, and the protein chain rides out of its top | biology |
 
 ## Changing it
 
@@ -685,7 +687,7 @@ see a change before you build (it needs numpy, scipy, Pillow and ffmpeg).
   [`host/proposals.py`](../src/xyshow/host/proposals.py)); its motion is a section of
   [`host/gen_matrix_prog.py`](../src/xyshow/host/gen_matrix_prog.py) that writes its groups'
   matrices from the phases; and an entry in `KINDS` in `make_show.py` says which phases it uses.
-  `make movie` shows it before you build. Watch the budgets above: 783 vertices are free, and
+  `make movie` shows it before you build. Watch the budgets above: 165 vertices are free, and
   every phase is taken, so a new finale shares rates that exist.
 * **Bigger ideas.** A third board with a third DAC driving the scope's Z input could blank the
   beam during jumps. Board X's ADC is free (take its tee off): it could listen to a microphone

@@ -78,5 +78,13 @@
  {
   "kind": "replicate",
   "seconds": 6.0
+ },
+ {
+  "kind": "transcribe",
+  "seconds": 6.5
+ },
+ {
+  "kind": "translate",
+  "seconds": 6.5
  }
 ]

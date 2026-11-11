@@ -38,8 +38,7 @@ FLIP_AXIS_DEG = 25.0    # the axis' angle from vertical, in the seal's plane, at
 FLIP_AXIS_DEG_PER_S = 8.0   # the axis drifts round at this rate, so each cycle's turn is a little different
 # The finales (mode 3), in this order, FINALES_PER_SEAL of them between the seal's turns: (kind, seconds).  The kinds are
 # those of KINDS (up to 32 in the list); KINDS also has finales that are not in it, ready to add: "lorenz" (the
-# Lorenz attractor's tail, from its twin), "em" (an electromagnetic wave), "transcribe", "translate", "knot", "lsd",
-# "boom" (a sonic boom).
+# Lorenz attractor's tail, from its twin), "em" (an electromagnetic wave), "knot", "lsd", "boom" (a sonic boom).
 # Repeat one to show it more often, delete what you do not want.  The scene memory holds 8192 vertices: the seal and
 # its 3D globe take 2888, each object its share (`python3 make_show.py` prints the layout).
 FINALES = [
@@ -49,7 +48,8 @@ FINALES = [
     ("pcb",        7.0), ("sats",       7.0), ("pwave",     12.0),
     ("scope",      6.0), ("generator",  7.0), ("dna",        5.0),
     ("drone",      7.0), ("pol",        7.0), ("sagnac",     7.0),
-    ("tek",        7.0), ("replicate",  6.0),
+    ("tek",        7.0), ("replicate",  6.0), ("transcribe", 6.5),
+    ("translate",  6.5),
 ]
 FINALES_PER_SEAL = 3    # finales between two of the seal's turns (modes 1 and 2)
 LORENZ_VIEW_TURNS_PER_S = (0.06, 0.085, 0.11)   # the view's three angles' rates while in the Lorenz finale (incommensurate: the axis wanders)
@@ -73,7 +73,7 @@ WAVEFRONT_PER_S = 0.33          # the lens's and the dish's wavefronts: each cro
 SAT_TURNS_PER_S = (0.28, 0.24, 0.20)   # the three satellites' orbits per second
 DRONE_SWEEPS_PER_S = 0.09; PROP_TURNS_PER_S = 2.5   # the drone's sweep through the beam (a sine), its propellers' spin
 SLOW_PER_S = 0.15               # the phase sl: the oscilloscope in an oscilloscope swings once per 1/this seconds (host/proposals.py
-                                # TEK); transcription's and translation's walk along the strand (not in FINALES)
+                                # TEK); transcription's and translation's walk along the strand
 PCB_STEP_PER_S = 0.9            # the circuit board's charge moves a bead's spacing this often a second
 PWAVE_CYCLE_S = 24.0            # the pendulum wave's cycle: in it the longest pendulum swings 16 times, the shortest 27; the same phase,
                                 # from zero, times the dish's message
