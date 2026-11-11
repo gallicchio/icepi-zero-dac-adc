@@ -25,7 +25,7 @@ def dish_model(t):
         a = u - el["d"]; R = np.zeros((3, 3)); R[:2, :2] = V[:2, :2]; R[2, 2] = a * (el["d"] + dc["w"] - u)
         m[5 + n] = (R, V @ np.array([dc["x_rim"] + dc["v"] * a, 0, 0]))
     return m
-def check(kinds=("ligo", "pcb", "spinner", "top", "pwave", "generator", "governor", "boom", "tek", "dish"), n=60):
+def check(kinds=("ligo", "pcb", "spinner", "top", "pwave", "generator", "governor", "boom", "tek", "kaleido", "dish"), n=60):
     P = gmp.build(ms.anim_consts(1.0)); v0 = gmp.regs_init(P); bad = False
     print("program: %d instructions in all sections, %d constants" % (len(P.prog), P.nk))
     for kind in kinds:
@@ -47,4 +47,4 @@ def check(kinds=("ligo", "pcb", "spinner", "top", "pwave", "generator", "governo
               worst[0], "" if ok else "  FAIL at t %.2f s, group %d" % worst[1], ""))
     return not bad
 if __name__ == "__main__":
-    sys.exit(0 if check(sys.argv[1:] or ("ligo", "pcb", "spinner", "top", "pwave", "generator", "governor", "boom", "tek", "dish")) else 1)
+    sys.exit(0 if check(sys.argv[1:] or ("ligo", "pcb", "spinner", "top", "pwave", "generator", "governor", "boom", "tek", "kaleido", "dish")) else 1)

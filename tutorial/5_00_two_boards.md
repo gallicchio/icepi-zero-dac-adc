@@ -104,7 +104,7 @@ Every data bit of both converters works, and the two modules differ in gain by
 | [5.05 A modem](5_05_fsk_modem.md#505-a-modem) | [frequency-shift keying](https://en.wikipedia.org/wiki/Frequency-shift_keying): typing from one laptop to the other, then two Linux computers on one cable | yes |
 | [5.06 The modem against noise](5_06_modem_and_noise.md#506-the-modem-against-noise) | [bit error rate](https://en.wikipedia.org/wiki/Bit_error_rate) against [signal-to-noise ratio](https://en.wikipedia.org/wiki/Signal-to-noise_ratio), measured and predicted | yes: measured that way |
 | [5.07 A radio link](5_07_radio_link.md#507-a-radio-link) | a narrowband modem through the air, between two loop antennas | yes, through a cable |
-| [5.08 A 3D show on an oscilloscope](5_08_xy_show.md#508-a-3d-show-on-an-oscilloscope) | the two boards drive an oscilloscope in XY mode: the College seal in 3D and 22 animations, from the FPGAs alone, the boards kept in step through the cable | no: it takes both DACs |
+| [5.08 A 3D show on an oscilloscope](5_08_xy_show.md#508-a-3d-show-on-an-oscilloscope) | the two boards drive an oscilloscope in XY mode: the College seal in 3D and 23 animations, from the FPGAs alone, the boards kept in step through the cable | no: it takes both DACs |
 | [5.09 With a little more hardware](5_09_more_hardware.md#509-with-a-little-more-hardware) | more ideas: light, sound, a GPS reference, thermal noise, a network of three | |
 
 Chapter 6 ([6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)) goes on from the modem to how real digital radios work: PSK with

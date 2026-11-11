@@ -8,7 +8,7 @@
     python3 make_show.py --movie    the tables, and a preview: renders/show_movie.mp4 (the show as it runs, until every
                                     finale has been once), renders/show_finales.mp4 (the seal once, then the finales
                                     back to back) and renders/finales_sheet.png (three moments of each)
-    python3 make_show.py --quick    the tables, and a short preview (the seal and the first three finales, 10 frames a second)
+    python3 make_show.py --quick    the tables, and a short preview (the seal and the first four finales, 10 frames a second)
 
 The sequence: the seal with its globe a 3D wireframe, upright and facing as the engraved one (64 W), still for a
 second, then turning once about its axis; the seal turned over about an in-plane axis (the lettering reads backwards
@@ -44,14 +44,14 @@ FLIP_AXIS_DEG_PER_S = 8.0   # the axis drifts round at this rate, so each cycle'
 FINALES = [
     ("chua",       5.0), ("spinner",    7.6), ("gears",      6.0),
     ("ligo",       7.0), ("caffeine",   5.0), ("governor",   6.5),
-    ("dish",       9.0), ("top",        6.0), ("arm",        7.0),
-    ("pcb",        7.0), ("sats",       7.0), ("pwave",     12.0),
-    ("scope",      6.0), ("generator",  7.0), ("dna",        5.0),
-    ("drone",      7.0), ("pol",        7.0), ("sagnac",     7.0),
-    ("tek",        7.0), ("replicate",  6.0), ("transcribe", 6.5),
-    ("translate",  6.5),
+    ("dish",       9.0), ("top",        6.0), ("kaleido",    6.7),
+    ("arm",        7.0), ("pcb",        7.0), ("sats",       7.0),
+    ("pwave",     12.0), ("scope",      6.0), ("generator",  7.0),
+    ("dna",        5.0), ("drone",      7.0), ("pol",        7.0),
+    ("sagnac",     7.0), ("tek",        7.0), ("replicate",  6.0),
+    ("transcribe", 6.5), ("translate",  6.5),
 ]
-FINALES_PER_SEAL = 3    # finales between two of the seal's turns (modes 1 and 2)
+FINALES_PER_SEAL = 4    # finales between two of the seal's turns (modes 1 and 2); 3 until 2026-11-11
 LORENZ_VIEW_TURNS_PER_S = (0.06, 0.085, 0.11)   # the view's three angles' rates while in the Lorenz finale (incommensurate: the axis wanders)
 LORENZ_TIME_UNITS_PER_S = 9.8   # the twin's speed: the analog board's "nice!" setting (an integrator time constant of 102 ms: 1/0.102 time units
                                 # a second; one orbit of the attractor is about 0.7 time units, so some 14 a second)
@@ -63,7 +63,7 @@ LORENZ_SCALE = 0.63     # the tail's size on the screen (with perspective its ne
 TUMBLE_TURNS_PER_S = (0.05, 0.07, 0.10)   # the molecules' and the knot's tumble: three Euler rates (faster smears on the phosphor)
 DNA_TURNS_PER_S = 0.45; DNA_NOD_DEG = 16.0; DNA_NOD_PER_S = 0.25        # DNA spins on its axis and nods (a sine of that amplitude at that rate)
 GEAR_SUN_TURNS_PER_S = 0.3     # the sun's rate (the carrier and planets follow the tooth counts); flat (a nod of the train looked like a squash)
-ARM_VIEW_TURNS_PER_S = 0.07; ARM_VIEW_TILT_DEG = -24.0; ARM_WAVE_PER_S = 0.3   # the arm is seen from a slowly turning viewpoint; its joints wave at this rate
+ARM_VIEW_TURNS_PER_S = 0.07; ARM_VIEW_TILT_DEG = -24.0; ARM_WAVE_PER_S = 0.3   # the arm is seen from a slowly turning viewpoint (the kaleidocycle too); its joints wave at this rate
 ARM_OFF = (0.0, -0.60)          # where the arm's base sits on the screen (centred: the viewpoint goes all the way round)
 ARM_JOINTS = [(0.0, 0.18, "sin"), (0.06, 0.07, "cos"), (0.20, 0.08, "sin2"), (0.03, 0.06, "cos2"), (0.0, 0.25, "sin")]   # per joint: rest angle, amplitude (turns), which wave
 PHYS_VIEW_SWING_DEG = 35.0; PHYS_VIEW_SWINGS_PER_S = 0.08; PHYS_VIEW_TILT_DEG = -20.0   # the EM wave, the lens, the dish and the satellites: the viewpoint
@@ -73,7 +73,8 @@ WAVEFRONT_PER_S = 0.33          # the lens's and the dish's wavefronts: each cro
 SAT_TURNS_PER_S = (0.28, 0.24, 0.20)   # the three satellites' orbits per second
 DRONE_SWEEPS_PER_S = 0.09; PROP_TURNS_PER_S = 2.5   # the drone's sweep through the beam (a sine), its propellers' spin
 SLOW_PER_S = 0.15               # the phase sl: the oscilloscope in an oscilloscope swings once per 1/this seconds (host/proposals.py
-                                # TEK); transcription's and translation's walk along the strand
+                                # TEK); transcription's and translation's walk along the strand; the kaleidocycle's drive (a turn:
+                                # flat, inside out and back to flat)
 PCB_STEP_PER_S = 0.9            # the circuit board's charge moves a bead's spacing this often a second
 PWAVE_CYCLE_S = 24.0            # the pendulum wave's cycle: in it the longest pendulum swings 16 times, the shortest 27; the same phase,
                                 # from zero, times the dish's message
@@ -146,6 +147,7 @@ KINDS = {
     "governor": dict(obj="governor", sec="governor", ph=["pv", "em"]),
     "boom":     dict(obj="boom",     sec="boom",   ph=["pv", "u0", "u1", "u2", "u3", "u4"], zero=["pv"]),
     "tek":      dict(obj="tek",      sec="tek",    ph=["sl"], zero=["sl"]),       # the swing from rest at each showing
+    "kaleido":  dict(obj="kaleido",  sec="kaleido", ph=["sl", "av"], zero=["sl"]),   # flat (as printed) at each showing
 }
 EN_ALWAYS = (1 << PH["a"]) | (1 << PH["s"]); EN_FLIP = EN_ALWAYS | (1 << PH["b"])
 def kind_ranges(kind): k = KINDS[kind]; return k.get("ranges") or [k["obj"]]
@@ -184,6 +186,8 @@ def rates():
     w[PH["pc"]] = turns_per_ms(PCB_STEP_PER_S); w[PH["pw"]] = turns_per_ms(1.0 / PWAVE_CYCLE_S)          # sp: 0, its rate is the ramp's
     import proposals
     assert proposals.TEK["swing_per_s"] == SLOW_PER_S, "the oscilloscope's swing (proposals.TEK) is on sl: SLOW_PER_S"
+    assert proposals.KAL["ev_per_s"] == SLOW_PER_S and proposals.KAL["spin_per_s"] == ARM_VIEW_TURNS_PER_S, \
+        "the kaleidocycle (proposals.KAL) turns on sl (SLOW_PER_S) and its view on av (ARM_VIEW_TURNS_PER_S)"
     return w, p0
 def anim_consts(seal_scale):
     return dict(seal_scale=seal_scale, dna_nod=DNA_NOD_DEG / 360, arm_view_tilt=ARM_VIEW_TILT_DEG / 360,
@@ -519,7 +523,7 @@ def render_movie(params, cycles, fps, compact=False):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--movie", action="store_true", help="and the two movies and the sheet, in renders/")
-    ap.add_argument("--quick", action="store_true", help="and a short movie: the seal and the first three finales at 10 frames a second")
+    ap.add_argument("--quick", action="store_true", help="and a short movie: the seal and the first FINALES_PER_SEAL finales at 10 frames a second")
     a = ap.parse_args()
     params = gen_tables()
     if a.movie or a.quick:

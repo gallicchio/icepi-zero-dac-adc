@@ -422,7 +422,7 @@ CULL = {"dish": set(range(5, 15))}          # objects with groups whose vertices
 OBJECTS = {"caffeine": caffeine, "lsd": lsd, "dna": dna, "knot": trefoil, "gears": gears, "arm": arm,
            "em": em_wave, "pol": polarization, "sagnac": sagnac, "scope": telescope, "dish": dish, "sats": satellites, "drone": drone_map,
            "replicate": replication, "transcribe": transcription, "translate": translation}
-for _n in ("ligo", "pcb", "spinner", "top", "pwave", "generator", "governor", "boom", "tek", "galton", "engine", "escape", "cartpole", "bridge"):
+for _n in ("ligo", "pcb", "spinner", "top", "pwave", "generator", "governor", "boom", "tek", "kaleido", "galton", "engine", "escape", "cartpole", "bridge"):
     OBJECTS[_n] = _model(_n)
 
 if __name__ == "__main__":

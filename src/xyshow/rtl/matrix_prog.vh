@@ -22,4 +22,5 @@ localparam [11:0] PC_PWAVE = 12'd2108;
 localparam [11:0] PC_GENERATOR = 12'd2475;
 localparam [11:0] PC_GOVERNOR = 12'd2526;
 localparam [11:0] PC_TEK = 12'd2668;
-localparam [12:0] PROG_LEN = 13'd2849;
+localparam [11:0] PC_KALEIDO = 12'd2849;
+localparam [12:0] PROG_LEN = 13'd3043;

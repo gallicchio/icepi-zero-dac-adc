@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""The finales proposed on 2026-11-09, and the oscilloscope in an oscilloscope added after, as float models.  Jason's
+"""The finales proposed on 2026-11-09, and the oscilloscope in an oscilloscope and the kaleidocycle added after, as float models.  Jason's
 choice (prompt 84): LIGO, the circuit board, the fidget spinner, the top, the pendulum wave, the AC generator, Watt's
-governor, the sonic boom and the oscilloscope are in the show (objects.OBJECTS draws their obj(); gen_matrix_prog.py's
+governor, the sonic boom and the oscilloscope are in the show, the kaleidocycle since 2026-11-11 (objects.OBJECTS draws their obj(); gen_matrix_prog.py's
 build_new has their program sections, which check_prog.py holds to their mats(t)); the Galton board, the engine, the
 escapement, CartPole and the bridge are models only (none is in the show; they have no program section).
 
@@ -661,3 +661,71 @@ class Tek:
         for lv in range(1, T["levels"]): tt = tt + R @ ctr; R = R @ C @ Tek.view(t - lv * T["delay_s"]); m[4 + lv] = (R, tt)
         return m
 proposal("tek", "oscilloscope in an oscilloscope", 7.0, "no new phase (the swing on sl, 0.15/s, each level 0.25 s later); 4 groups")(Tek)
+
+# ---------------- the kaleidocycle, as Jason's print (Thingiverse 4761150, "Print-in-Place Kaleidocycle" by ecoiras):
+# six rigid links in a ring, each joined to the next by a hinge at right angles to its other hinge (the twist
+# alternates +90 and -90 degrees), the hinges' axes a apart along their common normal, which meets each at its middle.
+# One degree of freedom: it turns inside out for ever.  The ring is threefold symmetric about its axis (z here) with a
+# mirror plane through every hinge, so hinge k's middle stays at azimuth 60 k and its axis in that vertical plane.
+# With a drive angle chi (0: flat, a triangle, as printed), A = sqrt(1 + cos^2 chi), B = sqrt(1 + sin^2 chi), u_k
+# the unit vector at azimuth 60 k, the middles and axes (a = 1):
+#     k even (the print's mid-side hinges):  r1 u_k - h z,  (sqrt 2 cos chi u_k + sin chi z) / A
+#     k odd  (its corner hinges):            r2 u_k + h z,  (sqrt 2 sin chi u_k - cos chi z) / B
+#     r1 = sqrt(2/3) B / A,  r2 = sqrt(2/3) A / B,  h = (sqrt 3 / 2) sin chi cos chi / (A B)
+# exact for every chi (Kaleido.check: each link's hinges perpendicular, a apart, the normal meeting both at their
+# middles); the odd joints turn by theta and the even by phi with (1 + cos theta)(1 + cos phi) = 1, and each link
+# turns once round as chi goes once round (the hinges' lines repeat every half turn, the links upside down).  Link k is
+# a group (4 + k) with R = [a b_k, 0, p_k+1 - p_k] and t = p_k: its own hinge along its x through its origin, the next
+# at z = 1.  So link k's far end is p_k+1 itself, the very registers link k + 1 is placed by: the hinges cannot slip,
+# whatever the arithmetic's errors (these only bend a link by ~1e-4).  Each link is drawn as a flat paddle in the plane
+# of its own hinge's axis and the normal (hence the zero column): its straight edge on its hinge's axis, its round end
+# the knuckle about the next hinge's axis, centred on it, as wide as the print's barrels (10 mm on 40.4 mm links).
+# The animator: 1/A from four cosine harmonics of 2 chi (7e-5 off, the size of Q2.14's step), 1/B the same series
+# with the odd harmonics negated (B is A a quarter turn later). ----------------
+KAL = dict(a=0.56, r=0.2475, n=12, tilt=-32.0, ev_per_s=0.15, spin_per_s=0.07, harmonics=4)   # chi on sl (zeroed: it starts flat), the view's turn on av
+M_RING = np.array([[1.0, 0, 0], [0, 0, 1], [0, -1, 0]])     # the ring's frame (z its axis) to the scene's (y up)
+class Kaleido:
+    @staticmethod
+    def hinges(chi):
+        """the six hinges' middles (a = 1) and unit axes in the ring's frame"""
+        s, c = math.sin(chi), math.cos(chi); A, B = math.sqrt(1 + c * c), math.sqrt(1 + s * s)
+        r1, r2, h = math.sqrt(2 / 3) * B / A, math.sqrt(2 / 3) * A / B, math.sqrt(3) / 2 * s * c / (A * B)
+        P, Bv = [], []; z = np.array([0, 0, 1.0])
+        for k in range(6):
+            u = np.array([math.cos(deg(60 * k)), math.sin(deg(60 * k)), 0.0])
+            if k % 2 == 0: P.append(r1 * u - h * z); Bv.append((math.sqrt(2) * c * u + s * z) / A)
+            else:          P.append(r2 * u + h * z); Bv.append((math.sqrt(2) * s * u - c * z) / B)
+        return np.array(P), np.array(Bv)
+    @staticmethod
+    def check(n=720):
+        """the largest error of any link's constraints over a turn of chi (0 to rounding)"""
+        worst = 0.0
+        for chi in np.linspace(0, TAU, n, endpoint=False):
+            P, Bv = Kaleido.hinges(chi)
+            for k in range(6):
+                j = (k + 1) % 6; d = P[j] - P[k]
+                worst = max(worst, abs(np.linalg.norm(d) - 1), abs(d @ Bv[k]), abs(d @ Bv[j]), abs(Bv[k] @ Bv[j]))
+        return worst
+    @staticmethod
+    def series():
+        """1/A = sum alpha_m cos(2 m chi), m = 0 .. harmonics"""
+        x = np.linspace(0, TAU, 4096, endpoint=False); f = 1 / np.sqrt(1.5 + 0.5 * np.cos(x))
+        return [float(np.mean(f * np.cos(m * x)) * (1 if m == 0 else 2)) for m in range(KAL["harmonics"] + 1)]
+    @staticmethod
+    def obj():
+        """a paddle a link: from its corner on the knuckle down a side, the straight edge along its hinge, up the
+        other side, round the knuckle (12 sides) and on round to the start: one stroke of 16 vertices"""
+        r, n = KAL["r"], KAL["n"]; a_ = np.radians(np.arange(n + n // 2 + 1) * 360.0 / n)
+        disc = np.column_stack([r * np.cos(a_), np.zeros(len(a_)), 1 + r * np.sin(a_)])         # from +x over the far side (+z) and on round
+        pl = np.vstack([[[r, 0, 1], [r, 0, 0], [-r, 0, 0], [-r, 0, 1]], disc[n // 2 + 1:]])        # -x: the near half, then the far half to -x
+        return [(pl.copy(), 4 + k) for k in range(6)]
+    @staticmethod
+    def view(t): K = KAL; return rx(deg(K["tilt"])) @ ry(TAU * K["spin_per_s"] * t) @ M_RING
+    @staticmethod
+    def mats(t):
+        K = KAL; a = K["a"]; V = Kaleido.view(t)
+        P, Bv = Kaleido.hinges(TAU * K["ev_per_s"] * t); P = a * P @ V.T; Bv = Bv @ V.T; m = {}
+        for k in range(6):
+            j = (k + 1) % 6; m[4 + k] = (np.column_stack([a * Bv[k], O3, P[j] - P[k]]), P[k])
+        return m
+proposal("kaleido", "kaleidocycle", 6.7, "no new phase (chi on sl, 0.15/s, zeroed: flat to flat in 6.7 s; the view on av); 6 groups")(Kaleido)

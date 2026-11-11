@@ -4,7 +4,7 @@
 // show_seq: the mode (1 the seal with the 3D globe, still and then turning, 2 the seal turning over, 3 a finale; any
 // other the host's, not in the show), each for its time (modes 1 and 2 from the host registers, defaulting to
 // show_params.vh; a finale's from show_finales.vh), the finale index advancing
-// each time: 1, 2, then PER_SEAL finales one after another (2026-11-09, Jason: the seal after every three), 1, ...  The
+// each time: 1, 2, then PER_SEAL finales one after another (2026-11-09, Jason: the seal after every three; 2026-11-11, four), 1, ...  The
 // show starts in mode 1 at power-up.  BTN0 (`next`) goes on now; `hold` stops the
 // clock.  With `auto` off the host's mode and finale are taken.  The dwell is DWELL_FULL unless the host writes one.
 // Mode 1 starts with the globe's spin held at zero for GLOBE_HOLD_MS (`zero` kept on for it): the 3D globe comes in

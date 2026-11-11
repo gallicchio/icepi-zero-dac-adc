@@ -19,9 +19,9 @@ gateware (4096 instructions at most); the movie's model runs the whole program, 
 registers.  A section writes R and t of every
 group it draws.  Phases (32, a turn = 2^32): a b s (the seal's axis, turn, the globe's spin) la lb lc (the
 Lorenz view) ta tb tc (a tumble) ds dn (DNA's spin and nod) gs gc gp (the gears' sun, carrier, planet spin)
-av aw (the arm's view and wave) pv em (the physics view, the EM wave's wt) u0-u4 (wavefronts and light dashes, a sawtooth each)
-o1 o2 o3 (the satellites) dr ps (the drone's sweep and its propellers' spin) sl (a slow sawtooth: the dish's message; in the
-transcription and translation, the polymerase and the ribosome) pc (the circuit board's charge) sp (the spinner: its rate ramps, show_seq.v) pw (the
+av aw (the arm's view, the kaleidocycle's too, and the arm's wave) pv em (the physics view, the EM wave's wt) u0-u4 (wavefronts and light dashes, a sawtooth each)
+o1 o2 o3 (the satellites) dr ps (the drone's sweep and its propellers' spin) sl (a slow phase: the oscilloscope's swing, the
+kaleidocycle's drive, the polymerase's and the ribosome's walk) pc (the circuit board's charge) sp (the spinner: its rate ramps, show_seq.v) pw (the
 pendulum wave: a turn in 24 s, the twelve pendulums at 16-27 times it).
 Writes matrix_prog.hex (4096 x 36), regs_init.hex (1024 x 18), matrix_prog.vh (the sections' addresses), matrix_prog.json."""
 import os, sys, json, math
@@ -466,6 +466,45 @@ def build_new(P, consts):
         for j in range(3):
             if abs(ctr[j]) > 1e-9: P.col_times(T(g), Rk, j, K(ctr[j]), add=not first); first = False
         Rk, Tk = R(g), T(g)
+    P.end()
+    # ---- the kaleidocycle: six links (4-9) on the hinges' closed form (proposals.Kaleido), chi on sl, the view on av.
+    # Link k: R = [a b_k, 0, p_k+1 - p_k], t = p_k, so its far end is link k + 1's t, the same registers ----
+    KL = PR.KAL; a = KL["a"]; P.begin("kaleido", list(range(4, 10)))
+    Vv = P.W(9); P.rx_ry(Vv, K(math.sin(math.radians(KL["tilt"]))), K(math.cos(math.radians(KL["tilt"]))), S("av"), C("av"))
+    X = [Vv[0], Vv[3], Vv[6]]; Z = [Vv[1], Vv[4], Vv[7]]; NY = [Vv[2], Vv[5], Vv[8]]   # the ring's x, z and -y in the view
+    s, c = S("sl"), C("sl"); one = k["ONE"]
+    c2, c4, c6, c8 = P.W(4)                                                         # cos 2m chi: 2 cos a cos b - cos(a - b)
+    P.MUL(c2, c, c); P.MSB(c2, s, s)
+    P.MUL(c4, c2, c2); P.MAC(c4, c2, c2); P.MSB(c4, one, one)
+    P.MUL(c6, c2, c4); P.MAC(c6, c2, c4); P.MSB(c6, one, c2)
+    P.MUL(c8, c4, c4); P.MAC(c8, c4, c4); P.MSB(c8, one, one)
+    al = PR.Kaleido.series(); assert len(al) == 5
+    ev, od, iA, iB, iAB = P.W(5)
+    P.MUL(ev, one, K(al[0])); P.MAC(ev, K(al[2]), c4); P.MAC(ev, K(al[4]), c8)
+    P.MUL(od, K(al[1]), c2); P.MAC(od, K(al[3]), c6)
+    P.MUL(iA, one, ev); P.MAC(iA, one, od); P.MUL(iB, one, ev); P.MSB(iB, one, od); P.MUL(iAB, iA, iB)
+    t1, t2, t3, t4, ra, va, rb, vb, nra, nrb = P.W(10)                              # the axes' radial and vertical parts, x a
+    P.MUL(t1, c, iA); P.MUL(ra, K(math.sqrt(2) * a), t1); P.MUL(t2, s, iA); P.MUL(va, K(a), t2)
+    P.MUL(t3, s, iB); P.MUL(rb, K(math.sqrt(2) * a), t3); P.MUL(t4, c, iB); P.MUL(vb, K(-a), t4)
+    P.MUL(nra, k["NEG1"], ra); P.MUL(nrb, k["NEG1"], rb)
+    q1, q2, R1, R2, nR1, nR2, hh, h = P.W(8)                                        # the middles' radii and height, x a
+    P.MUL(q1, one, one); P.MAC(q1, s, s); P.MUL(q1, q1, iAB); P.MUL(R1, K(math.sqrt(2 / 3) * a), q1)
+    P.MUL(q2, one, one); P.MAC(q2, c, c); P.MUL(q2, q2, iAB); P.MUL(R2, K(math.sqrt(2 / 3) * a), q2)
+    P.MUL(nR1, k["NEG1"], R1); P.MUL(nR2, k["NEG1"], R2)
+    P.MUL(hh, s, c); P.MUL(hh, hh, iAB); P.MUL(h, K(math.sqrt(3) / 2 * a), hh)
+    U = {0: X}                                                                      # u_k = cos 60k x + sin 60k y; u_k+3 = -u_k
+    for kk, cx in ((1, 0.5), (2, -0.5)):
+        U[kk] = P.W(3)
+        for i in range(3): P.MUL(U[kk][i], K(cx), X[i]); P.MSB(U[kk][i], K(math.sqrt(3) / 2), NY[i])
+    for kk in range(6):
+        g = 4 + kk; u = U[kk % 3]; neg = kk >= 3
+        rad, ver, rr = (nra if neg else ra, va, nR1 if neg else R1) if kk % 2 == 0 else (nrb if neg else rb, vb, nR2 if neg else R2)
+        for i in range(3):
+            P.MUL(R(g)[3 * i], rad, u[i]); P.MAC(R(g)[3 * i], ver, Z[i])          # a b_k
+            P.MUL(T(g)[i], rr, u[i]); (P.MSB if kk % 2 == 0 else P.MAC)(T(g)[i], h, Z[i])   # p_k: -h for even k, +h for odd
+    for kk in range(6):
+        g, j = 4 + kk, 4 + (kk + 1) % 6
+        for i in range(3): P.MUL(R(g)[3 * i + 2], one, T(j)[i]); P.MSB(R(g)[3 * i + 2], one, T(g)[i])
     P.end()
 
 def select(P, names):

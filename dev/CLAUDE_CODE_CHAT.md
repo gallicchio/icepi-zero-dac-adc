@@ -3252,3 +3252,47 @@ The bench also found that a drawing sent from the laptop lost its first stroke. 
 Transcription and translation are back in 5.08's show, after replication, so the three central-dogma schematics play in order.  There are now 22 finales, and a round is still about four minutes.  `src/xyshow/make_show.py` has them in `FINALES` (6.5 s each), and the KINDS comment no longer lists them as spare.  The tables were regenerated and are byte-identical to OpticsPCBs'; the Verilog is unchanged.  Budgets: 8,027 of 8,192 vertices (165 free, enough for a drawing of about two words from `host/show.py draw`), 2,849 of 4,096 instructions, 243 constants.  The viewpoint's swing `pv` now serves fourteen finales.
 
 Built (X 62.96 MHz, Y 62.88 MHz for 50); `make sim` PASS (846 frames, the trim -101.1 ppm for the 100 ppm fast clock).  Flashed into DK0GFLAW (X) and DP051TLX (Y): build 20261111, in step, 0 bad bursts.  5.08: the counts, two rows in the finale table, the simulation sheet (`img/xyshow_sim.png`) and the Siglent grid (`img/xyshow_siglent.png`, 24 tiles at 1 V/div, 0 bad bursts) retaken.  5.00: 22 animations.  The Siglent is back at 0.8 V/div and board X on auto.  `make check`: 0 errors.
+
+## Prompt 35
+
+(From the OpticsPCBs session, its prompt 93.)  I already have a 3D printed version of `~/mudd/models_3Dprint/Print-in-Place Kaleidocycle - 4761150` that would be cool to incorporate as an animation. The interesting thing about this device is that it can turn inside out even though it's made of rigid components. If you can animate it turning inside out while rotating at a reasonable speed, that would be great. The hardest thing to do will be to keep the joints from looking like they are slipping, which involves figuring out exactly what position things need to rotate around and by how much.
+
+## Response 35 2026-11-11 13:15:00 - 14:00:00 Claude Opus 5.5
+
+The kaleidocycle (Jason's print) is the 23rd finale, after the top.  Its six links turn inside out from flat, as
+printed, and are flat again in 6.7 s (`sl`, zeroed at the start), while the view turns (`av`).  Each link is a flat
+paddle: its straight edge on its own hinge's axis, its round end the knuckle about the next hinge, centred on it.
+The hinges are in closed form from one drive angle, from the ring's threefold symmetry with a mirror through every
+hinge (`host/proposals.py`, `Kaleido`).  The animator computes the six hinges once and places each link from the two
+it joins, so both links of a hinge use the same registers.  Every hinge's middle is identical in its two links to
+the last bit, so no joint can slip.  96 vertices (69 free), 194 instructions (3,043 of 4,096).
+
+The host files came over from OpticsPCBs by its diff; the two docstring hunks that touch deliberately different
+lines were applied by hand, and the sl line now reads the same in both.  `make_show.py`: FINALES, KINDS, the rates'
+assert.  The ten tables and three JSONs are byte-identical to OpticsPCBs'.  Built (X 59.10, Y 61.02 MHz for 50),
+`make sim` PASS (905 frames, trim -101.1 ppm), flashed.  5.08: 23 finales, 69 free (twice), 8,123 and 3,043 in the
+costs, 3,043 in the prose, about 260 constants, a row in the finale table, the figure alts.  5.00: 23 animations.
+`make check`: 0 errors.
+
+## Prompt 36
+
+(From the OpticsPCBs session, its prompt 94.)  Do one more finale before going back to the Harvey Mudd logo. How many finales are there total now?
+
+## Response 36 2026-11-11 13:55:00 - 14:00:00 Claude Opus 5.5
+
+23 finales.  `FINALES_PER_SEAL` is 4 (was 3).  `PER_SEAL` is a parameter and show_seq's counter holds up to 7, so
+only the tables changed; they are byte-identical to OpticsPCBs' again.  A round is about 3.8 minutes.  The
+show_seq.v comment notes the change (the same in both copies).  5.08: "four finales; the seal again; the next four"
+and "four between the seal's turns"; `make_show.py`'s `--quick` text.  Built (X 58.82, Y 61.02 MHz for 50), `make sim`
+PASS (905 frames), flashed into DK0GFLAW (X) and DP051TLX (Y).
+
+## Prompt 37
+
+(From the OpticsPCBs session, its prompt 95.)  I connected the BNCs to the digital scope (from the analog scope). You should be able to test things out there again.
+
+## Response 37 2026-11-11 14:00:00 - 14:05:00 Claude Opus 5.5
+
+All 25 tiles on the SDS1104X-E at 1 V/div are right, with 0 bad bursts (the scope-in-a-scope taken 5 s in).  The
+kaleidocycle, taken at four moments, turns inside out as in the model.  `img/xyshow_siglent.png` is retaken (5 x 5)
+and `img/xyshow_sim.png` is the new simulation sheet.  The Siglent is back at 0.8 V/div, XY, 5 ms/div, and both
+boards are on auto with the dither on.
