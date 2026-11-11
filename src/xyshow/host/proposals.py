@@ -576,12 +576,16 @@ class Spinner:
 
 # ---------------- 14. an oscilloscope showing an oscilloscope: the Tektronix 2235 propped on its carrying handle (its
 # hubs on the sides, the arms swung down under the front, the front raised), and on its screen an XY drawing of the
-# same scope, whose screen shows a smaller one, and so on, four levels.  Each drawing is the scope as the viewer sees
-# it, flattened onto the screen of the one around it: level k + 1 = level k's matrix x (the screen's frame, scaled,
-# flattened) x the view, so every level turns as the outer one does.  The view swings slowly (pv).  Level 0 (group 4)
-# is 3D with its knobs; the inner ones (5, 6, 7) lose detail as they shrink. ----------------
+# same scope, whose screen shows a smaller one, and so on, four levels.  A camera pointed at its own screen, with a
+# delay: the scope swings by an angle phi (the view V); its screen shows the scope as the camera saw it a moment
+# earlier, so that drawing is turned by V again on the screen's face, and the next by V again: phi, 2 phi, 3 phi from
+# the room, each a delay later.  Level k + 1 = level k's matrix x (the screen's frame, scaled, flattened) x V(t - k
+# delay).  2026-11-10, Jason: the levels turning together missed the joke; the swing is wider and quicker (on sl),
+# from rest at each showing.  Level 0 (group 4) is 3D with its knobs; the inner ones (5, 6, 7) lose detail as they
+# shrink. ----------------
 TEK = dict(w=1.0, h=0.42, d=0.8, tilt=11.0, bezel=(-0.495, -0.035, -0.2, 0.2), screen=(-0.47, -0.06, -0.175, 0.175), zf=-0.03,
-           hub=(0.30, 0.0, 0.11), bar=(-0.13, 0.06), size=1.36, view_tilt=-15.0, view_off=-21.0, swing=11.0, levels=4, fill=0.94)
+           hub=(0.30, 0.0, 0.11), bar=(-0.13, 0.06), size=1.36, view_tilt=-15.0, view_off=-18.0, swing=20.0, levels=4, fill=0.94,
+           swing_per_s=0.15, delay_s=0.25)     # the swing on the phase sl (make_show.SLOW_PER_S), zeroed as the finale starts
 class Tek:
     @staticmethod
     def frame():
@@ -647,10 +651,13 @@ class Tek:
         for lv in range(TEK["levels"]): out += [(pl, 4 + lv) for pl in Tek.model(lv)]
         return out
     @staticmethod
+    def view(t):
+        """the view a camera at the viewer has of the scope at time t (from the finale's start): Rx(tilt) Ry(off + swing sin)"""
+        T = TEK; return rx(deg(T["view_tilt"])) @ ry(deg(T["view_off"] + T["swing"] * math.sin(TAU * T["swing_per_s"] * t)))
+    @staticmethod
     def mats(t):
-        T = TEK; V = rx(deg(T["view_tilt"])) @ ry(deg(T["view_off"] + T["swing"] * math.sin(TAU * 0.08 * t)))
-        ctr, e1, e2, sw, sh = Tek.screen_frame(); s_ = Tek.nest_scale(); C = s_ * np.column_stack([e1, e2, np.zeros(3)])
-        m = {4: (V, O3)}; R, tt = V, O3
-        for lv in range(1, T["levels"]): tt = tt + R @ ctr; R = R @ C @ V; m[4 + lv] = (R, tt)
+        T = TEK; ctr, e1, e2, sw, sh = Tek.screen_frame(); s_ = Tek.nest_scale(); C = s_ * np.column_stack([e1, e2, np.zeros(3)])
+        R = Tek.view(t); m = {4: (R, O3)}; tt = O3
+        for lv in range(1, T["levels"]): tt = tt + R @ ctr; R = R @ C @ Tek.view(t - lv * T["delay_s"]); m[4 + lv] = (R, tt)
         return m
-proposal("tek", "oscilloscope in an oscilloscope", 7.0, "no new phase (the view on pv); 4 groups")(Tek)
+proposal("tek", "oscilloscope in an oscilloscope", 7.0, "no new phase (the swing on sl, 0.15/s, each level 0.25 s later); 4 groups")(Tek)

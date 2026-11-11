@@ -3215,3 +3215,18 @@ judgement or a measurement.
   than the DAC's settling.
 
 </details>
+
+## Prompt 32
+
+(From the OpticsPCBs session, its prompt 89; the parts that touch this tutorial.)  Get rid of the sonic boom demo. It doesn't really fit.  Make oscilloscopes inside of each other rotate independently. [...] (Then, mid-turn:) diagonal lines (and more so, the nearly vertical or nearly horizontal lines) even on the analog scope seem quite jagged/blocky/rastered. [...] Can you have the animations take up more of the DAC range, even if that pushes the sync burst and other off-screen things closer? [...] Unfortunately, you now have to keep things up to date and in sync, both in the ECP5-2ADC-2DAC and in the icepi-zero-tutorial repos. Be very careful about that.  (And:) Angle phi should turn into 2phi and 3 phi, etc. If that makes things rotate too fast, make the inner rotations independent.
+
+## Response 32 2026-11-10 15:20:00 - 16:10:00 Claude Opus 5.5
+
+The show in `src/xyshow/` changed the same way as OpticsPCBs' copy.  Its ten tables are byte-identical to OpticsPCBs', `rtl/top_icepi.v`'s code is identical, and the host scripts differ only by their earlier deliberate lines.  Built (X 58.1, Y 68.3 MHz for 50), `make sim` PASS, flashed into DK0GFLAW (X) and DP051TLX (Y).  On the bench, a full round of the show gave 13,366 good bursts and 0 bad.  `make check`: 0 errors.
+
+- **20 finales:** the sonic boom left the show; its kind is still in `KINDS`, ready to add back.
+- **The oscilloscope in an oscilloscope** is a camera pointed at its own screen with a delay.  It swings ±20° every 6.7 s on the phase sl, and each drawing shows the scope 0.25 s earlier, turned again by the swing: phi, 2 phi, 3 phi from the room.
+- **More of the DAC's range** (`ICEPI_SCREEN_SCALE` 0.934, `ICEPI_X_OFFSET` 120): board X draws codes 16-255, board Y 9-248, where both drew 25-230.  The gap threshold is 34.  The burst's streak sits at the picture's bottom-left edge.  The scope wants about 1 V/div.  The stairs on nearly level lines are the 8-bit DAC's codes, not skipped steps: 98.3% of drawn samples move 0 or 1 code.
+- **5.08:** 20 finales, the new budgets (7,409 vertices, 2,597 instructions, 783 free), 1 V/div, the burst and threshold paragraphs, a row for the stairs in the analog-scope table, the tek's row, the seal at 1,300 frames a second, and a new simulation sheet.  The bench grid of Siglent screenshots is still 2026-11-09's, now dated in its caption: the Siglent's inputs read 0 V today, presumably because the BNCs are on the Tek.
+
+**Board state:** both boards run the new show from flash, in step.  The Siglent is at 0.8 V/div, XY, as found.

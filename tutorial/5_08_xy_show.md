@@ -7,7 +7,7 @@
 
 Two boards, each driving one input of an oscilloscope in XY mode, draw the College seal with a
 spinning 3D globe in it. The seal turns over in perspective, and then the scope shows three of
-21 short animations: a chaotic circuit computed live, a fidget spinner coasting to a stop, a
+20 short animations: a chaotic circuit computed live, a fidget spinner coasting to a stop, a
 pendulum wave, a radio dish sending Morse code, an oscilloscope showing itself, and more. Then
 the seal comes back. Nothing is attached but the scope: the drawings, the 3D maths and the
 sequence are all inside the two FPGAs, and the show starts when the boards get power.
@@ -66,8 +66,8 @@ whichever USB port it is in. It writes the flash, so the show starts by itself a
 power-up; `make load` puts it in the FPGAs' RAM instead, for a quick try. To choose for
 yourself: `make flash X=DK0GFLAW Y=DP051TLX`.
 
-Set the scope to XY, both channels DC at 1 MΩ (no 50 Ω terminators) and about 0.8 V per
-division, centred. On an analog scope, XY is usually the slowest end of the time-base knob;
+Set the scope to XY, both channels DC at 1 MΩ (no 50 Ω terminators) and about 1 V per
+division, centred (the drawing spans about ±3.7 V). On an analog scope, XY is usually the slowest end of the time-base knob;
 the Tektronix 2213 in the picture labels its inputs "CH 1 OR X" and "CH 2 OR Y". Turn the
 intensity down until the lines are thin. If the picture comes out turned by 90° or mirrored,
 swap the two cables at the scope.
@@ -88,7 +88,7 @@ the next part.
 In XY mode the scope's beam goes wherever the two voltages put it: channel 1 moves it across,
 channel 2 up and down. Nothing else. To draw a line from A to B, the DACs step from A to B in
 small increments, and the phosphor glows where the beam has been. A picture is a list of
-strokes, drawn one after another and then drawn again, as fast as the boards can: about 1,400
+strokes, drawn one after another and then drawn again, as fast as the boards can: about 1,300
 times a second for the seal, which has 2,900 corners, and 5,000 times a second for a small
 finale. This is how the first computer displays worked (the vector displays of the 1960s and of
 the arcade game *Asteroids*), and how a laser show works.
@@ -118,7 +118,7 @@ that keeps the jumps short (nearest end next, measured on the screen as the obje
 finale that halved the number of jumps.
 
 And persistence. The phosphor of a typical analog scope (P31) fades in tens of microseconds,
-far faster than one frame of the seal (0.7 ms). What makes the picture stay is your eye, which
+far faster than one frame of the seal (0.8 ms). What makes the picture stay is your eye, which
 holds an image for about 50 to 100 ms. In that time the seal is drawn about a hundred times and
 moved five times (the motion is updated 50 times a second); what you see is the average. A digital scope with "persistence" does the
 same thing deliberately. The movie that `make movie` renders models the eye this way: each
@@ -157,7 +157,7 @@ Every drawing is stored as 3D vertices in block RAM: 8,192 of them, 54 bits each
 
 The seal takes 2,888 vertices: 1,518 for its body, traced from the College's artwork, and 1,370
 for the globe, a 30° grid of latitude and longitude lines and the real coastlines (Natural
-Earth, at 1:110 million). The 21 finales share the rest; 622 are free.
+Earth, at 1:110 million). The 20 finales share the rest; 783 are free.
 
 ### Groups and matrices
 
@@ -257,7 +257,7 @@ carries the beam through the hidden half while the engine catches up.
 
 ## The animator: a small computer for rotations
 
-The matrices change 50 times a second, and there are 21 finales, each moving in its own way: gears
+The matrices change 50 times a second, and there are 20 finales, each moving in its own way: gears
 turning at the ratios of their teeth, an arm with five joints, satellites in inclined orbits,
 twelve pendulums. Writing that in Verilog, finale by finale, would be a lot of logic. Instead
 the matrices are computed by a tiny special-purpose computer,
@@ -331,7 +331,7 @@ default: st <= 0;
 
 The registers hold the constants (around 240 of them), the 32 phases' sines, cosines and values,
 working space, and the 16 matrices, which the engine reads through the RAM's second port. The
-whole program is 2,634 instructions in 4,096 words. The longest section, the pendulum wave's,
+whole program is 2,597 instructions in 4,096 words. The longest section, the pendulum wave's,
 runs in about 60 µs.
 
 The program is written by
@@ -408,15 +408,15 @@ A matrix can do more than rotate, and some finales depend on it.
 
 | resource | used | of |
 |---|---:|---:|
-| scene memory (vertices) | 7,570 | 8,192 |
+| scene memory (vertices) | 7,409 | 8,192 |
 | phases | 32 | 32 |
-| animator program (instructions) | 2,634 | 4,096 |
+| animator program (instructions) | 2,597 | 4,096 |
 | block RAMs (the scene 24, the rings 12, the program 8, and four more) | 48 | 56 |
 | multipliers | 17 | 28 |
 | logic (LUTs), board X | about 12,000 | 24,288 |
 
 The phases are the tightest: several finales share them (the slow swing of the viewpoint serves
-fourteen), and a new finale has to make do with rates that exist. The design runs at 50 MHz and
+twelve), and a new finale has to make do with rates that exist. The design runs at 50 MHz and
 would close at about 60.
 
 ## Not geometry: two chaotic circuits, computed live
@@ -468,9 +468,10 @@ needs, 50 times a second, through the cable that is already there.
 
 Every 20 ms, board X stops drawing, parks its beam, and sends a burst on its DAC: 16 samples at
 code 0, then 920 bits at four samples each, low at code 0 and high at code 40. That's 148 µs, about
-1% of the time. The burst is drawn too (you may see a short streak below the picture), but it is
-far below the drawing, which stays between codes 25 and 230. Board Y's ADC sees board X's DAC
-through the tee.
+1% of the time. The burst is drawn too: a short streak along the bottom-left edge of the
+picture, which you can point to. Board X's drawing stays clear of the gap's code 0: it uses codes
+16 to 255, its 12-bit codes rounded to 8 bits 7.5 codes higher than board Y's (`to8x` in
+[`rtl/top_icepi.v`](../src/xyshow/rtl/top_icepi.v)). Board Y's ADC sees board X's DAC through the tee.
 
 ```verilog
 reg [W-1:0] sh = 0; reg [12:0] n = 0; reg [1:0] sc = 0; reg [7:0] acc = 0; reg [9:0] b = 0;
@@ -509,8 +510,9 @@ samples of gap, takes the next rising sample as the start of bit 0, adds the byt
 arrive, and keeps the payload only if the checksum agrees.
 
 The threshold between "gap" and "drawing" is set from the cable's measured transfer, ADC
-code = 0.76 × DAC code + 30: the gap reads 30 and the lowest point of the drawing reads 49, so the
-threshold is 38. (The first version used 8, which the ADC's offset never goes below, and board Y
+code = 0.76 × DAC code + 30. The gap reads 30, and the lowest point of board X's drawing, code
+16, reads 42; the other two modules, through the other cable, read 38 there. So the threshold is
+34. (The first version used 8, which the ADC's offset never goes below, and board Y
 never synced.)
 
 ### Then both boards draw the same frames
@@ -571,7 +573,7 @@ if (upd3) rate <= rate + (err_app <<< sh);
 This is a frequency-locked loop, a cousin of the phase-locked loops of
 [5.04](5_04_coupled_oscillators.md#504-oscillators-that-listen-to-each-other). Because the
 counts are free-running, never reset, their differences add up exactly: over a long window only
-its two ends are rounded. On the bench the trim settles at −3.8 ppm, the two crystals'
+its two ends are rounded. On the bench the trim settles at a few ppm (−3.8 one day, −2.9 another), the two crystals'
 difference, and stays there; in the simulation, with board Y's clock 100 ppm fast, it settles at −100 ppm. Within a 20 ms
 period the boards drift apart by less than a sample, and the next burst starts them again.
 
@@ -585,16 +587,18 @@ against board Y's, sample by sample, and draws them as the scope would. It also 
 Y's rings match board X's and that its clock trim settles at −100 ppm. Here is every mode and
 finale, from the simulation (a finale's tile is all the samples recorded of it):
 
-<img src="img/xyshow_sim.png" alt="The simulation's frames: the seal and globe, the seal turned over, and the 21 finales, each drawn from the two simulated boards' DAC samples, board X's as x and board Y's as y" width="800">
+<img src="img/xyshow_sim.png" alt="The simulation's frames: the seal and globe, the seal turned over, and the 20 finales, each drawn from the two simulated boards' DAC samples, board X's as x and board Y's as y" width="800">
 
 **A movie of the program.** `make movie` renders the show from `run()`, the bit-exact model of
 the animator, with a model of the beam and its persistence, so a new finale can be judged before
 a build.
 
-**On the bench.** A digital scope (Siglent SDS1104X-E in XY, 10 MS/s) took these, from the
-boards running the bitstreams `make` builds:
+**On the bench.** A digital scope (Siglent SDS1104X-E in XY, 10 MS/s) took these on 2026-11-09,
+from the boards running the bitstreams `make` built then. The show has changed a little since:
+the sonic boom has left it, the drone's antenna is horizontal, and the drawing uses more of the
+DACs' range.
 
-<img src="img/xyshow_siglent.png" alt="Screenshots of a digital oscilloscope in XY mode showing every part of the show from the two boards: the seal with its globe, the seal turned over, and the 21 finales" width="800">
+<img src="img/xyshow_siglent.png" alt="Screenshots of a digital oscilloscope in XY mode showing every part of the show from the two boards on 2026-11-09: the seal with its globe, the seal turned over, and the 21 finales then in it" width="800">
 
 **On an analog scope.** The digital scope samples at 10 MS/s, and its persistence hides what the
 beam does between samples. The analog scope at the top of this page shows everything, and it
@@ -609,6 +613,7 @@ found the problems the simulations didn't:
 | ghost lines in empty parts of the screen | the strokes were in the order they were made, so the jumps between them were as long as the drawing | strokes reordered, nearest end first |
 | the equator jumping up and down a little | it lies exactly on the boundary between DAC codes 127 and 128, and truncation put it on either | round to the nearest code |
 | a rectangle of spots, now and then | board Y computed its matrices from phases a millisecond later than board X's | board X's phases held still from its animator to its burst |
+| nearly level and nearly upright lines drawn as stairs | the 8-bit DAC: a line that climbs one code climbs it in one step, 1/256 of the DAC's range | more of the range: codes 16 to 255 for board X and 9 to 248 for board Y, not 25 to 230; the burst's streak moved to the picture's edge |
 
 ## The finales
 
@@ -633,10 +638,9 @@ In the order the show plays them, three between the seal's turns. `FINALES` in
 | an AC generator | a coil turns in a magnet's gap; its voltage is drawn as a sine in step | induction; a travelling wave from a matrix |
 | DNA | a double helix spinning and nodding | biology |
 | a drone mapping a dish's beam | a hexacopter with a BicoLog antenna sweeps through a dish's beam pattern | antenna measurement from the air |
-| a sonic boom | a jet's sound spreads in circles that pile up into a cone as it passes Mach 1 | waves, shock waves |
 | polarization | a wave through a quarter-wave plate turns from linear to circular | wave plates |
 | a Sagnac source | photons flowing both ways round the loop of an entangled-pair source | quantum optics |
-| an oscilloscope in an oscilloscope | a Tektronix 2235 on its handle, its screen showing itself, four levels deep, all turning | recursion: each level's matrix is the last one's times the screen's frame times the view |
+| an oscilloscope in an oscilloscope | a Tektronix 2235 on its handle, its screen showing itself, four levels deep; as it swings, each drawing turns by the swing again, a moment later | recursion: a camera pointed at its own screen, with a delay. Each level's matrix is the last one's times the screen's frame times the view a quarter second earlier |
 | replication | DNA's two strands separate at a fork and each gets a new partner | biology |
 
 ## Changing it
@@ -657,7 +661,7 @@ see a change before you build (it needs numpy, scipy, Pillow and ffmpeg).
   [`host/proposals.py`](../src/xyshow/host/proposals.py)); its motion is a section of
   [`host/gen_matrix_prog.py`](../src/xyshow/host/gen_matrix_prog.py) that writes its groups'
   matrices from the phases; and an entry in `KINDS` in `make_show.py` says which phases it uses.
-  `make movie` shows it before you build. Watch the budgets above: 622 vertices are free, and
+  `make movie` shows it before you build. Watch the budgets above: 783 vertices are free, and
   every phase is taken, so a new finale shares rates that exist.
 * **Bigger ideas.** A third board with a third DAC driving the scope's Z input could blank the
   beam during jumps. Board X's ADC is free (take its tee off): it could listen to a microphone

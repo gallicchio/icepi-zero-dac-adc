@@ -10,8 +10,9 @@
 // as between strokes, parked only for the burst (Jason, 2026-11-09: the park and return at every frame made a vertical
 // streak, and the return's overshoot a row of dots above the first point; shear from a long period is the lesser evil).
 //
-// Cables: A.DAC -> tee -> scope X and B.ADC; B.DAC -> tee -> scope Y (and A.ADC, unused).  The scene is scaled
-// to +/-0.9 so no drawing reaches the burst's levels (codes 0 and 40 of 256).
+// Cables: A.DAC -> tee -> scope X and B.ADC; B.DAC -> tee -> scope Y (and A.ADC, unused).  The X board's drawing is
+// moved up X_OFFSET (to8x), to codes 16..255, so its lowest point stays clear of the burst's gap (code 0) on the Y
+// board's ADC; the Y board's spans codes 9..248 (make_show.py's ICEPI_SCREEN_SCALE).
 //
 // The register bus (regbus.v, 1 Mbaud over the FT231X; host/show.py uses it): 7-bit addresses, 32-bit data.
 //   00 ID 0xEC5B5E4C | ROLE  01 BUILD_ID  02 SCRATCH  04 STATUS {frames[31:16], finale[15:11], mode[10:7], 0, btn[1], 1}
@@ -50,6 +51,8 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
     // the engine's 12-bit codes to the 8-bit DAC, rounded: code k covers 16k - 8 .. 16k + 7, so the screen's centre line (2048,
     // where the upright globe's equator lies) is in the middle of code 128, not on the edge between 127 and 128
     function [7:0] to8(input [11:0] v); reg [12:0] r; begin r = {1'b0, v} + 13'd8; to8 = r[12] ? 8'd255 : r[11:4]; end endfunction
+    // the X board's: the same, X_OFFSET higher (show_params.vh), so the drawing uses codes 16..255
+    function [7:0] to8x(input [11:0] v); reg [13:0] r; begin r = {2'b0, v} + {2'b0, X_OFFSET} + 14'd8; to8x = (r[13:12] != 2'b0) ? 8'd255 : r[11:4]; end endfunction
     // ---- the register bus ----
     wire [7:0] rx_data, tx_data; wire rx_valid, tx_start, tx_busy;
     uart_rx #(.DIV(UART_DIV)) urx (.clk(clk), .rx(uart_rx), .data(rx_data), .valid(rx_valid));
@@ -286,7 +289,7 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
         wire [W-1:0] payload = {4'b1010, nrep, frame_no, mode, fin, dwell_fr, tcount, every, wp, every2, wp2, 1'b0, stepc_cap, stepc2_cap, ph16, x_t, y_t, z_t, x2_t, y2_t, z2_t, 8'd0};
         sync_tx #(.W(W)) stx (.clk(clk), .tick(tick), .start(sync_start), .payload(payload), .active(sync_active), .level(sync_level), .done(sync_done));
         assign eng_tick = tick && !sync_active;
-        always @(posedge clk) dac_d <= dac_force[8] ? dac_force[7:0] : sync_active ? sync_level : to8(vx);
+        always @(posedge clk) dac_d <= dac_force[8] ? dac_force[7:0] : sync_active ? sync_level : to8x(vx);
         assign sy_valid = 0; assign sy_payload = 0; assign sy_in_burst = 0; assign good = 0; assign bad = 0; assign lo = 0; assign hi = 0; assign interval = 0;
     end else begin : yrole
         // the Y board: wait for a burst, load its state, run the animator, draw the frame; trim the tick rate
@@ -343,8 +346,8 @@ module top_icepi #(parameter ROLE = 0, BUILD_ID = 32'h20261108, UART_DIV = 50) (
             if (rate > 32'h8147_AE14) rate <= 32'h8147_AE14; else if (rate < 32'h7EB8_51EC) rate <= 32'h7EB8_51EC;
         end
         assign eng_tick = tick;
-        // during the X board's burst the beam is parked at the bottom (code 0, below the drawing's codes 25..230), so the
-        // burst's streak lies off the bottom of a screen set to the drawing; the engine parks it there between frames too
+        // during the X board's burst the beam is parked at the bottom (code 0, just below the drawing's codes 9..248), so
+        // the burst's streak lies along the bottom edge of the picture; the engine parks it there between frames too
         always @(posedge clk) dac_d <= dac_force[8] ? dac_force[7:0] : sy_in_burst ? 8'd0 : to8(vy);
         assign sync_active = 0; assign sync_done = 0; assign sync_level = 0;
     end endgenerate

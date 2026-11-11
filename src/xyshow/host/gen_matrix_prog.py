@@ -437,21 +437,30 @@ def build_new(P, consts):
         for j in (0, 4, 8): P.MUL(R(5 + n)[j], k["ONE"], r)
         P.MUL(T(5 + n)[0], k["ONE"], K(B["jet_x"])); P.MSB(T(5 + n)[0], Mr, r)
     P.end()
-    # ---- the oscilloscope in the oscilloscope: level 0 (4), each inner level (5-7) = the outer's R x the screen's frame
-    # (scaled, flattened) x the view, at the outer's screen centre ----
+    # ---- the oscilloscope in the oscilloscope, a camera pointed at its own screen with a delay: level 0 (4) is the scope
+    # as the viewer sees it, V(t); each inner level (5-7) = the outer's R x the screen's frame (scaled, flattened) x
+    # V(t - k delay), at the outer's screen centre (phi, 2 phi, 3 phi from the room) ----
     TK = PR.TEK; P.begin("tek", [4, 5, 6, 7])
-    V = R(4); view(V, TK["view_tilt"], TK["swing"], TK["view_off"])
+    st, ct = K(math.sin(math.radians(TK["view_tilt"]))), K(math.cos(math.radians(TK["view_tilt"])))
+    def view_at(dst, lv):
+        """dst = Rx(tilt) Ry(off + swing sin(sl - lag)), the lag lv delays of sl: angle addition on sl's sine and cosine"""
+        lag = 2 * math.pi * TK["swing_per_s"] * TK["delay_s"] * lv; a = TK["swing"] * d2t
+        th, s_, c_ = P.W(3)
+        P.MUL(th, k["ONE"], K(TK["view_off"] * d2t)); P.MAC(th, K(a * math.cos(lag)), S("sl"))
+        if lv: P.MSB(th, K(a * math.sin(lag)), C("sl"))
+        P.SIN(s_, th); P.COS(c_, th); P.rx_ry(dst, st, ct, s_, c_)
+    V = R(4); view_at(V, 0)
     ctr, e1, e2, sw, sh = PR.Tek.screen_frame(); sc = PR.Tek.nest_scale()
     Rk, Tk = V, None
     for lv in range(1, TK["levels"]):
-        g = 4 + lv; A0, A1 = P.W(3), P.W(3)
+        g = 4 + lv; Vl = P.W(9); view_at(Vl, lv); A0, A1 = P.W(3), P.W(3)
         for i in range(3):
             for dst, e in ((A0, e1), (A1, e2)):
                 first = True
                 for j in range(3):
                     if abs(e[j]) > 1e-9: (P.MUL if first else P.MAC)(dst[i], Rk[3 * i + j], K(sc * e[j])); first = False
         for i in range(3):
-            for j in range(3): P.MUL(R(g)[3 * i + j], A0[i], V[j]); P.MAC(R(g)[3 * i + j], A1[i], V[3 + j])
+            for j in range(3): P.MUL(R(g)[3 * i + j], A0[i], Vl[j]); P.MAC(R(g)[3 * i + j], A1[i], Vl[3 + j])
         first = Tk is None
         if not first: P.copy(T(g), Tk)
         for j in range(3):

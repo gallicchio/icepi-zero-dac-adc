@@ -38,7 +38,8 @@ FLIP_AXIS_DEG = 25.0    # the axis' angle from vertical, in the seal's plane, at
 FLIP_AXIS_DEG_PER_S = 8.0   # the axis drifts round at this rate, so each cycle's turn is a little different
 # The finales (mode 3), in this order, FINALES_PER_SEAL of them between the seal's turns: (kind, seconds).  The kinds are
 # those of KINDS (up to 32 in the list); KINDS also has finales that are not in it, ready to add: "lorenz" (the
-# Lorenz attractor's tail, from its twin), "em" (an electromagnetic wave), "transcribe", "translate", "knot", "lsd".
+# Lorenz attractor's tail, from its twin), "em" (an electromagnetic wave), "transcribe", "translate", "knot", "lsd",
+# "boom" (a sonic boom).
 # Repeat one to show it more often, delete what you do not want.  The scene memory holds 8192 vertices: the seal and
 # its 3D globe take 2888, each object its share (`python3 make_show.py` prints the layout).
 FINALES = [
@@ -47,8 +48,8 @@ FINALES = [
     ("dish",       9.0), ("top",        6.0), ("arm",        7.0),
     ("pcb",        7.0), ("sats",       7.0), ("pwave",     12.0),
     ("scope",      6.0), ("generator",  7.0), ("dna",        5.0),
-    ("drone",      7.0), ("boom",       7.0), ("pol",        7.0),
-    ("sagnac",     7.0), ("tek",        7.0), ("replicate",  6.0),
+    ("drone",      7.0), ("pol",        7.0), ("sagnac",     7.0),
+    ("tek",        7.0), ("replicate",  6.0),
 ]
 FINALES_PER_SEAL = 3    # finales between two of the seal's turns (modes 1 and 2)
 LORENZ_VIEW_TURNS_PER_S = (0.06, 0.085, 0.11)   # the view's three angles' rates while in the Lorenz finale (incommensurate: the axis wanders)
@@ -71,14 +72,18 @@ EM_CYCLES_PER_S = 0.5           # the EM wave's wt: the pattern moves a waveleng
 WAVEFRONT_PER_S = 0.33          # the lens's and the dish's wavefronts: each crosses the picture in 1/this seconds
 SAT_TURNS_PER_S = (0.28, 0.24, 0.20)   # the three satellites' orbits per second
 DRONE_SWEEPS_PER_S = 0.09; PROP_TURNS_PER_S = 2.5   # the drone's sweep through the beam (a sine), its propellers' spin
-SLOW_PER_S = 0.15               # transcription's and translation's walk along the strand, once per 1/this seconds (not in FINALES)
+SLOW_PER_S = 0.15               # the phase sl: the oscilloscope in an oscilloscope swings once per 1/this seconds (host/proposals.py
+                                # TEK); transcription's and translation's walk along the strand (not in FINALES)
 PCB_STEP_PER_S = 0.9            # the circuit board's charge moves a bead's spacing this often a second
 PWAVE_CYCLE_S = 24.0            # the pendulum wave's cycle: in it the longest pendulum swings 16 times, the shortest 27; the same phase,
                                 # from zero, times the dish's message
 P_VIEW = 5.0            # the perspective's eye distance (scene units; the seal is 2 wide); larger = flatter, 5 keeps the turning seal on the screen
 MOVIE_SCALE = 1.0       # the movie draws the scene at full size (the boards draw it at ICEPI_SCREEN_SCALE)
-ICEPI_SCREEN_SCALE = 0.8   # the Icepi pair draws in 0.8 of its DAC's range (codes 25..230 of 256), keeping clear of the burst's levels
-                        # (codes 0 and 40); applied to the perspective table, so the scene, the animator's lengths and the rings all shrink
+ICEPI_SCREEN_SCALE = 0.934 # the Icepi pair draws in this much of its DAC's range: applied to the perspective table, so the scene, the
+                        # animator's lengths and the rings all shrink.  The X board's drawing is moved up ICEPI_X_OFFSET, so it spans
+                        # codes 16..255 and its lowest point still reads 8 ADC codes above the burst's gap (code 0) on the Y board's
+                        # ADC (thr_gap); the Y board's spans 9..248 (nothing reads its DAC)
+ICEPI_X_OFFSET = 120    # 12-bit engine codes (7.5 DAC codes) added to the X board's drawing, into show_params.vh's X_OFFSET
 ICEPI_ADC_LINKS = ((0.759, 30.0), (0.788, 25.5))   # ADC code = gain x DAC code + offset through the tee, each board's DAC into the other's
                         # ADC, measured on the bench 2026-11-08 (5.00 measured 0.78 x + 27 on other modules: the threshold has room)
 MOVIE_CYCLES = None     # finales in show_movie.mp4 (the seal every FINALES_PER_SEAL); None: each once; show_finales.mp4 has the seal once, then every finale
@@ -140,7 +145,7 @@ KINDS = {
     "generator": dict(obj="generator", sec="generator", ph=["pv", "em"]),
     "governor": dict(obj="governor", sec="governor", ph=["pv", "em"]),
     "boom":     dict(obj="boom",     sec="boom",   ph=["pv", "u0", "u1", "u2", "u3", "u4"], zero=["pv"]),
-    "tek":      dict(obj="tek",      sec="tek",    ph=["pv"]),
+    "tek":      dict(obj="tek",      sec="tek",    ph=["sl"], zero=["sl"]),       # the swing from rest at each showing
 }
 EN_ALWAYS = (1 << PH["a"]) | (1 << PH["s"]); EN_FLIP = EN_ALWAYS | (1 << PH["b"])
 def kind_ranges(kind): k = KINDS[kind]; return k.get("ranges") or [k["obj"]]
@@ -177,6 +182,8 @@ def rates():
     for i in range(3): w[PH["o%d" % (i + 1)]] = turns_per_ms(SAT_TURNS_PER_S[i]); p0[PH["o%d" % (i + 1)]] = turns(i / 3)
     w[PH["dr"]] = turns_per_ms(DRONE_SWEEPS_PER_S); w[PH["ps"]] = turns_per_ms(PROP_TURNS_PER_S); w[PH["sl"]] = turns_per_ms(SLOW_PER_S)
     w[PH["pc"]] = turns_per_ms(PCB_STEP_PER_S); w[PH["pw"]] = turns_per_ms(1.0 / PWAVE_CYCLE_S)          # sp: 0, its rate is the ramp's
+    import proposals
+    assert proposals.TEK["swing_per_s"] == SLOW_PER_S, "the oscilloscope's swing (proposals.TEK) is on sl: SLOW_PER_S"
     return w, p0
 def anim_consts(seal_scale):
     return dict(seal_scale=seal_scale, dna_nod=DNA_NOD_DEG / 360, arm_view_tilt=ARM_VIEW_TILT_DEG / 360,
@@ -186,7 +193,8 @@ def anim_consts(seal_scale):
 def thr_gap():
     """The Y board's gap threshold in ADC codes: half way between the gap (DAC code 0) and the lowest the drawing goes
     (the screen's edge at ICEPI_SCREEN_SCALE), as the worse of the two measured links sees them."""
-    low_code = (2048 - int(round(2047 * ICEPI_SCREEN_SCALE)) + 8) >> 4       # the Icepi tops round the 12-bit codes to 8
+    low_code = (2048 - int(round(2047 * ICEPI_SCREEN_SCALE)) + ICEPI_X_OFFSET + 8) >> 4    # the X board's lowest code (12 bits rounded to 8)
+    assert (2048 + int(round(2047 * ICEPI_SCREEN_SCALE)) + ICEPI_X_OFFSET + 8) >> 4 <= 255, "the X board's drawing passes code 255"
     gap = max(o for g, o in ICEPI_ADC_LINKS); drawing = min(g * low_code + o for g, o in ICEPI_ADC_LINKS)
     assert drawing - gap >= 8, ("the drawing comes within %.1f ADC codes of the gap: shrink ICEPI_SCREEN_SCALE" % (drawing - gap))
     return int(round((gap + drawing) / 2))
@@ -206,12 +214,12 @@ def write_params(write=True):
         "W_AXIS": w[PH["a"]], "W_FLIP": w[PH["b"]], "W_SPIN": w[PH["s"]], "AXIS0": p0[PH["a"]],
         "W_LA": w[PH["la"]], "W_LB": w[PH["lb"]], "W_LC": w[PH["lc"]],
         "STEP_PERIOD": step_period, "RING_EVERY": RING_EVERY, "KX": kx, "KY": ky, "KZ": kz, "TX_DELAY": ICEPI_TX_DELAY & 0xffff,
-        "THR_GAP": thr_gap(), "RING_SKIP": ICEPI_RING_SKIP,
+        "THR_GAP": thr_gap(), "RING_SKIP": ICEPI_RING_SKIP, "X_OFFSET": ICEPI_X_OFFSET,
         "STEP_PERIOD2": step_period2, "RING_EVERY2": RING_EVERY2, "KX2": kx2, "KY2": ky2, "KZ2": kz2, "TAIL_HOLD": int(round(TAIL_HOLD_US * 25)),
         "PER_SEAL": FINALES_PER_SEAL, "RAMP_T0": rp["T0"], "RAMP_T1": rp["T1"], "RAMP_UP": rp["UP"], "RAMP_DN": rp["DN"],
     }
     assert MIN_SUBSTEPS & (MIN_SUBSTEPS - 1) == 0 and 1 <= MIN_SUBSTEPS <= 256, "MIN_SUBSTEPS: a power of 2"
-    widths = {"RING_SKIP": 12, "GLOBE_HOLD_MS": 16, "DWELL_FULL": 16, "STEP_SHIFT": 4, "MIN_K": 4, "STEP_PERIOD": 16, "RING_EVERY": 12, "KX": 16, "KY": 16, "KZ": 16, "TX_DELAY": 16, "THR_GAP": 8,
+    widths = {"RING_SKIP": 12, "X_OFFSET": 12, "GLOBE_HOLD_MS": 16, "DWELL_FULL": 16, "STEP_SHIFT": 4, "MIN_K": 4, "STEP_PERIOD": 16, "RING_EVERY": 12, "KX": 16, "KY": 16, "KZ": 16, "TX_DELAY": 16, "THR_GAP": 8,
               "STEP_PERIOD2": 16, "RING_EVERY2": 12, "KX2": 16, "KY2": 16, "KZ2": 16, "TAIL_HOLD": 16, "PER_SEAL": 5, "RAMP_T0": 16, "RAMP_T1": 16}
     if not write: return p
     with open(os.path.join(RTL, "show_params.vh"), "w") as f:

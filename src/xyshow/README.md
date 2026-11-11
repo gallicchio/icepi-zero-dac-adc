@@ -10,7 +10,7 @@ make flash      # X into the board with the lower FT231X serial number, Y into t
 
 Cable each board's DAC to the other board's ADC, as in [5.00](../../tutorial/5_00_two_boards.md#500-two-boards-on-one-laptop), with an SMA tee
 at each ADC to take the DAC to the scope too: board X's DAC to the scope's X input (channel 1), board Y's to channel 2,
-and the scope in XY mode at about 0.8 V a division.
+and the scope in XY mode at about 1 V a division.
 
 | file | what |
 |---|---|
