@@ -17,9 +17,11 @@ LPF = icepi_adda.lpf
 adc_stream.json capture.json lockin.json loopback.json lockin_pll.json fft.json am_radio.json: uart.sv
 sine_pll.json lockin_pll.json: pll100.sv
 
+# nextpnr writes the .config even when the design misses its clock's frequency, and exits with an error; the
+# rm -f makes sure that such a design is never packed and loaded by a later "make load-...".
 %.config: %.json $(LPF)
 	nextpnr-ecp5 --25k --package CABGA256 --speed 6 --json $< --lpf $(LPF) \
-	    --textcfg $@ 2> $*.pnr.log || (tail -20 $*.pnr.log; false)
+	    --textcfg $@ 2> $*.pnr.log || (tail -20 $*.pnr.log; rm -f $@; false)
 	@grep -E "Max frequency for clock" $*.pnr.log | tail -n +1
 
 %.bit: %.config

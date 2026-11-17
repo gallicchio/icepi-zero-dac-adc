@@ -3296,3 +3296,10 @@ All 25 tiles on the SDS1104X-E at 1 V/div are right, with 0 bad bursts (the scop
 kaleidocycle, taken at four moments, turns inside out as in the model.  `img/xyshow_siglent.png` is retaken (5 x 5)
 and `img/xyshow_sim.png` is the new simulation sheet.  The Siglent is back at 0.8 V/div, XY, 5 ms/div, and both
 boards are on auto with the dither on.
+
+## 2026-11-16 18:50 (from the ECP5-2ADC-2DAC tutorial session)
+
+* `src/verilog/Makefile`: a `.config` whose place and route failed is now deleted.  nextpnr writes the `.config` even
+  when the design misses its clock's frequency and exits with an error; a later `make load-NAME` then packed and loaded
+  it, a design that cannot run at its clock (found in the ECP5-2ADC-2DAC tutorial, whose Makefile is this one's).
+  `make sync`: nothing to update; `make check`: 0 errors, the one standing warning.
