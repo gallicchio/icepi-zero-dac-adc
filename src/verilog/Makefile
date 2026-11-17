@@ -14,7 +14,7 @@ LPF = icepi_adda.lpf
 	yosys -q -p "synth_ecp5 -top $* -json $@" $^
 
 # designs that also use the serial port, or the PLL
-adc_stream.json capture.json lockin.json loopback.json lockin_pll.json fft.json am_radio.json: uart.sv
+adc_stream.json capture.json lockin.json lockin_half.json loopback.json lockin_pll.json fft.json am_radio.json: uart.sv
 sine_pll.json lockin_pll.json: pll100.sv
 
 # nextpnr writes the .config even when the design misses its clock's frequency, and exits with an error; the
