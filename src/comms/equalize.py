@@ -113,12 +113,16 @@ def make_link(args):
     return play, record, desc
 
 
-def sound_channel(play, record, records=4):
-    """H(f) on the loop's bins, by sound.py's multitone, through whatever record() does."""
+def sound_channel(play, record, records=4, align=False):
+    """H(f) on the loop's bins, by sound.py's multitone, through whatever record() does.
+    align: two boards, where each record starts at a different point of A's loop: line
+    each one up first, as sound.py does (H then has no delay; the sync finds it)."""
     wave, x = sound.probe_multitone()
     play(wave)
-    rec = np.mean([record() for _ in range(records)], axis=0)
-    return sound.by_divide(rec, x)
+    recs = [record().astype(float) for _ in range(records)]
+    if align:
+        recs = [sound.align_to(r, x) for r in recs]
+    return sound.by_divide(np.mean(recs, axis=0), x)
 
 
 # ---- receiver 1: 6.02's loops ----------------------------------------------------------
@@ -413,7 +417,7 @@ if __name__ == "__main__":
     print("QPSK at %.4g Msymbol/s, %s; echo %.2f symbols late (%.0f ns); equalizer: %d taps, %d per symbol, "
           "%d feedback, mu %g%s, %d training records" % (R / 1e6, desc, D, D / R * 1e9, args.taps, args.spacing,
                                                          args.fb, args.mu, " (NLMS)" if args.nlms else "", args.train))
-    H = sound_channel(play, record)
+    H = sound_channel(play, record, align=len(args.ports) == 2)
     q, _ = psk.make_frame(M, args.nsym)
     play(psk.transmit(q, M))
     rng = np.random.default_rng(args.seed + 1)
