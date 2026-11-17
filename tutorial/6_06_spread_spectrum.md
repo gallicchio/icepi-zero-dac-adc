@@ -407,10 +407,14 @@ can steer by. That's a delay-locked loop, the timing loop of [6.02](6_02_psk_and
   the 8-bit preamble, so the one longer choice is 93 chips per bit (11 bits
   per loop, 19.7 dB). In simulation at `--snr -20`, 33 chips per bit lose
   the code (user 2 found at the wrong delay, 11 of 23 bits wrong) and 93
-  find it again (0 of 3 wrong).
+  find it again (0 of 3 wrong). On two boards (DK0GFLAW to DP051TLX,
+  2026-11-17), six runs of each: with 33 chips the two users' delay
+  difference came out wrong every time (−666 to +530 chips), with 8 to 20
+  of the 46 bits wrong; with 93 it was 300.43 to 300.48 chips every time,
+  and 0 of the 6 bits wrong.
 - **Use two boards**: `python3 cdma.py /dev/ttyUSB0 /dev/ttyUSB1`. The
   delays now include where B's record started in A's loop, but their
-  *difference* is still 300.4 chips.
+  *difference* is still 300.4 chips (300.41 on 2026-11-17).
 - **Read** learnSDR's [lesson 23](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson23.md): it receives real GPS with an RTL-SDR at
   2.046 MS/s, exactly two samples per chip. With the RF parts of [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
   and a GPS antenna, this board's ADC could take the same samples at an IF.

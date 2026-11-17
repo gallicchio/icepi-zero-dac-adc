@@ -1008,7 +1008,7 @@ def fll(z, tau=100, sps=SPS, ntaps=2 * SPAN * SPS + 1):
     Returns the frequency it believes (rad per sample) at every sample, the error
     signal, and its final estimate of the offset in Hz."""
     hu, hl = band_edge_filters(sps, ntaps)
-    kd = float(np.diff(s_curve(hu, hl, [-100.0, 100.0], sps))) / (2 * 100.0 * 2 * np.pi / FS_ADC)
+    kd = np.diff(s_curve(hu, hl, [-100.0, 100.0], sps))[0] / (2 * 100.0 * 2 * np.pi / FS_ADC)
     k = 1 / (kd * tau * sps)                                # KEY: one time constant = tau symbols
     P = np.mean(np.abs(np.convolve(z, hu, "valid"))**2 + np.abs(np.convolve(z, hl, "valid"))**2)
     hu_r, hl_r = hu[::-1], hl[::-1]                         # convolution = dot with reversed taps

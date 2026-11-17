@@ -15,7 +15,7 @@ UART = $(V)/uart.sv
 	yosys -q -p "synth_ecp5 -top $* -json $@" $^
 
 %.config: %.json $(LPF)
-	nextpnr-ecp5 --25k --package CABGA256 --speed 6 --json $< --lpf $(LPF) --textcfg $@ 2> $*.pnr.log || (tail -20 $*.pnr.log; false)
+	nextpnr-ecp5 --25k --package CABGA256 --speed 6 --json $< --lpf $(LPF) --textcfg $@ 2> $*.pnr.log || (tail -20 $*.pnr.log; rm -f $@; false)
 	@grep -E "Max frequency for clock" $*.pnr.log | tail -n 1
 %.bit: %.config
 	ecppack --compress $< $@
