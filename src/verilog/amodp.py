@@ -15,7 +15,8 @@ per code.  (p0 is interpolated to the extra frequencies with its delay taken out
 
 The two boards load a tile differently, and the dashed "expected" curve is the handbook's circuit between them:
     ECP5-2ADC-2DAC   the DAC is a 50 ohm source, ADC A (TERM jumper in) a 50 ohm load: what the handbook assumes
-    Icepi Zero       the DAC is a 51 ohm source (p1 says so), the ADC about 20.6 k (p2's loss at 1 kHz says so)
+    Icepi Zero       the DAC is a 51 ohm source (p1 says so), the ADC about 20.6 k (p2's loss at 1 kHz says so) and
+                     18.4 pF with its 10 cm cable (p4's peak at 3.7 MHz says so)
 On the Icepi a tile made for 50 ohm can be followed by p1 (tile OUT -> p1 IN, p1 OUT -> ADC IN): p1's IN is 51.6 ohm,
 so the tile sees the load it was made for.  A sweep 14 dB or more down everywhere is taken to be through p1, and is
 divided by p1's own sweep.
@@ -42,7 +43,8 @@ TILES = {"p0": "through (a barrel): the calibration", "p1": "pi pad, -20 dB", "p
          "p12": "LEDs", "p13": "AM loopstick, 0.5-1.7 MHz"}
 EXTRA = {"p4": np.linspace(0.4e6, 2.4e6, 81), "p5": np.linspace(4e6, 12e6, 41), "p6": np.linspace(50e3, 300e3, 51),
          "p7": np.linspace(3e6, 10e6, 71), "p9": np.linspace(420e3, 500e3, 401), "p11": np.linspace(0.2e6, 12e6, 119)}
-BOARD_LOAD = {"ecp5": (50.0, 50.0), "icepi": (51.0, 20.6e3)}       # (the DAC's source, the ADC's load), ohms
+BOARD_LOAD = {"ecp5": (50.0, 50.0, 0.0), "icepi": (51.0, 20.6e3, 18.4e-12)}   # the DAC's source (ohm), the ADC's load
+#   (ohm, and the farad across it: the Icepi's 18.4 pF of cable and ADC input is what p4's 100 uH rings with at 3.7 MHz)
 
 
 # ---- the handbook's circuits, as ABCD matrices (series Z, shunt Y), for the expected curves -----------------------
@@ -104,7 +106,8 @@ def expected(tile, f, board, via_p1=False):
     m = abcd(tile, f)
     if m is None:
         return None
-    rs, rl = BOARD_LOAD[board]
+    rs, r_l, c_l = BOARD_LOAD[board]
+    rl = 1 / (1 / r_l + 2j * np.pi * np.asarray(f, float) * c_l)
 
     def vout(m):                                               # V_load / V_source
         a, b, c, d = m[0, 0], m[0, 1], m[1, 0], m[1, 1]
