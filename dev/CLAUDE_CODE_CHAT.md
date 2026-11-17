@@ -3369,3 +3369,55 @@ current hardware configuration. [...]
   false whenever `wr` had wrapped below `rd` (the full check worked half the time; harmless, since the fixed
   transmitter never lets the FIFO hold more than one byte).  Now the usual test, top bits differ and the rest equal.
   `qpsk_modem_check.py`: PASS (bit for bit against the model; 1500 bytes through a 2-byte FIFO with none lost).
+
+## Prompt 40 (from the ECP5-2ADC-2DAC session, 2026-11-17 08:54)
+
+I have plugged in two Icepi Zeros with their ADC and DAC boards cross connected so that you can test all of the
+changes you made to that tutorial on real hardware. Do that too.
+
+(And:) When you tell me what to do next ... don't just give jumper numbers like J101 and J102. Always give the
+silkscreen names of these things in addition.
+
+## Response 40 2026-11-17 08:56 - 09:26 Claude Opus 5.5
+
+Everything ran in the boards' SRAM; neither flash was written.  At the end both boards were told to reload their
+own flash (`openFPGALoader -r`, as at power-up): the 5.08 show, build 20261111, in step (738 good bursts, 0 bad).
+
+* **The cabling, found with a harmless signal** (1.07's `loopback.sv` in both, the staircase on one board and the
+  square wave on the other): DK0GFLAW's DAC OUT feeds DP051TLX's ADC IN, and DP051TLX's DAC OUT feeds DK0GFLAW's ADC
+  IN (on each module DAC OUT is the right SMA and ADC IN the left, USB connectors toward you; the SMAs have no
+  designators or silkscreen).  ADC = 0.759 x DAC + 29.9 one way, 0.788 x DAC + 25.1 the other.  The crystals are
+  3.36 ppm apart (DP051TLX the faster) and the round trip is 426.08 ns, 0.48 ns rms (`twoway.py`, 321 records in 90 s).
+* **6.11's modem**, rebuilt with Response 39's full check (6949 logic cells, 66.72 MHz for 50): 20,000, 200,000 and
+  2,000,000 bytes each way, 0 bit errors every time.  The two-million-byte run first sat silent after the data had
+  gone, as the page's old run had: `qpsk_modem_test.py`'s single `difflib` call grows as the square of the length
+  (2.7 s for 100,000 bytes, 11.0 s for 200,000; about 18 minutes for two million).  It now lines the bytes up 20,000
+  at a time (identical to the one-call count on twelve kinds of damage), 21 s for the whole run.  6.11: the console
+  of the two runs, the cost table, the two-board bullet.
+* **Chapter 6 between the two boards** (A = DK0GFLAW plays, B = DP051TLX records), 0 bit errors: `psk.py` both ways
+  (MER 38.0, 38.1 dB; `--cfo 3000 --sro 2000` found +3027 Hz, +1953 ppm), `qam.py` 16 and 64 (35.2, 34.2 dB),
+  `msk.py` and GMSK (21.2, 15.9 dB), `cdma.py` (300.41 chips), `fll.py` at 100 kHz, `ofdm.py` QAM-16 both ways,
+  `ft8.py` through `awgcap.sv` and `ddc.sv`'s slow frame at 100, 4 and 1 codes (the carrier found 23.8 Hz low).
+  `ofdm.py` QAM-64: 99 and 6 of 366,120 wrong.  `ber_curve.py` on the theory.  `ecc.py`, `eye.py`, `chirp.py` clean.
+* **Fixed, found across two boards:**
+  * `lora.py`: 8 runs of 9 read the frame a symbol early or late (the frame can start on any of the loop's eight
+    symbols, and the chirps give the timing only within one).  `sync()` now tries each (`search`, two ports only):
+    10 of 10 right, `--cfo 12` and `--sf 8` too.  `--sf 10` still misses by the clocks' slide (484 sent, 478
+    found), since its timing comes from an earlier record; 6.10 says so.
+  * `equalize.py`: the sounding averaged its four records before lining them up (sound.py's bug of 2026-10-07):
+    zero forcing 3644 of 7560 wrong, now 0; with `--echo 1:0.67 --ebn0 10`, 18 and 7 of 7588 (page: 19, 17).
+  * `fll.py`: `float()` of a one-element array, deprecated in NumPy (a warning on every run), now `[0]`.
+  * The twoboard, dsp and ultrasound Makefiles now delete a failed `.config` as src/verilog's does (src/xyshow's is
+    left in step with OpticsPCBs').
+* **`sound.py` across two boards:** the multitone and PSK agree run after run (|H| 0.75 at 6.25 MHz), but the
+  m-sequence's main tap wandered 0.52-0.89 and the step's 0.48-0.90 over eight single records: their edges alias at
+  25 MS/s, so each record catches them at a new sub-sample point.  In 6.05's Try this; not a code change.
+* **cdma.py `--per-bit`** at `--snr -20`, six runs each: 33 lost the code every time (delay difference -666 to +530
+  chips, 8-20 of 46 bits wrong), 93 found it every time (300.43-300.48 chips, 0 of 6).  In 6.06.
+* **capture.py, spectrum.py at d >= 12:** DP051TLX's 1 MHz sine (`sine.bit`) recorded on DK0GFLAW at `-d 12` and
+  `-d 14` in 2.94 and 11.00 s, aliased to 973.4 and 552.7 Hz (3.4 Hz from nominal: the crystals); `spectrum.py -d 12
+  -n 2` in 5.8 s.  No timeouts.
+* **Response 38's other fixes:** 6.05's `echo.py` console is identical to a rerun; `qam.papr()` gives 0.00 dB for a
+  complex tone and 3.01 dB for its real part; src/verilog's Makefile, with a 900 MHz clock in a scratch copy, left no
+  `.config` behind, so `make load-NAME` would rebuild, not load.
+* Appendix C has the day; 6.12 and 6.13 name the pair.  `make sync`, `make check`: 0 errors, the one standing warning.

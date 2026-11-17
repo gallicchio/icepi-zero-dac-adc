@@ -463,6 +463,8 @@ On 2026-11-17, Chapter 6 again, on another pair:
   (B found A's carrier 23.8 Hz low). `ofdm.py` QAM-64 had 99 and 6 of
   366,120 bits wrong; `ecc.py` at 4 dB, 0 wrong after the convolutional
   code; `eye.py` and `chirp.py` ran clean.
+- **`ber_curve.py`** followed the theory for QAM-4, 16 and 64 (QAM-16 at
+  11.9 dB: 2.93 × 10<sup>−2</sup> against 2.96 × 10<sup>−2</sup>).
 - **`cdma.py --per-bit`** at `--snr -20`, six runs each: 33 chips lost the
   code every time, 93 found it every time ([6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)).
 
