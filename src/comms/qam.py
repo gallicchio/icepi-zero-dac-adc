@@ -163,8 +163,8 @@ def transmit(q, M, cfo_bins=0, ebn0=None, rng=None, amp=None):
 
 
 def papr(x):
-    """Peak-to-average power ratio, dB: the biggest sample's power over the mean."""
-    x = np.asarray(x, float)
+    """Peak-to-average power ratio, dB: the biggest sample's power over the mean (real or complex samples)."""
+    x = np.asarray(x)
     return 10 * np.log10(np.max(np.abs(x)**2) / np.mean(np.abs(x)**2))
 
 

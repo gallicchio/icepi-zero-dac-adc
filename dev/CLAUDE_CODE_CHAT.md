@@ -3336,3 +3336,7 @@ Feel free to fix the bugs in the icepi zero tutorial. You can commit there too.
   7.03 say "two $40 boards", where Appendix A, 0.00 and the README add up to about $112 a set); 0.00's "1 GB or more"
   card is right only for the image route (the installer needs 8 GB); 3.03's "about 30 s" for the base64 paste (the
   pauses alone are 23.6 s; no measurement on record); 6.11's 64 lost bytes (chapter 6, above).
+* `qam.py`'s `papr()` took complex samples as real (dropping the imaginary part, with a warning); it now takes either
+  (only real ones are passed today: no number changes).  6.05's `echo.py` console showed 4 of the 8 lengths the
+  command prints: now the whole output (a model: rerun, the 4 rows identical).  Left: cdma.py's PER_BIT has no
+  option (only 33 and 93 work; 6.06 says to edit it).
