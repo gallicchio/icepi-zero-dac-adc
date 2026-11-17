@@ -1248,7 +1248,7 @@ tones heard: 0 of 58 data symbols wrong, 0 of 21 Costas symbols wrong
 decoded: 'CQ HMC JASON'  CRC ok
 ```
 
-(The frame starts a tenth of a second before the listener's first sample,
+(The frame starts about 30 ms (96 samples) before the listener's first sample,
 because `--send` queues it first. The receiver finds it anyway, and
 reports the start as negative.)
 
@@ -1290,7 +1290,9 @@ decoded: 'CQ HMC JASON'  CRC ok
 
 **Then two real boards:** `ddc.sv` in both, A's DAC cabled to B's ADC
 (about 2 m of coax), A sending and B listening. B finds A's carrier 1.5 Hz
-off, a quarter of a tone spacing: these two crystals are 0.2 ppm apart.
+off, a quarter of a tone spacing: these two crystals (DP0525BU and
+DP0525LR on 2026-10-07, [Appendix C](C_how_it_was_tested.md); not
+[5.01](5_01_two_clocks.md#501-two-clocks)'s pair) are 0.2 ppm apart.
 Every symbol is right at 100, 4 and 1 DAC codes, as on one board:
 
 ```console
@@ -1600,8 +1602,10 @@ that an efficient antenna and a
 would give for free. Rung 3 is that amplifier: 40 dB of gain and a noise
 figure of a few dB, which is what an active receiving loop (the MLA-30+ of
 [5.07](5_07_radio_link.md#507-a-radio-link), or a wideband HF amplifier
-module) provides. After it, the sky is the limit and the calculator's
-far-field rows apply.
+module) provides. That is 40 of the 60 dB: behind a loop, the ADC's floor
+is still 20 dB above the sky's noise. Rung 4's dipole, 35 dB more
+efficient, makes up the rest. After it, the sky is the limit and the
+calculator's far-field rows apply.
 
 </details>
 

@@ -3,7 +3,7 @@
 
 # 6.04 MSK and GMSK: constant envelope
 
-![Measured, one board looped back: the spectra of six waveforms at 1.5625 Mbit/s on one axis, QPSK with square pulses, QPSK with root-raised-cosine pulses, continuous-phase FSK, MSK, GMSK with BT 0.5 and 0.3, with their 99-percent bandwidths; then the same after a hard limiter, where QPSK's sidelobes have grown back by 20 dB and the constant-envelope ones have not moved](img/comms_msk_spectrum.png)
+![Measured, one board looped back: the spectra of six waveforms at 1.5625 Mbit/s on one axis, QPSK with square pulses, QPSK with root-raised-cosine pulses, continuous-phase FSK, MSK, GMSK with BT 0.5 and 0.3, with their 99-percent bandwidths; then the same after a hard limiter, where QPSK's sidelobes have grown back by 22 dB and the constant-envelope ones have not moved](img/comms_msk_spectrum.png)
 
 The amplifier in a phone is a switch:
 
@@ -33,7 +33,9 @@ and an integral can't jump: each bit turns the phase by π*h* and nothing
 else happens. The number *h*, the *modulation index*, is the two tones'
 spacing in units of the bit rate:
 
-- [5.05](5_05_fsk_modem.md#505-a-modem) used *h* = 2 (four and two cycles per bit).
+- [5.05](5_05_fsk_modem.md#505-a-modem)'s tones, 3.125 MHz apart, are *h* = 2 at this page's
+  1.5625 Mbit/s (four and two cycles per bit), and *h* ≈ 27 at the 115,200
+  baud it ran.
 - Sunde's FSK is *h* = 1.
 - *h* = ½, the two tones only half a bit rate apart, is **minimum-shift
   keying**.

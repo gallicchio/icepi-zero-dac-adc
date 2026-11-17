@@ -50,8 +50,8 @@ The receiver does what a GPS receiver does to *acquire* a satellite:
    bit and adds up the powers. At the right delay there's a peak.
 3. At that delay, each bit's correlation is the bit times the carrier's
    phase. Squaring removes the bits (as learnSDR's [lesson 12](https://github.com/gallicchio/learnSDR/blob/main/docs/lesson12.md)
-   suggests) and leaves the phase, and the preamble settles which way
-   round:
+   suggests) and leaves twice the phase. Half its angle is the phase, and
+   the preamble settles which way round:
 
 <details>
 <summary>The whole file: <code>cdma.py</code></summary>
@@ -397,7 +397,10 @@ can steer by. That's a delay-locked loop, the timing loop of [6.02](6_02_psk_and
   control every handset's power for exactly this reason.
 - **Bury both users deeper** (`--snr -15`, `-20`): where does acquisition
   fail? Then make each bit longer (fewer bits per loop, more chips per bit)
-  and watch the spreading gain buy it back.
+  and watch the spreading gain buy it back. There is no option for it:
+  edit `PER_BIT` in `cdma.py`. The bits must fill the loop's
+  1023 = 3 × 11 × 31 chips exactly, and leave room for the 8-bit preamble,
+  so the one longer choice is 93 chips per bit (11 bits per loop, 19.7 dB).
 - **Use two boards**: `python3 cdma.py /dev/ttyUSB0 /dev/ttyUSB1`. The
   delays now include where B's record started in A's loop, but their
   *difference* is still 300.4 chips.

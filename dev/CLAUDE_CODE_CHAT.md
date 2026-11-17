@@ -3297,19 +3297,30 @@ kaleidocycle, taken at four moments, turns inside out as in the model.  `img/xys
 and `img/xyshow_sim.png` is the new simulation sheet.  The Siglent is back at 0.8 V/div, XY, 5 ms/div, and both
 boards are on auto with the dither on.
 
-## 2026-11-16 18:50 (from the ECP5-2ADC-2DAC tutorial session)
+## 2026-11-16 18:43 (from the ECP5-2ADC-2DAC tutorial session)
 
 * `src/verilog/Makefile`: a `.config` whose place and route failed is now deleted.  nextpnr writes the `.config` even
   when the design misses its clock's frequency and exits with an error; a later `make load-NAME` then packed and loaded
   it, a design that cannot run at its clock (found in the ECP5-2ADC-2DAC tutorial, whose Makefile is this one's).
   `make sync`: nothing to update; `make check`: 0 errors, the one standing warning.
 
-## Prompt 38 (from the ECP5-2ADC-2DAC session, 2026-11-16 19:15)
+## Prompt 38 (from the ECP5-2ADC-2DAC session, 2026-11-16 18:47)
 
 Feel free to fix the bugs in the icepi zero tutorial. You can commit there too.
 
-## Response 38 2026-11-16 19:15 - (running) Claude Opus 5.5
+## Response 38 2026-11-16 18:47 - (running) Claude Opus 5.5
 
 * `capture.py` and `spectrum.py`: the serial timeout (2 s for the whole read) now allows the recording, N x 2^d /
   25 MHz: at d >= 12 the read gave up before the samples came (found in the ECP5 tutorial, whose capture.py is this
   one's).  1.06 and 1.09 re-synced.  `make check`: 0 errors.
+* **Response 31's list, chapter 6 and the crystals item** (an agent, reviewed): 40 fixed from the pages' own
+  consoles, code and arithmetic (6.02's loop: ω_n ≈ 2θ a symbol, 9.4 kHz, the Costas loop settling in about 150
+  symbols and the timing loop in 300; 6.03's 8PSK d_min² 1.76 Eb and the PAPR sum; 6.05's notch at 5.9 MHz on
+  RG-58; 6.11's four shift-and-adds, the two cables, bits not bytes; each page now names its pair of boards and day
+  for the crystals: 0.76 ppm DP0525BU-DP051TLX on 2026-09-30, 0.2 ppm DP0525BU-DP0525LR on 2026-10-07; ...); two from
+  the web (Voyager 1 about 26 billion km in November 2026, a light-day; Hamming's weekend 1947, the paper 1950); 4 not
+  errors (6.00 and 6.04's learnSDR links both exist; 6.07's two BERs are counting noise; 6.09's twelve to sixteen is
+  the console beside it; 6.12's 23-24 mW is matched against dipole).  **Left:** 6.11's 64 lost of 20,000 against
+  the one-in-250-after-8000 model (needs the old design re-simulated).  Code notes, unchanged: cdma.py's PER_BIT has
+  no option (only 33 and 93 work); qam.py's papr() drops an imaginary part (only ever given real); 6.05's echo.py
+  console shows four lengths where the default is eight.

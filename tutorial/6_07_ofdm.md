@@ -437,8 +437,9 @@ approximations stop holding, do the points leave the curves.
 - **Two clocks, again.** The DAC's 50 MS/s steps leave an image of each tone
   f at 50 − f, and the 25 MS/s ADC folds it back exactly onto f. On one board
   the image's phase is fixed. Between two boards it rotates once every
-  1 / (50 MHz × 0.75 ppm) ≈ 27 ms, as the two sample clocks slide past each
-  other. Within one 0.66 ms record that hardly moves, so the pilot takes care
+  1 / (50 MHz × 0.75 ppm) ≈ 27 ms for this page's two boards, the pair of
+  [5.01](5_01_two_clocks.md#501-two-clocks), as the two sample clocks slide
+  past each other. Within one 0.66 ms record that hardly moves, so the pilot takes care
   of it. But records taken at different times disagree, and comparing them
   makes the channel look 15–20 dB noisier than it is. Even within one record,
   the board-to-board noise grows with frequency (38 dB at low frequencies, 33 dB

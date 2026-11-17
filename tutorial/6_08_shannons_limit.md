@@ -373,7 +373,8 @@ that depends on what you send down it, and the honest figure gives three.
 - **Bit-loading:** from the per-subcarrier SNR in the right panel, give
   each subcarrier the largest constellation its own SNR allows, as DSL
   does, and add up the rate. How close to the 111 Mbit/s does it get?
-- **Voyager 1:** 23 W into a 3.7 m dish, 24 billion kilometres, a 70 m
+- **Voyager 1:** 23 W into a 3.7 m dish, 26 billion kilometres (a
+  light-day, in November 2026), a 70 m
   dish at the other end with a 20 K receiver, 160 bits a second. Compute
   its *E*<sub>b</sub>/*N*<sub>0</sub> and see why it lives near the
   −1.59 dB corner, and why its modulation is a few points and a very good

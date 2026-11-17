@@ -693,7 +693,7 @@ The picture at the top of this page is another run like it:
   turns the constellation twice in the 655 µs record, and sampling at the
   wrong instants fills the ring in.
 - **After them**, there are four tight clusters. The *modulation error ratio*
-  (MER), the clusters' size against their spacing, is 38 dB.
+  (MER), the clusters' spacing against their size, is 38 dB.
 
 ## What the receiver holds
 
@@ -811,9 +811,10 @@ where *K*<sub>d</sub> is the detector's slope: 1.07 per symbol for Gardner's, 1
 for the Costas detector.
 
 The loop's natural frequency is about 2θ per symbol: 9 kHz for the Costas
-loop, so a 3 kHz offset is well inside its range. It settles in about
-4/(ζω<sub>n</sub>) ≈ 300 symbols: a prediction that matches what the figure
-shows.
+loop, so a 3 kHz offset is well inside its range. A loop settles in about
+4/(ζω<sub>n</sub>): 150 symbols for the Costas loop, and 300 for the timing
+loop, whose θ is half as big. That 300 is a prediction that matches what the
+figure shows.
 
 </details>
 
@@ -829,8 +830,8 @@ loop fails. Through the cable, with the loop's default bandwidth, it
 
 With noise at *E*<sub>b</sub>/*N*<sub>0</sub> = 6 dB it gives up at about 20 kHz.
 
-Its natural frequency is 4.7 kHz, and the range it can pull into without
-slipping is about 2ζ*f*<sub>n</sub> = 6.6 kHz. Beyond that, the integrator drags
+Its natural frequency is 9.4 kHz, and the range it can pull into without
+slipping is about 2ζ*f*<sub>n</sub> = 13 kHz. Beyond that, the integrator drags
 it in slowly, and noise breaks the process.
 
 Two radios whose crystals disagree by 20 ppm at 915 MHz are 18 kHz apart
@@ -1170,8 +1171,8 @@ QPSK, transmitter's carrier +24414 Hz, Eb/N0 6 dB
 
 ![Measured, one board looped back: the Costas loop's pull-in, bit errors against the carrier offset, alone and after each coarse estimator; the fourth-power spectrum with its line at four times the offset; the two band-edge filters sitting on the signal's spectral slopes and the FLL detector's S-curve against offset; the FLL converging on a 100 kHz offset and then jittering; and the hand-over to the Costas loop at 6 dB](img/comms_fll.png)
 
-**Look at the last line of each block**: the x<sup>4</sup> line is within 10 Hz,
-while the FLL alone is off by 10 kHz. Panel f of the figure shows what that
+**Look at the last line of each block**: the x<sup>4</sup> line is within 13 Hz,
+while the FLL alone is off by 7 to 9 kHz. Panel f of the figure shows what that
 costs: at 100 kHz and 6 dB the FLL handed over 7.9 kHz short, right at the
 noisy Costas loop's limit, and that record failed. The x<sup>4</sup> path had no
 such trouble. The difference is noise in the detectors:

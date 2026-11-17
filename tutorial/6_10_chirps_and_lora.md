@@ -636,8 +636,10 @@ relative to the peak: a few dB.
 - The pulse's −0.5 dB means its peak is a coin toss against the noise (the
   figure's run lost it entirely).
 
-Twenty decibels under the noise with a 30 dB gain leaves 10 dB, and 10 dB
-is what you see.
+Twenty decibels under the noise with a 30 dB gain leaves the peak 10 dB
+above the noise's average. The columns show the *highest* of the record's
+thousands of noise peaks, which stand about 9 dB above that average: hence
+a few dB, or less.
 
 ## Zadoff–Chu: the chirp, sampled
 
@@ -909,12 +911,12 @@ frequency as the unknown gives the bound on a Doppler estimate with the
 
 The left panel is the test. The estimator (the correlation upsampled 16
 times, and a parabola through the three points around the peak) sits on the
-bound:
+bound, or below it:
 
 - the chirp scatters 20 ns at −15 dB, against a bound of 22 ns;
-- the m-sequence 8 ns against 14 (twelve trials a point, so each scatter is
-  good to ±20%);
-- at 0 dB all three reach 2–4 ns, a twentieth of an ADC sample, from a
+- the m-sequence 8 ns against 14, below the bound by more than the ±20%
+  to which twelve trials a point give each scatter;
+- at 0 dB all three reach 2–4 ns, a twentieth to a tenth of an ADC sample, from a
   40 ns sampling period and a 3 MHz bandwidth.
 
 Below a threshold (the chirp's is about −21 dB, *E*/*N*<sub>0</sub> ≈ 8),
@@ -1498,7 +1500,8 @@ measurements say it is right, with this fine print:
 Filtered to the same band, all three compress to the same peak, so the
 choice comes down to the last four rows:
 
-- the chirp has the gentlest envelope;
+- ZC has the gentlest envelope once filtered, 2.6 dB of PAPR against the
+  chirp's 5.0 (all of it at the wrap: unfiltered, the chirp's is 0 dB);
 - the chirp and ZC survive a frequency offset;
 - ZC has a family where the chirp has one member.
 

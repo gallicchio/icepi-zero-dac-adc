@@ -135,7 +135,9 @@ board1: 1431 points over 60 s; beat +0.759076 Hz = +0.7591 ppm of 1000000 Hz; am
 Board A sees B's sine slip back 0.759 turns a second, and B sees A's pull
 ahead by the same amount: B's crystal is 0.759 ppm slower than A's. (Both are
 within 3 ppm of nominal, [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference). A quartz watch is allowed ±15 seconds a
-month, 6 ppm.)
+month, 6 ppm.) That was DP0525BU (A) and DP051TLX (B) on 2026-09-30. Other
+pairs differ: Chapter 6's two boards on 2026-10-07, DP0525BU and DP0525LR,
+were 0.2 ppm apart.
 
 Each board timed its results by its own clock (result *k* is *k* × 2<sup>20</sup> / 25 MHz),
 and still the two numbers agree to six digits, as they must. A 1 MHz comparison

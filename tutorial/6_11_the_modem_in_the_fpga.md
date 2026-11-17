@@ -692,7 +692,8 @@ The transmitter makes one DAC sample per 50 MHz clock, 32 per symbol:
 - **The carrier at *f*<sub>s</sub>/8.** At 6.25 MHz, cos and sin of the
   carrier take only the values 0, ±1 and ±0.707, so *I* cos − *Q* sin is
   one of *I*, 0.707(*I* − *Q*), −*Q*, 0.707(−*I* − *Q*), and so on round
-  the eight phases. 0.707 = 181/256 is a shift and an add. This is why
+  the eight phases. 0.707 = 181/256 is four shift-and-adds
+  (128 + 32 + 16 + 4 + 1), no multiplier. This is why
   [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)
   chose 6.25 MHz.
 
@@ -725,7 +726,8 @@ could get past 27 dB of MER. The sum has two faults:
   18 dB before the decimation folds it onto the signal.
 
 `psk.py`'s 193-tap filter interpolates the holes properly; that is why it
-reads 39 dB. The FPGA uses the classic fix for *f*<sub>s</sub>/4:
+reads 39 dB on `channel.py`'s model (38 dB on the real cable). The FPGA
+uses the classic fix for *f*<sub>s</sub>/4:
 
 1. A *half-band* filter, [−1 0 9 16 9 0 −1]/32. It passes the even samples
    through untouched (its even taps are 0, 16, 0) and interpolates *Q* at
@@ -1372,8 +1374,10 @@ still move it; without them a 1 ppm offset would never accumulate.
 One thing `psk.py` could do that shifts cannot: the detectors' gains scale
 with the signal's amplitude (Gardner's with its square, Costas's
 linearly). The loop bandwidths are set for the cable's 0.776 codes per
-code. At half the amplitude the gains are a quarter, which halves the
-loop's bandwidth and halves its damping (ζ = 0.34): slow, and ringing.
+code. At half the amplitude Gardner's gain is a quarter, which halves the
+timing loop's bandwidth and halves its damping (ζ = 0.34): slow, and
+ringing. The Costas detector's gain is a half, and its loop's damping falls
+to 0.48.
 There is no AGC. Real receivers have one, and the first "Try this" adds
 it.
 
@@ -1479,7 +1483,7 @@ None of this is in a textbook, and all of it is the job.
 
 `channel.py`'s model of the DAC holds each code for a sample. That puts an
 image of the signal 50 MHz × ppm away, 21 dB down: 100 kHz at the pretend
-2000 ppm, 38 Hz at the real 0.76 ppm of two boards. A mixer error moves it
+2000 ppm, 38 Hz at the real 0.76 ppm of [5.01](5_01_two_clocks.md#501-two-clocks)'s two boards. A mixer error moves it
 2 × *f*<sub>cfo</sub> away. So the 2000 ppm tests above give the model's
 DAC an ideal reconstruction filter (the model's `recon`, on by default
 whenever ppm or cfo is not zero). A real second board at 2000 ppm would
@@ -1551,7 +1555,7 @@ on record.)
 
 The modem's ports are 1 Mbaud, full stop, so a run with the laptop's port
 at 115,200 should have been garbage. It returned all 20,000 bytes with 6%
-of them wrong, which is the more interesting answer:
+of their bits wrong, which is the more interesting answer:
 
 - A 115,200-baud start bit lasts 8.68 µs. `uart_rx`, expecting 1 µs bits,
   sees a start bit, samples eight "data bits" inside it, delivers a byte,
@@ -1561,7 +1565,7 @@ of them wrong, which is the more interesting answer:
   low stretches of the original waveform come back with a 1 µs stop-bit
   gap cut into every 10 µs of them.
 - The laptop's UART samples once per bit, at the centre, and lands on one
-  of those gaps about one time in nine per low bit: 6%.
+  of those gaps about one time in nine per low bit: 6% of all the bits.
 
 Like [5.05](5_05_fsk_modem.md#505-a-modem)'s modem, this one is transparent to
 the line at 1 µs resolution, which is why the wrong baud rate half-works.
@@ -1638,9 +1642,12 @@ What the blocks hide, and this page shows:
   and count dropped bytes against wrong ones as the noise rises.
 - Swap Catmull-Rom for the parabolic interpolator in the model (one
   function) and plot MER against `mu`: the 13 dB dip is the band edge.
-- Two boards: `qpsk_modem_test.py PORT_A PORT_B`, A's DAC to B's ADC.
-  Measured across about 2 m of coax and two crystals 0.2 ppm apart:
-  200,000 bytes each way, 0 bit errors in 1.6 million. The loops'
+- Two boards: `qpsk_modem_test.py PORT_A PORT_B`, A's DAC to B's ADC, and
+  `PORT_B PORT_A` over a second cable for the way back. Measured on
+  2026-10-07 ([Appendix C](C_how_it_was_tested.md)), across about 2 m of
+  coax each way and two crystals 0.2 ppm apart (DP0525BU and DP0525LR, not
+  [5.01](5_01_two_clocks.md#501-two-clocks)'s pair): 200,000 bytes each
+  way, 0 bit errors in 1.6 million each. The loops'
   integrators should settle at the real offset, which the board cannot
   report but `awgcap.bit` on a third board and the model can.
 - Drive it from Linux: swap `modem.sv` for `qpsk_modem.sv` in

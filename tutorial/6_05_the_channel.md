@@ -352,13 +352,14 @@ Three methods, one cable:
   samples. The 3% between them is [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s slight nonlinearity,
   which one measures with an edge and the other with a code.
 * **The multitone's *h* looks different**, and it's instructive why. The
-  true delay is 5.7 samples, between two ADC samples. A method that works
+  delay it measures, 219 ns, is 5.45 samples, between two ADC samples. A
+  method that works
   through the FFT draws the [sinc](https://en.wikipedia.org/wiki/Sinc_function) that a fractional delay really is: 0.54
   and 0.44 on neighbouring samples, with ripples either side. The
   [cross-correlation](https://en.wikipedia.org/wiki/Cross-correlation) only ever asks "how much at lag *n*", so it rounds
   the delay to one tap. Same channel, two honest pictures.
 * **The phase** is a straight line whose slope is the delay. The group
-  delay, −dφ/d(2π*f*), is flat at 219–239 ns across the band.
+  delay, −dφ/d(2π*f*), is flat at 218–239 ns across the band.
 * **The gain** rises by 7% from 1 to 11 MHz, the ±8% wander of
   [6.00](6_00_digital_communications.md#600-digital-communications-hardware-defined-radio)'s model comparison.
 
@@ -547,7 +548,8 @@ open stub on a T, velocity factor 0.695, 0.100 dB/m at 10 MHz (9.6 ns per metre,
 > reflection of size *a* arriving one symbol late, which is what 67 m of stub
 > would do if cable had no loss. With a real stub plugged in, the scripts
 > measure it directly (`--stub 0`). A 25 m reel of RG-58 on a T is the one
-> to buy: its third notch lands on the 6.25 MHz carrier, 15 dB deep.
+> to buy: its second notch lands at 5.9 MHz, near the 6.25 MHz carrier, 15 dB
+> deep.
 
 ![Measured cable with simulated stubs: the impulse response and the comb of notches for 5, 10 and 25 metre stubs; the bit error rate at 10 dB against the echo's size, with and without an equalizer; and the constellation and eye at echoes of 0.3, 0.67 and 0.9 of the signal](img/comms_echo.png)
 
@@ -1152,8 +1154,9 @@ what LTE's uplink does.)
   units). Lower it and time the convergence. Then replace it with
   `wiener()` on one record: one solve instead of thousands of nudges. What
   does that cost?
-- **Run `--echo 0.375:0.9`**, a 20 dB notch on the carrier (what the 25 m
-  stub does). At 10 dB, in 7624 bits: zero forcing makes 242 errors, MMSE
+- **Run `--echo 0.375:0.9`**, a 20 dB notch on the carrier (where the 25 m
+  stub puts its notch, but deeper). At 10 dB, in 7624 bits: zero forcing
+  makes 242 errors, MMSE
   104, the DFE 15.
 - **Run `--nsym 2048 --stub 10`:** at 6.25 Msymbol/s a 10 m stub is as bad
   as the one-symbol echo. Errors: [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s receiver 35%, LMS 0.7%,

@@ -18,9 +18,9 @@ Every bit that arrives wrong is then outvoted.
 
 ## Hamming's bad weekend
 
-In 1950 Richard Hamming's relay computer at Bell Labs would halt on a parity
-error and wait for Monday, and he got tired of it. His (7,4) code sends four
-data bits and three parity bits in a 7-bit word:
+In 1947 Richard Hamming's relay computer at Bell Labs would halt on a parity
+error and wait for Monday, and he got tired of it. His (7,4) code, published
+in 1950, sends four data bits and three parity bits in a 7-bit word:
 
 * the parity bits sit at positions 1, 2 and 4;
 * each is the parity of the data bits whose position numbers have that bit
@@ -689,8 +689,11 @@ A code lets a link run where the channel's own error rate is a few percent,
 0–3 dB per code bit. There [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s loops misbehave:
 
 * the [Costas loop](https://en.wikipedia.org/wiki/Costas_loop) slips a
-  quarter turn now and then (0.15 errors at 0 dB where theory says 0.079);
+  quarter turn now and then;
 * the Gardner loop jitters a tenth of a symbol and occasionally runs off.
+
+Between them, in simulation at 0 dB per code bit, the bit error rate was 0.15
+where theory says 0.079.
 
 Three things in `ecc.py`'s receiver fix that, and every real link has them:
 
@@ -702,15 +705,16 @@ Three things in `ecc.py`'s receiver fix that, and every real link has them:
    words a sixteenth of the time each, and long runs of equal bits upset
    the loops. XOR the code bits with [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s
    G1 before mapping, and flip the soft values back after.
-3. ***Pilots.*** DVB-S2 inserts known symbols every so often for exactly
-   this reason.
+3. ***Acquire the carrier phase too***, by the fourth power (below).
+   `ecc.py` has no *pilots*; DVB-S2 inserts those known symbols every so
+   often for exactly this reason.
 
 With all three, the loops hold from 0 dB up, and the uncoded MER reads
 42 dB on the cable where [6.02](6_02_psk_and_qpsk.md#602-psk-and-qpsk-finding-the-clock-and-the-carrier)'s
 wider loops read 38.
 
-The carrier phase is acquired feed-forward too, by raising the symbols to
-the fourth power. That wipes out the data and leaves four times the carrier
+The carrier phase is acquired feed-forward by raising the symbols to the
+fourth power. That wipes out the data and leaves four times the carrier
 phase, ambiguous by a quarter turn that the unique word resolves. Without
 it, the narrow loop took more than 400 symbols to pull in from wherever the
 phase started, and the MER on the cable was 21.7 dB. The one-line fix is in
