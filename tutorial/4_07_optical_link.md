@@ -26,7 +26,7 @@ Two experiments:
 
 - **Bandwidth.** The photodiode's capacitance (~15–25 pF at 9 V) plus the
   cable and ADC (~30 pF) against R<sub>L</sub>: with 10 kΩ the corner is about
-  **350 kHz**; with 1 kΩ about **3.5 MHz**, for 10× less signal. **Sweep
+  **290–350 kHz**; with 1 kΩ about **2.9–3.5 MHz**, for 10× less signal. **Sweep
   both** and see the gain–bandwidth trade.
 - **Lock-in detection in room light.** **Capture with `capture.py`** first:
   the room lights add a large flicker at 100 or 120 Hz, twice the mains

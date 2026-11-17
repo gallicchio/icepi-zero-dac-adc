@@ -272,7 +272,7 @@ the DAC stepped up at sample 512; the ADC crossed half-way at sample 518
 ![loopback.sv: a DAC step comes back 6 samples later; interleaved at 20 ns](img/loopback_step.png)
 
 The DAC changed at sample 512 and the ADC reports it at sample 518: **6
-samples, 240 ns**, the same on all 16 edges of the record. So "how long does
+samples, 240 ns**, the same on all 16 rising edges of the record. So "how long does
 a new DAC value take to reach the ADC?" has two answers:
 
 * **The analog signal** takes about **32 ns** to get from the DAC's output

@@ -20,7 +20,7 @@ The right-hand picture above is the [standing wave](https://en.wikipedia.org/wik
 frequency: the open end forces a current node and a voltage antinode, and a
 quarter wave back, at the T, the voltage is zero.
 
-- **The notch's depth** is set by the cable's loss. RG-58 loses about 0.2 dB
+- **The notch's depth** is set by the cable's loss. RG-58 loses about 0.23 dB
   over 5 m at 10 MHz, so at the notch the stub's input is not a short but
   Z<sub>0</sub> × α*l* ≈ 1.3 Ω against the DAC's 50 Ω: about −32 dB, 100 mV
   at the ADC.

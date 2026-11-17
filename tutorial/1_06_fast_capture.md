@@ -358,7 +358,7 @@ $ python3 capture.py -d 4 -o slow.csv --no-plot
 16384 samples at 1.5625 MS/s in 0.24 s; codes 28..226, mean 126.8
 ```
 
-Here's a 4 V, 1.1 MHz sine from the generator, converted to volts with the
+Here's a 1.1 MHz sine of 4 V amplitude (±4 V) from the generator, converted to volts with the
 calibration from [1.02](1_02_dac_sawtooth.md#what-the-converters-can-do):
 
 ![capture.sv: a 1.1 MHz sine at 25 MS/s, and a 10.1 MHz sine aliased at 12.5 MS/s](img/capture.png)

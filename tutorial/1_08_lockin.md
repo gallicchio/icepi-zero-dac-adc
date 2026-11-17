@@ -773,8 +773,8 @@ to 0 V by a low-impedance source, the lock-in reads:
 
 | frequency | reading | relative to the 3.9 V stimulus |
 | --- | --- | --- |
-| 10 kHz | 0.05 mV | −99 dB |
-| 1 MHz | 0.5 mV | −77 dB |
+| 10 kHz | 0.046 mV | −99 dB |
+| 1 MHz | 0.5 mV | −78 dB |
 | 8 MHz | 5.6 mV | −57 dB |
 | 12 MHz | 15 mV | −48 dB |
 

@@ -266,7 +266,8 @@ The symmetric trick halves the cost. What you buy is a filter
 - and whose impulse response you can read off the taps.
 
 The one thing it cannot do cheaply is a long memory: an RC with a 1 ms time
-constant at 25 MS/s is an impulse response 100,000 samples long. That is
+constant at 25 MS/s is an impulse response 100,000 samples long (four
+time constants of 25,000, down to 2%). That is
 where [7.02](7_02_iir_filters.md#702-iir-filters-feedback-and-an-rc-in-one-line)
 comes in.
 

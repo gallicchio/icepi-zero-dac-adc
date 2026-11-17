@@ -324,8 +324,11 @@ FIR to shape the signal.
 
 **Try this:**
 
-- **Build `iir_k6` and `iir_k6_g0`** and put the same 1 V square wave into
-  both: watch the second one stop short of the top. Then try a 10 mV
+- **Build `iir_k6` and `iir_k6_g0`** and put the same square wave into
+  both, 3 V at 30 kHz (slow enough for *K* = 6's 64-sample time
+  constant): watch the second one stop 63 codes short of the top. (A 1 V
+  one, 51 codes from bottom to top, fits inside its 64-code dead zone: it
+  falls to the bottom once and stays there.) Then try a 10 mV
   square wave: one of them does nothing at all.
 - **Run `make iir_peak F0=500e3 Q=30`** and ring it with the edge of a
   square wave: count the cycles before it dies (about *Q*/π).

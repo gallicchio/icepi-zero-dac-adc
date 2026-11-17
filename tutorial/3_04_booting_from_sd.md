@@ -60,8 +60,9 @@ overlay.
 
 ## Make the card
 
-There are two ways, and both erase the card. **Use a card of 8 GB or
-more**: the installer makes a 4 GiB root partition.
+There are two ways, and both erase the card. The card reader's image needs
+1 GB; **for the board's own installer, use a card of 8 GB or more**: it
+makes a 4 GiB root partition.
 
 **With a card reader** (any laptop):
 

@@ -16,7 +16,7 @@ the laptop:
   [UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter);
 - its own test signals, so a filter can be measured by any of
   [7.00](7_00_signal_processing_in_gateware.md#700-signal-processing-in-gateware)'s
-  three ways. This page measures it by the first.
+  three ways. This page measures it the first two ways, and tries the third.
 
 ## The design
 
@@ -962,8 +962,10 @@ $ python3 filter.py --moving 16 --m2k -o ../../dev/data/dsp_moving.npz
 measured - predicted |H|: 0.25 dB rms where the prediction is above -40 dB
 ```
 
-- **The first null** of the moving average lands at 1.49 MHz, where
-  25 MHz/16 says 1.56 and the quantized design says 1.49.
+- **The first null** of the moving average is at 25 MHz/16 = 1.5625 MHz
+  (its taps, 512/8192, are exact), between two of the sweep's frequencies.
+  At the nearest, 1.49 MHz, the measurement and the prediction both read
+  −26 dB.
 - **The −79 dB at 3.1 MHz** is the measurement's floor: the ADC's eight
   bits put it near −60 dB, and a null reads whatever noise is left.
 - **The four filters in the figure** came out 0.25, 0.91, 0.12 and

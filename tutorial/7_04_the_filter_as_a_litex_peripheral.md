@@ -387,7 +387,7 @@ And the chip's multipliers:
 - the filter uses 20;
 - in all, **27 of 28**.
 
-A seventeenth tap, or a second filter, means time-sharing multipliers or
+A seventeenth tap would take the last one. An eighteenth, or a second filter, means time-sharing multipliers or
 building them from logic: the conversation every FPGA designer
 eventually has with the resource report. With the filter, the firmware
 SoC fits at 69 MHz and the bridge SoC at 74.

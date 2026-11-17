@@ -488,8 +488,8 @@ on the ADC input:
 (The input came from a separate generator, so its phase drifts slowly against
 ours.)
 
-Two shell scripts in `/root` do that arithmetic with `awk`, and `sweep.py`
-does it in MicroPython ([3.01](3_01_booting_linux.md#301-booting-linux)):
+A shell script in `/root`, `sweep.sh`, does that arithmetic with `awk`, and `sweep.py`
+does it in MicroPython ([3.01](3_01_booting_linux.md#301-booting-linux)). A third, `dump.sh`, prints a capture in hex:
 
 <details>
 <summary><code>sweep.sh</code>, <code>sweep.py</code> and <code>dump.sh</code></summary>
@@ -601,7 +601,7 @@ This is also the point where the whole stack is visible at once:
 
 **Try this:**
 
-- **Add a `funcgen/phase` file** that reads the lock-in's phase in degrees,
+- **Add a `lockin/phase` file** that reads the lock-in's phase in degrees,
   using integer arithmetic only (a CORDIC, or a lookup table and
   interpolation). You'll need to build the driver:
   [3.03](3_03_building_linux.md#303-building-linux-yourself).

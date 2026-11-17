@@ -366,11 +366,11 @@ The three rows:
   row gains a bit in eight doublings, and its fitted amplitude is wrong.
 * **dither**: two codes of white noise added at the source. The single
   sample is worse (5.8 bits: the noise is there), but every doubling
-  returns half a bit, exactly on the textbook line, and the sine comes
+  returns about half a bit, ending on the textbook line at OSR 256, and the sine comes
   back with the right amplitude.
 * **shaped**: the same noise *high-passed* instead (first-differenced, so
-  it lives where the low-pass will remove it). It costs nothing at the
-  start and returns more than half a bit per doubling: 10.7 bits from an
+  it lives where the low-pass will remove it). It costs a little more than
+  the dither at the start (5.5 bits) and returns more than half a bit per doubling: 10.7 bits from an
   8-bit ADC at OSR 256. That row is the whole page.
 
 The ADC's own noise, a tenth of a code, is not enough to do this by
@@ -394,12 +394,14 @@ DAC code   ADC mean, no noise   with 2.0 codes of noise (+- its standard error)
   132         131.000               131.122 +- 0.011
 ```
 
-Without noise, a DC level reads as a whole code however many samples you
-average: every sample is the same wrong answer. With two codes of noise,
+Without noise, a DC level mostly reads as a whole code however many samples you
+average: every sample is the same wrong answer. (Three rows here sit near
+a code's edge, where the ADC's own tenth of a code of noise splits them
+between two codes.) With two codes of noise,
 the mean of 16384 samples resolves a hundredth of a code, and its
 standard error is a hundredth:
 
-* an 8-bit converter reading to thirteen bits;
+* an 8-bit converter reading to fourteen and a half bits;
 * the differences between the rows are the converters' real
   *[differential nonlinearity](https://en.wikipedia.org/wiki/Differential_nonlinearity)*,
   measured for free.
@@ -921,15 +923,16 @@ the instrument's own ceiling (0.43 DAC codes rms, white):   8.41   9.41  10.41  
 
 Read the table in three passes:
 
-* **The plain and dithered rows follow the textbook to a tenth of a
-  bit.** A comparator (1 bit, plain) is worth nothing however much you
+* **The dithered rows follow the textbook, to about a tenth of a bit from
+  OSR 4 to 64 (except the 8-bit one, which stops near 8.5 bits with the
+  other 8-bit rows); the plain rows don't.** A comparator (1 bit, plain) is worth nothing however much you
   average, because its error is the signal's own shape. Dithered, it
-  gains exactly half a bit per doubling and reaches three bits from one.
+  gains about half a bit per doubling and reaches three bits from one.
 * **The shaped rows start on the textbook and leave it.** 2-bit
   first-order rounding is 1.5 bits at the full rate, 3.8 at OSR 4, 6.7 at
   16, 8.6 at 64 and nearly 9 at 256: a two-bit DAC behaving like a
-  nine-bit one. The bottom-left panel of the opening figure is the clean
-  sine it makes.
+  nine-bit one. The bottom-left panel of the opening figure shows the
+  one-bit streams after the low-pass: the shaped ones come out as clean sines.
 * **And then they stop**, far below both the textbook and the
   instrument's 12-bit ceiling: the one-bit streams at 4.5 to 5.3 bits,
   the four- and eight-bit shaped ones near 9.
@@ -955,7 +958,8 @@ twelve million times a second does not make every edge identical:
 That is inter-symbol interference: a nonlinearity that no amount of
 filtering removes, and it grows with the number of transitions. The
 second-order stream, which switches more often than the first-order,
-comes out no better.
+comes out less than a bit better (5.3 bits against 4.5 at OSR 256),
+where the textbook promises it nearly seven more.
 
 Converters built for this avoid it:
 
@@ -1258,7 +1262,7 @@ PASS
   1-bit first- and second-order streams give 4.4 and 5.2 bits at OSR 256,
   the 8-bit shaped one 8.4, plain 8-bit 8.3 (the DAC's edges, again).
 * **Cable back, the 8-bit ADC as the instrument**
-  (`sigma_delta.py PORT --table`): the same streams read a little
+  (`sigma_delta.py PORT --table`): the same streams read about two bits
   *higher* than on the scope. The 1-bit second-order stream gives 7.0
   bits at OSR 256, 4-bit second-order 10.8, plain 8-bit 10.9, against the
   ADC's own 11.6 ceiling. A 25 MS/s ADC behind a cable sees less of the
@@ -1331,7 +1335,8 @@ Further reading:
   amplitude?
 - **Count the transitions** in each stream and plot the measured ENOB
   against them: the DAC's edge penalty, measured.
-- **Run `--bits 2 --order 1` at OSR 1024** (nine cycles per loop): where
+- **Run `--bits 2 --method order1 --osr 1024`** (the default three cycles
+  per loop, 9.155 kHz, are inside its 12.2 kHz band): where
   does the two-bit stream stop?
 - **Sweep the dithered DC level over all 256 DAC codes**: the DAC's DNL,
   measured.

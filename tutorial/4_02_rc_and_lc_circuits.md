@@ -13,7 +13,7 @@ Every circuit on this page goes between them.
 is divided by it, at the same frequencies, as [1.08](1_08_lockin.md#108-a-lock-in-amplifier) does: `-o thru.csv`
 with the cable alone, then `--ref thru.csv` with the circuit.
 
-- That cancels the loop's own 213 ns and the module's response above 10 MHz;
+- That cancels the loop's own 213 ns and the module's own frequency response;
   what's left is the circuit.
 - Without it the loop's delay is in every phase you read, −11° at 140 kHz and
   −46° at 600 kHz, and the −45° points below can't be found.

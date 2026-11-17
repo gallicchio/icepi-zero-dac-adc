@@ -319,8 +319,8 @@ Later still:
   - `ecc.py`'s sweep (100 records a point) gave coding gains at 10<sup>−4</sup> of
     −0.1, 1.1, 2.4 and 4.8 dB with the uncoded points on theory, and the
     40-symbol dropout 0 errors with the interleaver against 15 to 17 without
-    (the first receiver did not acquire the carrier phase feed-forward and
-    read 21.7 dB on the cable; with the fourth-power estimate added it reads
+    (the first receiver did not acquire the carrier phase feed-forward, so
+    its uncoded MER read 21.7 dB on the cable; with the fourth-power estimate added it reads
     42.2 dB, and the sweep was re-run);
   - `capacity.py` is theory plus [6.07](6_07_ofdm.md#607-ofdm-the-triumph-of-physics-over-math)'s numbers, and `fig_capacity.py`
     measured QPSK's MER of 38.3 dB;

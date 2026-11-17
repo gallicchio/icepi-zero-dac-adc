@@ -221,7 +221,7 @@ python3 sweep.py 30e3 64e3 --step 10 -o pair.npz      # the figure's sweep: 5 mi
   delay); above that, sound.
 - **Two points are left out**, at 31.25 and 62.5 kHz. There 25 MHz divided
   by the frequency is a whole number, and `lockin.sv`'s reference repeats
-  after a few samples.
+  exactly, every 800 or 400 samples.
 
 **Try this:**
 
@@ -594,7 +594,7 @@ the tone, which is every modem below.
 Lying on the bench, the transducers could have sent the sound through the
 bench instead of the air. Sound in a solid is fast: something like 1 to
 4 km/s in wood or laminate, against 0.34 km/s in air. So a path through the
-bench would arrive within 10 to 100 µs, long before the air. Three
+bench would arrive within 30 to 120 µs (12 cm at 4 to 1 km/s), long before the air. Three
 measurements say the bench carried almost nothing:
 
 - **The box.** Lifting the pair onto it changed the peak by +1.4 dB, and

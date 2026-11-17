@@ -930,7 +930,7 @@ try, with measured results:
 | | command | result |
 | --- | --- | --- |
 | the 1 kHz test tone | `python3 am_radio.py --source tone --seconds 2` | a 1000.0 Hz tone, 56.2% rms of the carrier: *m* = 0.8 |
-| tuned 10 kHz away | `python3 am_radio.py --rx 1.01e6` | the station falls from 53.7 to 0.06 ADC codes, 59 dB |
+| tuned 10 kHz away | `python3 am_radio.py --rx 1.01e6` | the station falls from 53.8 to 0.06 ADC codes, 59 dB |
 | at 7.2 MHz | `python3 am_radio.py --tx 7.2e6 --rx 7.2e6 --source tone` | the same, 54.8 codes |
 
 Tuned 10 kHz away, the melody fades by only 59 dB, not the 80 dB of a bare
@@ -1001,7 +1001,7 @@ earpiece) does all of this with no power at all. Here is how the two compare:
 | | crystal radio | this radio |
 | --- | --- | --- |
 | power | none: the station's own signal drives the earpiece | about half a watt, from USB |
-| parts | a coil, a capacitor, a diode, an earpiece | about 24,000 logic cells, an ADC, and a laptop |
+| parts | a coil, a capacitor, a diode, an earpiece | about 2,500 of the FPGA's 24,000 logic cells, an ADC, and a laptop |
 | tuning | turn the capacitor; the coil's Q decides how well neighbouring stations are kept out | type a frequency; a digital filter decides, the same every time |
 | detector | the diode: it keeps one side of the wave, and the earpiece smooths it into the envelope | √(I<sup>2</sup> + Q<sup>2</sup>), computed 25,000 times a second |
 | how far | a strong local station, with a long antenna | the same, plus whatever an amplifier can add |
@@ -1026,8 +1026,9 @@ worth hearing:
   crystals, if you account for the ionosphere's few milliseconds.
 - **Shortwave broadcasters** from other continents, mostly at night, in the
   bands around 6, 7.3, 9.6 and 11.8 MHz: also AM.
-- **Radio amateurs** at 1.8, 3.5, 7 and 10.1 MHz, by voice in *single
-  sideband* and in digital modes such as FT8 at 7.074 MHz. They need a
+- **Radio amateurs** at 1.8, 3.5 and 7 MHz, by voice in *single
+  sideband*, and at 10.1 MHz in Morse and digital modes only (no voice
+  there); FT8, a digital mode, sits at 7.074 and 10.136 MHz. They need a
   different detector: [4.10](4_10_more_ideas.md#410-more-ideas-for-one-board)
   has the idea.
 - **Above 12.5 MHz**, signals fold back into the same band ([aliasing](https://en.wikipedia.org/wiki/Aliasing),
@@ -1049,7 +1050,9 @@ worth hearing:
   IN, sweep the receive frequency across the AM band in 10 kHz steps, record
   the carrier level at each, and list the stations you can hear.
 - **Fill in the alias lobes.** Add a fourth CIC stage, and measure the
-  selectivity again with `dev/tools/fig_am.py`.
+  selectivity again with `dev/tools/fig_am.py`. It overwrites this page's
+  `tutorial/img/am_*.png` and `dev/data/am_radio.npz` with yours
+  (`git checkout` brings them back).
 - **Add dither to the transmitter**: a little noise from an LFSR, like
   [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s,
   added before the DAC rounds. Does the 59 dB improve?

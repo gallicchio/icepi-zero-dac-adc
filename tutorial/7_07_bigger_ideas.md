@@ -97,8 +97,8 @@ What you would build, in order:
   *T*<sub>2</sub>\* of 5 ms in light mineral oil, which is a 60 Hz
   linewidth.
 - **Timing:** a π/2 pulse is a few microseconds, so the Rabi frequency
-  is about 100 kHz. The board's 20 ns timing is 0.2% of a pulse, and its
-  25 MS/s is 250 samples per Rabi cycle.
+  is about 100 kHz. The board's 20 ns timing is 0.2% of a Rabi cycle
+  (under 1% of a π/2 pulse), and its 25 MS/s is 250 samples per Rabi cycle.
 - **Dead time:** the receiver's recovery after a pulse was "improved by
   a factor of five" in this revision. Whatever it is, it sets the
   shortest Ramsey delay, and measuring it is the first experiment.

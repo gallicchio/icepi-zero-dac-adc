@@ -282,8 +282,9 @@ hysteresis or its board still cooling, one run can't tell.
 
 So a degree or two of warming, from a hand, a draught, or the module's own
 power, moves these crystals by about a ppm. That is the likely reason the
-boards measured −3.30 and −1.70 ppm in the afternoon and +0.06 and −0.65 ppm
-in the evening, with their modules fitted and running.
+boards measured −3.30 ppm (one of them before it had its module) and −1.70 ppm
+in the afternoon, and +0.06 and −0.65 ppm in the evening, with their modules
+fitted and running ([5.01](5_01_two_clocks.md#501-two-clocks)).
 
 Laboratory oscillators fix this in one of two ways:
 

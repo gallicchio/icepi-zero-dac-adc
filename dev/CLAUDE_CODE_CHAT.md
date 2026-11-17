@@ -3324,3 +3324,15 @@ Feel free to fix the bugs in the icepi zero tutorial. You can commit there too.
   the one-in-250-after-8000 model (needs the old design re-simulated).  Code notes, unchanged: cdma.py's PER_BIT has
   no option (only 33 and 93 work); qam.py's papr() drops an imaginary part (only ever given real); 6.05's echo.py
   console shows four lengths where the default is eight.
+* **Response 31's list, chapters 1-5, 7 and the appendices** (an agent, reviewed): 30 fixed (1.06's "4 V amplitude";
+  1.07's sixteen *rising* edges; 1.08's crosstalk rows from dev/data/crosstalk.npy; 1.10's 2,493 logic cells, from a
+  place and route; 3.02's `lockin/phase`; 3.04's card sizes, the image 1 GB and the installer 8 GB; 4.05's 0.23 dB;
+  4.06's repeats every 800 or 400 samples; 4.07's corner ranges; 5.02's -3.30 ppm before the module; 7.02's
+  Try-this now 3 V at 30 kHz, the 1 V wave inside the 64-code dead zone; 7.03's null at exactly 1.5625 MHz; 7.05's
+  five claims set to what its table shows, and its Try-this to options sigma_delta.py has; 7.06's steady-state -4
+  codes explained (mode 1 adds the ADC's reading) and the pure delay's critical gain 1/G; ...); 9 not errors (4.06's
+  10.95 cm, 16 um and 76 mK hold with the bench's own numbers; 7.01's 73 lines of code; B's 23 s measured; ...).
+  1.10's 30 m band: no voice there in the US (FCC 97.305): fixed by me.  **Left for Jason:** the prices (7.00 and
+  7.03 say "two $40 boards", where Appendix A, 0.00 and the README add up to about $112 a set); 0.00's "1 GB or more"
+  card is right only for the image route (the installer needs 8 GB); 3.03's "about 30 s" for the base64 paste (the
+  pauses alone are 23.6 s; no measurement on record); 6.11's 64 lost bytes (chapter 6, above).

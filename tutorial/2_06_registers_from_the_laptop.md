@@ -161,7 +161,8 @@ ctrl_scratch = 0x12345678
 capture: 16384 samples in 1.5 s, codes 30 to 225, first ones [48, 37, 30, 30, 37, 49, 66, 87]
 ```
 
-That's the same 3.85 V at 1 MHz as the firmware's `li` in [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral), from Python,
+That's the measurement the firmware's `sweep` made in [2.05](2_05_lockin_peripheral.md#205-a-lock-in-peripheral), the same to
+within about 1% (there through the 16.5 cm cable), from Python,
 with nothing compiled. Afterwards the registers still hold what the script
 left in them:
 

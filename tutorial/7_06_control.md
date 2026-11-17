@@ -51,8 +51,8 @@ Where the time goes (the figure's bar):
   registered to the DAC's word changing.
 - **DAC latch, 10 ns:** the AD9708 latches the word 10 ns after it
   changes.
-- **Analog path, about 35 ns:** the DAC's output settling, with the
-  cable.
+- **Analog path, about 35 ns:** the DAC's output stage, the cable and
+  the ADC's front end.
 - **The wait** for the ADC's next sampling edge.
 
 That is about **280 ns, seven samples,** round the loop. The controller
@@ -1375,7 +1375,10 @@ step +38 codes: delay 280 ns, rise 320 ns, overshoot 8 %, settles in 3.52 us, st
 ```
 
 **You should see** 280 ns of nothing (the delay), a 320 ns rise, 8%
-overshoot, settled in 3.5 µs.
+overshoot, settled in 3.5 µs. The −4.0 codes of steady-state error are
+the ADC's, not the loop's: in mode 1 the measurement is *y* plus the ADC's
+reading, here 4 codes (`--show`'s `x 4`), so the integrator holds *y* 4
+codes below the setpoint.
 
 **Raise *K*<sub>p</sub>** with the integrator off until the loop
 oscillates: first with the seven-sample round trip, then with no extra
@@ -1575,7 +1578,7 @@ with** `make sim-control-gl`.
 
 | between DAC OUT and ADC IN | what it is | what you learn |
 | --- | --- | --- |
-| the loopback cable | a pure delay, 0.776 gain | τ from the oscillation period; add 10 m of cable and watch the period grow by two samples and the critical gain fall |
+| the loopback cable | a pure delay, 0.776 gain | τ from the oscillation period; add 10 m of cable and watch the period grow by two samples while the critical gain stays near 1/0.776 = 1.3 |
 | [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)'s RC, 1 nF | a lag, τ = 1 µs | [4.08](4_08_feedback_control.md#408-feedback-control-of-an-rc-plant)'s page, now measurable |
 | an LC | a real mode 2 | the derivative term is its damping |
 | an op-amp integrator (10 kΩ, 1 nF, a TL072) | 90° of plant phase | P alone is marginal, which is what the rule says |
@@ -1589,8 +1592,9 @@ of the accessory board sketched in [Appendix D](D_coming_soon.md#an-amod-a-board
 **Try this:**
 
 - **Add 10 m more cable** and run mode 0 again: the hum moves down, the
-  critical gain down, and the runaway's frequency changes. Count the
-  samples.
+  critical gain hardly moves (for a pure delay it is 1/*G*, whatever the
+  delay; the extra cable's loss raises it a little), and the runaway's
+  frequency changes. Count the samples.
 - **Why 5.4 MHz?** Put a low-pass in the loop (the model's `--tau`, or
   an RC on the bench) and watch the runaway move back to 1.79 MHz.
 - **Take the derivative of the measurement** instead of the error (one
