@@ -158,20 +158,28 @@ def peak_bin(X):
     return k + 0.5 * (a - c) / (a - 2 * b + c)
 
 
-def sync(rec, sf, preamble=2, sfd=2, tau0=0.0):
+def sync(rec, sf, preamble=2, sfd=2, tau0=0.0, search=False):
     """Step 4: from the preamble's up-chirps and the SFD's down-chirps, the carrier
-    offset nu (bins) and the timing tau (chips, from tau0 samples)."""
+    offset nu (bins) and the timing tau (chips, from tau0 samples).  The chirps give tau
+    only to within a symbol.  With two boards nothing ties B's record to A's loop (5.03),
+    so the frame may start on any symbol of it: search=True tries each symbol and keeps
+    the one where the preamble's and the SFD's peaks are biggest."""
     M = 1 << sf
-    c = chips(rec, tau0)
-    up = dechirp(c[:preamble * M], M)
-    down = np.abs(np.fft.fft(c[preamble * M:(preamble + sfd) * M].reshape(-1, M) * base(M, B), axis=1))
+
+    def chirps(k):                                        # the frame starting at symbol k
+        c = chips(rec, tau0 + k * M * SPC)
+        up = dechirp(c[:preamble * M], M)
+        down = np.abs(np.fft.fft(c[preamble * M:(preamble + sfd) * M].reshape(-1, M) * base(M, B), axis=1))
+        return up, down
+    k = max(range(NCHIP // M), key=lambda k: sum(x.sum(axis=0).max() for x in chirps(k))) if search else 0
+    up, down = chirps(k)
     # add the chirps' |X| first (LoRa sends 8, for noise), then find the one peak
     pu = peak_bin(up.sum(axis=0, keepdims=True))[0]; pd = peak_bin(down.sum(axis=0, keepdims=True))[0]
     pu = (pu + M / 2) % M - M / 2; pd = (pd + M / 2) % M - M / 2    # as signed offsets
     # ##########################################################################
     # ##  KEY LINE: up-chirps land at nu - tau, down-chirps at nu + tau.
     # ##########################################################################
-    return (pu + pd) / 2, (pd - pu) / 2, up, down
+    return (pu + pd) / 2, k * M + (pd - pu) / 2, up, down
 
 
 def receive(rec, sf, tau, nu_bins=0.0, skip=0):
@@ -218,11 +226,11 @@ def make_link(args):
     return (lambda w: awgcap.upload(ports[0], w)), (lambda: awgcap.record(ports[-1]))
 
 
-def find_timing(play, record, tau0=6.0):
+def find_timing(play, record, tau0=6.0, search=False):
     """Send a clean SF7 frame and read the loop's delay off its preamble and SFD."""
     env, vals = frame(7, [5, 77, 100, 127])
     play(transmit(env))
-    nu, tau, _, _ = sync(record(), 7, tau0=tau0)
+    nu, tau, _, _ = sync(record(), 7, tau0=tau0, search=search)
     return tau0 + tau * SPC, nu
 
 
@@ -241,6 +249,7 @@ def main():
     ap.add_argument("--no-plot", action="store_true")
     args = ap.parse_args()
     play, record = make_link(args)
+    two = len(args.ports) == 2                          # two boards: search the loop for the frame
     M = 1 << args.sf
     per_loop = NCHIP // M
     print("LoRa at %.4g Mchip/s: SF %d, %d chips per symbol, %d symbols per loop, %.3g kbit/s;"
@@ -249,7 +258,7 @@ def main():
     if args.ber:
         lo, hi = (float(x) for x in args.ber.split(":"))
         rng = np.random.default_rng(args.seed)
-        tau, _ = find_timing(play, record)
+        tau, _ = find_timing(play, record, search=two)
         print("timing from a clean preamble: %.2f samples.  SNR (dB), SF: symbol errors / symbols,"
               " bit errors / bits, SER, theory" % tau)
         rows = []
@@ -287,7 +296,7 @@ def main():
 
     if args.sf > 8:
         print("SF %d has no room for a preamble in a loop; the timing comes from an SF 7 frame" % args.sf)
-        tau, _ = find_timing(play, record)
+        tau, _ = find_timing(play, record, search=two)
         data = list(np.random.default_rng(args.seed).integers(0, M, per_loop))
         env = np.concatenate([symbol(int(s), M) for s in data])
         vals = np.array(data); pre = sfd = 0
@@ -299,7 +308,7 @@ def main():
     play(transmit(env, args.snr, args.cfo, rng=args.seed))
     rec = record()
     if pre:
-        nu, dtau, up, down = sync(rec, args.sf, pre, sfd, tau0=tau)
+        nu, dtau, up, down = sync(rec, args.sf, pre, sfd, tau0=tau, search=two)
         print("preamble's up-chirps at bin %+.2f, SFD's down-chirps at bin %+.2f" % (nu - dtau, nu + dtau))
         print("  so the carrier is off by %+.2f bins (%+.0f Hz; sent %+.0f) and the timing by %+.2f chips"
               " (%.2f samples)" % (nu, nu * B / M, args.cfo * F_LOOP, dtau, tau + dtau * SPC))
