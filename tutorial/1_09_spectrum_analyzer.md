@@ -58,11 +58,11 @@ def find_port():
     raise SystemExit("No Icepi Zero found. Is it plugged in? (Or give --port.)")
 
 
-def records(port, command, n):
+def records(port, command, n, fs=FS_MAX):
     """n records of N samples each, in volts.  capture.sv and loopback.sv both answer one
-    command byte with N raw bytes."""
+    command byte with N raw bytes.  fs is the sample rate, for how long a record takes to make."""
     out = []
-    with serial.Serial(port, 1_000_000, timeout=2) as ser:
+    with serial.Serial(port, 1_000_000, timeout=2 + N / fs) as ser:
         ser.reset_input_buffer()
         for _ in range(n):
             ser.write(command)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     command = args.loopback.encode() if args.loopback else b"%x" % args.d
     fs = FS_MAX if args.loopback else FS_MAX / 2**args.d
-    x = records(args.port or find_port(), command, args.n)
+    x = records(args.port or find_port(), command, args.n, fs)
     f, amp = spectrum(x, fs, args.window)
     db = 20 * np.log10(amp + 1e-9)
     print(f"{args.n} records of {N} samples at {fs / 1e6:g} MS/s: bins {fs / N:.1f} Hz apart")

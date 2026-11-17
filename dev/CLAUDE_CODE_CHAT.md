@@ -3303,3 +3303,13 @@ boards are on auto with the dither on.
   when the design misses its clock's frequency and exits with an error; a later `make load-NAME` then packed and loaded
   it, a design that cannot run at its clock (found in the ECP5-2ADC-2DAC tutorial, whose Makefile is this one's).
   `make sync`: nothing to update; `make check`: 0 errors, the one standing warning.
+
+## Prompt 38 (from the ECP5-2ADC-2DAC session, 2026-11-16 19:15)
+
+Feel free to fix the bugs in the icepi zero tutorial. You can commit there too.
+
+## Response 38 2026-11-16 19:15 - (running) Claude Opus 5.5
+
+* `capture.py` and `spectrum.py`: the serial timeout (2 s for the whole read) now allows the recording, N x 2^d /
+  25 MHz: at d >= 12 the read gave up before the samples came (found in the ECP5 tutorial, whose capture.py is this
+  one's).  1.06 and 1.09 re-synced.  `make check`: 0 errors.

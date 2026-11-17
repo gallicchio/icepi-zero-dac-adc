@@ -26,7 +26,9 @@ def find_port():
 
 def capture(port, d):
     """Returns (time in seconds, ADC codes 0..255)."""
-    with serial.Serial(port, 1_000_000, timeout=2) as ser:
+    # read() waits at most `timeout` for all N bytes: allow the recording, N x 2^d / 25 MHz (2.7 s at d = 12, 21 s at
+    # d = 15), as well as the sending
+    with serial.Serial(port, 1_000_000, timeout=2 + N * 2**d / FS_MAX) as ser:
         time.sleep(0.05)                 # let the line settle after opening,
         ser.reset_input_buffer()         # and throw away anything stale
         # ######################################################################
