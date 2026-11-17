@@ -56,13 +56,36 @@ tx.write(sent)
 t.join()
 got = bytes(got)
 
-bits = 0
-for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, sent, got, autojunk=False).get_opcodes():
-    if op == "replace":                          # bytes that came back different
-        n = min(i2 - i1, j2 - j1)
-        bits += sum(bin(x ^ y).count("1") for x, y in zip(sent[i1:i1 + n], got[j1:j1 + n]))
-        bits += 8 * abs((i2 - i1) - (j2 - j1))
-    elif op == "delete" or (op == "insert" and i1 < len(sent)):   # lost, or invented
-        bits += 8 * max(i2 - i1, j2 - j1)
+
+def bit_errors(sent, got, block=20000, margin=2000):
+    """difflib's time grows as the square of the length (200,000 bytes take 11 s, two million
+    would take half an hour), so line up a block of 20,000 bytes at a time.  The next block
+    starts where this one's last long matching run ended, in both streams."""
+    if got == sent:
+        return 0
+    bits = i = j = 0
+    while i < len(sent):
+        last = i + block >= len(sent)
+        s, g = sent[i:i + block], (got[j:] if last else got[j:j + block + margin])
+        ops = difflib.SequenceMatcher(None, s, g, autojunk=False).get_opcodes()
+        if not last:        # leave what follows the last run of 32 or more matching bytes to the next block
+            k = max((n for n, o in enumerate(ops) if o[0] == "equal" and o[2] - o[1] >= 32), default=None)
+            if k is None:                        # nothing of this block came back
+                bits, i = bits + 8 * len(s), i + len(s)
+                continue
+            i, j, ops = i + ops[k][2], j + ops[k][4], ops[:k]
+        for op, i1, i2, j1, j2 in ops:
+            if op == "replace":                  # bytes that came back different
+                n = min(i2 - i1, j2 - j1)
+                bits += sum(bin(x ^ y).count("1") for x, y in zip(s[i1:i1 + n], g[j1:j1 + n]))
+                bits += 8 * abs((i2 - i1) - (j2 - j1))
+            elif op == "delete" or (op == "insert" and i1 < len(s)):   # lost, or invented
+                bits += 8 * max(i2 - i1, j2 - j1)
+        if last:
+            break
+    return bits
+
+
+bits = bit_errors(sent, got)
 print("%d bytes sent at %d baud, %d received; %d bit errors in %d bits: BER %.1e"
       % (len(sent), a.baud, len(got), bits, 8 * len(sent), bits / (8 * len(sent))))

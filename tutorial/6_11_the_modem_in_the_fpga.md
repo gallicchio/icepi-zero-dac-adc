@@ -1559,9 +1559,23 @@ $ python3 qpsk_modem_test.py /dev/ttyUSB0 --bytes 200000
 ```
 
 200,000 bytes, 1.6 million bits, none wrong, where the first version lost
-768. (A two-million-byte run stalled inside the laptop's serial driver
-after the data had gone, and was killed. 200,000 is the longest clean run
-on record.)
+768. Today's modem, rebuilt with the FIFO's full check, carried two
+million bytes each way between two boards (DK0GFLAW and DP051TLX on
+2026-11-17), 16 million bits each way, none wrong:
+
+```console
+$ python3 qpsk_modem_test.py $A $B --bytes 2000000
+2000000 bytes sent at 1000000 baud, 2000000 received; 0 bit errors in 16000000 bits: BER 0.0e+00
+$ python3 qpsk_modem_test.py $B $A --bytes 2000000
+2000000 bytes sent at 1000000 baud, 2000000 received; 0 bit errors in 16000000 bits: BER 0.0e+00
+```
+
+(An earlier two-million-byte run went silent after the data had gone, and
+was killed. The likely culprit is the test's own count, not the serial
+port: `difflib`'s time grows as the square of the length, 2.7 s for
+100,000 bytes and 11 s for 200,000, so about 18 minutes for two million.
+`qpsk_modem_test.py` now lines the bytes up 20,000 at a time, and the
+whole run takes 21 s.)
 
 <details>
 <summary><b>Detail:</b> why a 115,200-baud port half-works</summary>
@@ -1604,11 +1618,11 @@ lock wait for the loops.
 
 | resource | used | of the ECP5-25 |
 | --- | ---: | ---: |
-| logic cells | 6809 | 28% |
+| logic cells | 6949 | 28% |
 | flip-flops | 4654 | 19% |
 | 18×18 multipliers | 16 | 57% (of 28) |
 | block RAM | 1 | the 1024-entry sine table |
-| clock | 69.1 MHz | passes at 50 |
+| clock | 66.7 MHz | passes at 50 |
 
 Where the sixteen multipliers went, by the design's count:
 
@@ -1660,7 +1674,10 @@ What the blocks hide, and this page shows:
   2026-10-07 ([Appendix C](C_how_it_was_tested.md)), across about 2 m of
   coax each way and two crystals 0.2 ppm apart (DP0525BU and DP0525LR, not
   [5.01](5_01_two_clocks.md#501-two-clocks)'s pair): 200,000 bytes each
-  way, 0 bit errors in 1.6 million each. The loops'
+  way, 0 bit errors in 1.6 million each. Again on 2026-11-17 with today's
+  modem, DK0GFLAW and DP051TLX, crystals 3.4 ppm apart and a round trip of
+  426.1 ns ([5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)'s `twoway.py`): two million bytes each way, 0 bit
+  errors in 16 million each (above). The loops'
   integrators should settle at the real offset, which the board cannot
   report but `awgcap.bit` on a third board and the model can.
 - Drive it from Linux: swap `modem.sv` for `qpsk_modem.sv` in
