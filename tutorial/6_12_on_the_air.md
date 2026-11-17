@@ -1309,6 +1309,10 @@ decoded: 'CQ HMC JASON'  CRC ok
 (A listener that sent nothing doesn't know the tones. When the CRC passes,
 it counts the wrong ones against the text it decoded.)
 
+Again on 2026-11-17, DK0GFLAW sending and DP051TLX listening, crystals
+3.4 ppm apart: B found A's carrier 23.8 Hz low, four tone spacings, and
+every symbol was right at 100, 4 and 1 codes.
+
 **A crystal that drifts *during* a frame** smears it across tones.
 `dev/tools/comms/ft8_crystal.py` plays that too, by rewriting the tone
 words while the frame goes out:

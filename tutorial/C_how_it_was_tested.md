@@ -445,6 +445,45 @@ Then each board looped back through one of those cables:
   23.3 s per try, two tries, and reached `litex>` 48.1 s after the FPGA
   loaded: the "about 45 s" that had only been computed.
 
+On 2026-11-17, Chapter 6 again, on another pair:
+
+- **The setup:** DK0GFLAW (A) and DP051TLX (B), each with a converter
+  module, cross-cabled: A's DAC OUT to B's ADC IN and B's DAC OUT to A's
+  ADC IN, checked by playing [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)'s staircase on one board and its square
+  wave on the other. Crystals 3.4 ppm apart (B the faster) and a round
+  trip of 426.1 ns, 0.48 ns rms, by `twoway.py` over 90 s ([5.03](5_03_time_transfer.md#503-what-time-is-it-over-there)).
+- **[6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga)'s modem**, rebuilt with the FIFO's full check (6949 logic cells,
+  66.7 MHz): 20,000, 200,000 and 2,000,000 bytes each way, 0 bit errors.
+- **With 0 bit errors:** `psk.py` both ways (MER 38.0 and 38.1 dB; with
+  `--cfo 3000 --sro 2000` it found +3027 Hz and +1953 ppm), `qam.py`
+  (16-QAM 35.2 dB, 64-QAM 34.2 dB), `msk.py` (21.2 dB, GMSK 15.9 dB),
+  `cdma.py` (the delay difference 300.41 chips), `fll.py` at 100 kHz
+  (+100,687 Hz found), `ofdm.py` QAM-16 both ways, and `ft8.py`, through
+  `awgcap.sv` and as `ddc.sv`'s slow frame at 100, 4 and 1 DAC codes
+  (B found A's carrier 23.8 Hz low). `ofdm.py` QAM-64 had 99 and 6 of
+  366,120 bits wrong; `ecc.py` at 4 dB, 0 wrong after the convolutional
+  code; `eye.py` and `chirp.py` ran clean.
+- **`cdma.py --per-bit`** at `--snr -20`, six runs each: 33 chips lost the
+  code every time, 93 found it every time ([6.06](6_06_spread_spectrum.md#606-spread-spectrum-the-gps-way)).
+
+Three scripts were wrong across two boards, and are fixed:
+
+- `lora.py` lost the frame by a symbol in 8 runs of 9: across two boards
+  it can start on any symbol of the loop. It now searches ([6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)).
+- `equalize.py`'s division by *H*(*f*) averaged its sounding records
+  before lining them up, as `sound.py` once did: 3644 of 7560 bits wrong,
+  now none ([6.05](6_05_the_channel.md#605-the-channel-sounding-it-and-equalizing-it)).
+- `qpsk_modem_test.py` lined up its bytes in one `difflib` call, whose time
+  grows as the square of the length (two million bytes: about 18
+  minutes). It now works 20,000 bytes at a time.
+
+And `sound.py` across two boards: the multitone and the PSK frame agree
+run after run, but the m-sequence's and the step's main taps wander from
+record to record, their edges aliased at 25 MS/s ([6.05](6_05_the_channel.md#605-the-channel-sounding-it-and-equalizing-it)).
+`capture.py` and `spectrum.py` recorded B's 1 MHz sine on A at `-d 12`
+and `-d 14` (2.9 and 11.0 s, the tone aliased to 973 and 553 Hz) without
+the timeouts they had before.
+
 ## Not tested
 
 - **The instructions for macOS and Windows (WSL)**, and the Apio / VS Code
