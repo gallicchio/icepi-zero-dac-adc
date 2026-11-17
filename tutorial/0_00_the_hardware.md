@@ -45,7 +45,7 @@ program the FPGA to listen to them. Same with the HDMI socket.)
 | --- | --- |
 | [1.02+](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac) | the adapter and the module. An oscilloscope helps a lot. (A USB instrument such as the ADALM2000 is plenty) |
 | [1.04+](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds) | a coax cable from the DAC output to the ADC input, SMA to SMA. The measurements here used RG-316, 16.5 cm and 101.5 cm long. A function generator is useful but not essential. |
-| [3.04+](3_04_booting_from_sd.md#304-booting-from-an-sd-card) | a micro-SD card, 1 GB or more (it will be erased) |
+| [3.04+](3_04_booting_from_sd.md#304-booting-from-an-sd-card) | a micro-SD card, 8 GB or more (it will be erased; written from a card reader, 1 GB is enough) |
 | [4](4_00_one_board_experiments.md) | a few resistors, capacitors and other parts, listed in each section |
 | [5](5_00_two_boards.md) | a second complete set of boards, and a second cable |
 

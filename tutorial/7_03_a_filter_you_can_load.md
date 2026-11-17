@@ -1000,7 +1000,7 @@ B$ python3 ../verilog/lockin.py --port $B --sweep 1e5 12e6 -n 40 -o lp.csv --ref
   it (1.4 dB at worst, at 3.1 MHz) and 6° rms in phase.
 - The stopband reads −40 dB at its highest: the lock-in's floor.
 
-Two $40 boards, and no instrument.
+Two boards (about $240 of hardware, modules included), and no instrument.
 
 **With one board, looped back** (`--measure impulse|step|noise`). The
 stimulus is made inside the FPGA, the DAC plays the filter's output, the

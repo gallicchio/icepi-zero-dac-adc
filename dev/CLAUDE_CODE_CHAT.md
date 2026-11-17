@@ -3340,3 +3340,20 @@ Feel free to fix the bugs in the icepi zero tutorial. You can commit there too.
   (only real ones are passed today: no number changes).  6.05's `echo.py` console showed 4 of the 8 lengths the
   command prints: now the whole output (a model: rerun, the 4 rows identical).  Left: cdma.py's PER_BIT has no
   option (only 33 and 93 work; 6.06 says to edit it).
+
+## Prompt 39 (from the ECP5-2ADC-2DAC session, 2026-11-16 19:16)
+
+Fix all of the things in "Decisions". Do what you need to do to make these work. Test whatever you can with the
+current hardware configuration. [...]
+
+## Response 39 2026-11-16 19:16 - (running) Claude Opus 5.5
+
+* **Prices:** 7.00's and 7.03's "two $40 boards" are now about $240 of hardware for two (the README, 0.00 and
+  Appendix A add up to about $120 a set).
+* **0.00's card:** 8 GB or more (the board's installer makes a 4 GiB root; from a card reader 1 GB is enough).
+* **3.03's paste time, measured:** linux_shell's `type()` with adda.ko's 18,918 base64 characters took 35.1 s through
+  an FT2232H at 460,800 baud (ECP5 board A, its FPGA ignoring the bytes) and 23.8 s into a pseudo-terminal (the 10 ms
+  pauses alone are 23.6 s): each flush waits about 4.6 ms for the USB adapter.  The page says so; "about 30 s" stays.
+* **cdma.py `--per-bit {33,93}`** (6.06 no longer says to edit the code): in simulation at `--snr -20`, 33 chips a
+  bit lose the code (11 of 23 bits wrong) and 93 find it (0 of 3).
+* 6.11's 64 lost bytes: an agent is re-simulating the old design.

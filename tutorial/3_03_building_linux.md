@@ -525,8 +525,11 @@ where the rest goes.
   3. Run `rmmod adda; insmod /tmp/adda.ko`.
 
   Paste slowly: the board's serial port receives into a small buffer. At 8
-  characters every 10 ms, the 14 kB module takes about 30 s, and arrives
-  with an identical `md5sum`. Pasted at full speed, it arrives garbled.
+  characters every 10 ms, the 14 kB module (18,918 characters of base64)
+  takes about 30 s: 24 s of the pauses themselves, and a few milliseconds
+  more for each 8 characters while the USB adapter sends them (35 s in all
+  through an FT2232H). It arrives with an identical `md5sum`. Pasted at full
+  speed, it arrives garbled.
 - The kernel includes drivers this board will never use. Remove some with
   `make O=$ADDA/tools/buildroot-icepi linux-menuconfig` (IPv6 and PPP, for
   a start), rebuild, and see how much smaller `Image` gets.

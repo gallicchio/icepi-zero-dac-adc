@@ -171,9 +171,14 @@ def main():
     ap.add_argument("--power2", type=float, default=0.0, help="user 2's power relative to user 1's, dB")
     ap.add_argument("--delay2", type=float, default=300.4, help="user 2's code delay, chips")
     ap.add_argument("--records", type=int, default=1)
+    ap.add_argument("--per-bit", type=int, default=33, choices=(33, 93),
+                    help="chips per data bit: 33 (31 bits a loop) or 93 (11 bits, 4.5 dB more spreading gain); "
+                         "the bits must fill the loop's 1023 = 3 x 11 x 31 chips and leave room for the preamble")
     ap.add_argument("-o", "--out", help="save the results (.npz)")
     ap.add_argument("--no-plot", action="store_true")
     args = ap.parse_args()
+    global PER_BIT, NBIT
+    PER_BIT, NBIT = args.per_bit, CHIPS // args.per_bit
     if args.sim:
         rng = np.random.default_rng(1)
         state = {}

@@ -231,9 +231,14 @@ def main():
     ap.add_argument("--power2", type=float, default=0.0, help="user 2's power relative to user 1's, dB")
     ap.add_argument("--delay2", type=float, default=300.4, help="user 2's code delay, chips")
     ap.add_argument("--records", type=int, default=1)
+    ap.add_argument("--per-bit", type=int, default=33, choices=(33, 93),
+                    help="chips per data bit: 33 (31 bits a loop) or 93 (11 bits, 4.5 dB more spreading gain); "
+                         "the bits must fill the loop's 1023 = 3 x 11 x 31 chips and leave room for the preamble")
     ap.add_argument("-o", "--out", help="save the results (.npz)")
     ap.add_argument("--no-plot", action="store_true")
     args = ap.parse_args()
+    global PER_BIT, NBIT
+    PER_BIT, NBIT = args.per_bit, CHIPS // args.per_bit
     if args.sim:
         rng = np.random.default_rng(1)
         state = {}
@@ -397,10 +402,12 @@ can steer by. That's a delay-locked loop, the timing loop of [6.02](6_02_psk_and
   control every handset's power for exactly this reason.
 - **Bury both users deeper** (`--snr -15`, `-20`): where does acquisition
   fail? Then make each bit longer (fewer bits per loop, more chips per bit)
-  and watch the spreading gain buy it back. There is no option for it:
-  edit `PER_BIT` in `cdma.py`. The bits must fill the loop's
-  1023 = 3 × 11 × 31 chips exactly, and leave room for the 8-bit preamble,
-  so the one longer choice is 93 chips per bit (11 bits per loop, 19.7 dB).
+  with `--per-bit 93`, and watch the spreading gain buy it back. The bits
+  must fill the loop's 1023 = 3 × 11 × 31 chips exactly, and leave room for
+  the 8-bit preamble, so the one longer choice is 93 chips per bit (11 bits
+  per loop, 19.7 dB). In simulation at `--snr -20`, 33 chips per bit lose
+  the code (user 2 found at the wrong delay, 11 of 23 bits wrong) and 93
+  find it again (0 of 3 wrong).
 - **Use two boards**: `python3 cdma.py /dev/ttyUSB0 /dev/ttyUSB1`. The
   delays now include where B's record started in A's loop, but their
   *difference* is still 300.4 chips.
