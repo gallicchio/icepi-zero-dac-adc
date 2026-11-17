@@ -518,7 +518,9 @@ module qpsk_modem #(
     logic        sym_done = 0;                  // the symbol's state is final (for the testbench)
     assign dq_rx = q_now - q_prev;
     assign hit   = (fr[15:9] == SYNC);
-    assign fifo_full = (wr - rd) == (1 << FIFO_BITS);
+    // full: the write pointer a whole lap ahead (its top bit differs, the rest equal).  Not
+    // "(wr - rd) == 32": that subtraction is done in 32 bits, and is wrong once wr has wrapped.
+    assign fifo_full = (wr[FIFO_BITS] != rd[FIFO_BITS]) && (wr[FIFO_BITS-1:0] == rd[FIFO_BITS-1:0]);
     always_ff @(posedge clk) begin
         sym_done <= 0;
         if (go[4]) begin                        // sc = 0
@@ -558,7 +560,8 @@ module qpsk_modem #(
     // next one's start bit, and 2 % fast, 49 clocks per bit instead of 50 (a UART re-times
     // every byte from its start bit, so the laptop's doesn't mind).  uart.sv's transmitter
     // rests 2 clocks between bytes, 502 against the 500 coming in: the FIFO filled in 8000
-    // bytes and then lost one in 251.  (Measured on the board, then in qpsk_modem_tb.sv.)
+    // bytes, and with no check for full it then lost 64 at a time, every 16,000 or so.
+    // (Measured on the board, then in qpsk_modem_tb.sv.)
     localparam integer TX_CLKS_PER_BIT = 49;
     logic [9:0] tx_frame = 10'h3ff;             // {stop, data, start}; bit 0 is on the wire
     logic [3:0] tx_bits  = 0;                   // bits left to send; 0 = idle

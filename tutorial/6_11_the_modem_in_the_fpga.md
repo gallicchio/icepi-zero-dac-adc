@@ -552,7 +552,9 @@ module qpsk_modem #(
     logic        sym_done = 0;                  // the symbol's state is final (for the testbench)
     assign dq_rx = q_now - q_prev;
     assign hit   = (fr[15:9] == SYNC);
-    assign fifo_full = (wr - rd) == (1 << FIFO_BITS);
+    // full: the write pointer a whole lap ahead (its top bit differs, the rest equal).  Not
+    // "(wr - rd) == 32": that subtraction is done in 32 bits, and is wrong once wr has wrapped.
+    assign fifo_full = (wr[FIFO_BITS] != rd[FIFO_BITS]) && (wr[FIFO_BITS-1:0] == rd[FIFO_BITS-1:0]);
     always_ff @(posedge clk) begin
         sym_done <= 0;
         if (go[4]) begin                        // sc = 0
@@ -592,7 +594,8 @@ module qpsk_modem #(
     // next one's start bit, and 2 % fast, 49 clocks per bit instead of 50 (a UART re-times
     // every byte from its start bit, so the laptop's doesn't mind).  uart.sv's transmitter
     // rests 2 clocks between bytes, 502 against the 500 coming in: the FIFO filled in 8000
-    // bytes and then lost one in 251.  (Measured on the board, then in qpsk_modem_tb.sv.)
+    // bytes, and with no check for full it then lost 64 at a time, every 16,000 or so.
+    // (Measured on the board, then in qpsk_modem_tb.sv.)
     localparam integer TX_CLKS_PER_BIT = 49;
     logic [9:0] tx_frame = 10'h3ff;             // {stop, data, start}; bit 0 is on the wire
     logic [3:0] tx_bits  = 0;                   // bits left to send; 0 = idle
@@ -1509,8 +1512,8 @@ $ python3 qpsk_modem_test.py /dev/ttyUSB0 --bytes 200000
 200000 bytes sent at 1000000 baud, 199232 received; 8016 bit errors in 1600000 bits: BER 5.0e-03
 ```
 
-64 bytes of 20,000 lost, 768 of 200,000: one in 250, steadily, after the
-first 8000. That is not what a noisy link does (it corrupts bytes, it does
+64 bytes of 20,000 lost, 768 of 200,000: 64 at a time, every 16,000 bytes
+or so. That is not what a noisy link does (it corrupts bytes, it does
 not lose them), nor what the bit-exact model does. It is what a *repeater
 with no flow control* does when its way out is slower than its way in:
 
@@ -1519,12 +1522,22 @@ with no flow control* does when its way out is slower than its way in:
 - The modem's serial transmitter, a stock `uart_tx` that rests a clock
   after each stop bit, fed by a FIFO that started it a clock after that,
   sent one every 502.
-- The 32-byte FIFO filled after 32 × 251 ≈ 8000 bytes and then overwrote
-  itself once every 251: one byte in 250, from byte 8000 on, exactly as
-  measured.
+- The 32-byte FIFO gained a byte every 251 and was full after
+  32 × 251 ≈ 8000. It had no check for full: each new byte overwrote the
+  oldest one waiting, and the transmitter, a lap behind, skipped 32 bytes
+  ahead. 8000 bytes later the write pointer was two laps ahead, level
+  with the read pointer, so the FIFO looked empty: 32 more bytes skipped,
+  and all 64 off the count at once. That happened once in 20,000 bytes
+  and 12 times in 200,000, exactly as measured.
+- The bit errors are the skips, 32 bytes every 8000 at 8 bits a byte,
+  plus a few bytes around each first skip that came out early or twice
+  (bytes reach the FIFO a frame at a time). The 200,000-byte run had 25
+  skips: it ended just after one, and the FIFO's last 32 bytes went out
+  twice.
 
-The testbench reproduced it to the byte (19,936 of 20,000) once it sent
-bytes back to back, which the first testbench, politely, had not.
+The testbench reproduced both runs to the byte (19,936 and 199,232
+received) once it sent bytes back to back, which the first testbench,
+politely, had not.
 
 The fix is the rule every repeater without flow control obeys: **send at
 least as fast as you receive.** The modem now has its own serial

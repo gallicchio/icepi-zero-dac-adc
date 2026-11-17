@@ -329,8 +329,8 @@ Later still:
     and stub);
   - [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga)'s `qpsk_modem.sv` passed its bit-for-bit check against the model in
     iverilog (5624 symbols, 2000 ppm and 3 kHz off). Its first board run lost
-    one byte in 250 (the output serial port two clocks slower than the input:
-    found and fixed in simulation, [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga) tells the story); the fixed
+    64 bytes every 16,000 or so (the output serial port two clocks slower
+    than the input: found and fixed in simulation, [6.11](6_11_the_modem_in_the_fpga.md#611-the-modem-in-the-fpga) tells the story); the fixed
     bitstream then carried 20,000 and 200,000 bytes through the cable with no
     errors;
   - [6.12](6_12_on_the_air.md#612-on-the-air-whispers-and-how-far-they-carry)'s `ft8.py` decoded through the cable at both speeds, and

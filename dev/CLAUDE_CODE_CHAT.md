@@ -3346,7 +3346,7 @@ Feel free to fix the bugs in the icepi zero tutorial. You can commit there too.
 Fix all of the things in "Decisions". Do what you need to do to make these work. Test whatever you can with the
 current hardware configuration. [...]
 
-## Response 39 2026-11-16 19:16 - (running) Claude Opus 5.5
+## Response 39 2026-11-16 19:16 - 21:31 Claude Opus 5.5
 
 * **Prices:** 7.00's and 7.03's "two $40 boards" are now about $240 of hardware for two (the README, 0.00 and
   Appendix A add up to about $120 a set).
@@ -3356,4 +3356,16 @@ current hardware configuration. [...]
   pauses alone are 23.6 s): each flush waits about 4.6 ms for the USB adapter.  The page says so; "about 30 s" stays.
 * **cdma.py `--per-bit {33,93}`** (6.06 no longer says to edit the code): in simulation at `--snr -20`, 33 chips a
   bit lose the code (11 of 23 bits wrong) and 93 find it (0 of 3).
-* 6.11's 64 lost bytes: an agent is re-simulating the old design.
+* **6.11's 64 lost bytes, settled by re-simulating the old design** (never committed: rebuilt from today's
+  `qpsk_modem.sv` with uart.sv's transmitter, 502 clocks a byte, and no full check on the FIFO's write).  The page's
+  numbers were right and its model wrong: the FIFO had no check for full, so at about byte 8000 (32 x 251) each new
+  byte overwrote the oldest waiting and the transmitter, a lap behind, skipped 32 ahead; 8000 bytes later the write
+  pointer was two laps ahead, level with the read pointer, the FIFO looked empty, 32 more skipped, and all 64 left the
+  count at once.  Simulated: 19,936 of 20,000 and 199,232 of 200,000 received, as on the board, and 626-654 and 8,011
+  bit errors against the board's 664 and 8,016.  "One in 250" with today's full check kept gives 49 lost, not 64 (the
+  review's objection, confirmed).  6.11 and Appendix C now tell it so; the scratch work (variants, a clock-free FIFO
+  model matching iverilog to the byte) stays outside the repo.
+* **A dormant bug in today's modem, fixed:** `fifo_full = (wr - rd) == (1 << FIFO_BITS)` was worked out in 32 bits and
+  false whenever `wr` had wrapped below `rd` (the full check worked half the time; harmless, since the fixed
+  transmitter never lets the FIFO hold more than one byte).  Now the usual test, top bits differ and the rest equal.
+  `qpsk_modem_check.py`: PASS (bit for bit against the model; 1500 bytes through a 2-byte FIFO with none lost).
