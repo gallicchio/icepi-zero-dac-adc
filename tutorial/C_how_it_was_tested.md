@@ -537,7 +537,8 @@ the timeouts they had before.
 - **The experiments of [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits)–[4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference).** Their numbers are calculations, not
   measurements, except:
   - the crystal-against-NTP timing of [4.09](4_09_your_crystal.md#409-your-crystal-against-a-reference);
-  - the baseline of [4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) (the loop's own harmonics);
+  - the baseline of [4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) (the loop's own harmonics), and its clipper
+    itself, on AMOD-P's tile p10 (2026-11-18, `clipper.py`: the odd harmonics within 1 dB of the diode equation);
   - [4.06](4_06_speed_of_sound.md#406-the-speed-of-sound-at-40-khz)'s pair, which was swept and used as a modem link twice, lying on
     the bench and on a cardboard box, but never moved along a ruler: its
     ruler and hair-dryer measurements are still untried, and the card
