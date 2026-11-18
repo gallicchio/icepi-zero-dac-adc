@@ -52,6 +52,9 @@ TILES = {"p0": "through (a barrel): the calibration", "p0chk": "the through agai
          "p12": "LEDs", "p13": "AM loopstick, 0.5-1.7 MHz"}
 EXTRA = {"p4": np.linspace(0.4e6, 2.4e6, 81), "p5": np.linspace(4e6, 12e6, 41), "p6": np.linspace(50e3, 300e3, 51),
          "p7": np.linspace(3e6, 10e6, 71), "p9": np.linspace(420e3, 500e3, 401), "p11": np.linspace(0.2e6, 12e6, 119)}
+ADC_FULL = {"ecp5": 2047.0, "icepi": 5.0}   # the largest sine amplitude each ADC reads unclipped (codes; volts: the
+#   Icepi's reads -5..+5 V).  A resonant tile on the Icepi's high-impedance ADC can ring past it (2026-11-18: p4's and
+#   p8's peaks read 6.1-6.2 V, the fundamental of a sine clipped flat at 5 V, 4/pi x 5 = 6.37 V, not the peak's height).
 BOARD_LOAD = {"ecp5": (50.0, 50.0, 0.0), "icepi": (51.0, 20.6e3, 18.4e-12)}   # the DAC's source (ohm), the ADC's load
 #   (ohm, and the farad across it: the Icepi's 18.4 pF of cable and ADC input is what p4's 100 uH rings with at 3.7 MHz)
 SAMPLING = {"ecp5": dict(fs_dac=25e6, fs_adc=25e6, delta=2.35e-9, chain=(20.6e6, 0.5)),
@@ -363,8 +366,10 @@ def main():
         h = h / interp_through(d1["f"], d1["z"])(f) * z0_at(f)       # / (p1 over the through)
     np.savez(base + ".npz", f=f, z=z, h=h, h_before_p1=h_raw, via_p1=via_p1, tile=a.tile, label=b.label, t=stamp)
     plot(base + ".png", f, h, a.tile, b.label, b.name, via_p1)
-    print("%s %s%s: %.0f s; %s" % (b.name, a.tile, " (through p1, divided by it)" if via_p1 else "", time.time() - t0,
-                                  summary(f, h)))
+    clip = np.abs(z) > 0.98 * ADC_FULL[b.name]
+    print("%s %s%s: %.0f s; %s%s" % (b.name, a.tile, " (through p1, divided by it)" if via_p1 else "", time.time() - t0,
+                                    summary(f, h), "; THE ADC CLIPPED at %d points, %.4g-%.4g Hz: those read low"
+                                    % (clip.sum(), f[clip].min(), f[clip].max()) if clip.any() else ""))
 
 
 if __name__ == "__main__":
