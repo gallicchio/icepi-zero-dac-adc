@@ -259,6 +259,13 @@ Later still:
     59 dB less of it tuned 10 kHz away, and the selectivity of a bare
     carrier from −30 to +30 kHz;
   - not tried: a real AM radio, and an antenna.
+- **`ledramp.sv`** ([1.11](1_11_led_ramp.md#111-a-slow-ramp-four-leds-and-the-energy-of-a-photon)): simulated in Icarus Verilog (the wrap
+  at the top, the button's toggle), then on DK0GFLAW into AMOD-P's p12
+  (2026-11-18). The first version stopped at 0 V as it loaded (its button's
+  first look read 0: a press); a scratch build that reported its state on
+  the serial port found it, and the fixed one ramped. By eye: red, yellow,
+  green and blue came on in order, the blue bright near the top. The
+  voltages at which each colour first glows were not read off.
 - **The section names and links.** When the sections were renumbered (`1.8`
   became `1i`, then `1.06`, with files `1_06_fast_capture.md`), every reference to a section in the text, the code and the scripts
   was listed and checked by hand before it was changed, so that times like

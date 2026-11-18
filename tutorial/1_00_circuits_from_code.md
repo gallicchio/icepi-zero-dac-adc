@@ -15,7 +15,8 @@ We'll start with a counter on the LEDs
 ([1.01](1_01_led_counter.md#101-a-counter-on-the-leds)), make the DAC play a sawtooth and a sine ([1.02](1_02_dac_sawtooth.md#102-a-sawtooth-from-the-dac), [1.03](1_03_dac_sine.md#103-a-sine-direct-digital-synthesis)), read the ADC
 ([1.04](1_04_adc_on_the_leds.md#104-the-adc-on-the-leds) to [1.07](1_07_closing_the_loop.md#107-closing-the-loop-the-dac-talks-to-the-adc)), and end with three real instruments made of nothing but
 logic: a [lock-in amplifier](https://en.wikipedia.org/wiki/Lock-in_amplifier) ([1.08](1_08_lockin.md#108-a-lock-in-amplifier)), a [spectrum analyzer](https://en.wikipedia.org/wiki/Spectrum_analyzer) ([1.09](1_09_spectrum_analyzer.md#109-a-spectrum-analyzer)) and an AM radio
-([1.10](1_10_am_radio.md#110-an-am-radio)). This page installs the tools.
+([1.10](1_10_am_radio.md#110-an-am-radio)); [1.11](1_11_led_ramp.md#111-a-slow-ramp-four-leds-and-the-energy-of-a-photon) ramps the DAC slowly into four LEDs, for the energy of a
+photon. This page installs the tools.
 
 The tools used here are all open source:
 

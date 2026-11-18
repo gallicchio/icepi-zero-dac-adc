@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.10 An AM radio](1_10_am_radio.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.01 A CPU and its BIOS →](2_01_a_cpu_and_its_bios.md)
+[← 1.11 A slow ramp: four LEDs and the energy of a photon](1_11_led_ramp.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.01 A CPU and its BIOS →](2_01_a_cpu_and_its_bios.md)
 
 # 2.00 A processor on the FPGA
 
@@ -105,7 +105,7 @@ python3 -m litex_boards.targets.icepi_zero --help | head -3
 Next: build the SoC LiteX already knows for this board, and talk to its CPU.
 
 <!-- nav -->
-[← 1.10 An AM radio](1_10_am_radio.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.01 A CPU and its BIOS →](2_01_a_cpu_and_its_bios.md)
+[← 1.11 A slow ramp: four LEDs and the energy of a photon](1_11_led_ramp.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.01 A CPU and its BIOS →](2_01_a_cpu_and_its_bios.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

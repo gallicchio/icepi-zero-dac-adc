@@ -3421,3 +3421,27 @@ own flash (`openFPGALoader -r`, as at power-up): the 5.08 show, build 20261111, 
   complex tone and 3.01 dB for its real part; src/verilog's Makefile, with a 900 MHz clock in a scratch copy, left no
   `.config` behind, so `make load-NAME` would rebuild, not load.
 * Appendix C has the day; 6.12 and 6.13 name the pair.  `make sync`, `make check`: 0 errors, the one standing warning.
+
+## Prompt 41 (from the ECP5-2ADC-2DAC session, its Prompts 170-175, 2026-11-18 13:00)
+
+I have plugged both into p12. Write the DC-ramp with the switches in mind. Put the highest bits of the ramp as a binary
+number on the white LEDs so users can see where we the ramp is at.
+
+(And, later:) I don't think the Icepi Zero is doing the ramp. I don't see the white LEDs counting ... On the Icepi
+Zero, the blue LED came on nice and bright toward the end of the ramp. Green and yellow and red too came on at the
+correct time. Let's call that good.
+
+## Response 41 2026-11-18 13:00 - 14:22 Claude Opus 5.5
+
+* New `src/verilog/ledramp.sv` (a Chapter 1 design, no SoC): the DAC climbs from code 128 to 255 (0 to +3.88 V, by
+  1.02's line) one step every 2^24 clocks, 43 s, then back to 0 V; the five LEDs show the ramp's top five bits
+  (leftmost 1.97 V ... rightmost 0.12 V); the button (C5) pauses and resumes, looked at every 21 ms.  Simulated in
+  Icarus, built (224 MHz against 50), loaded on DK0GFLAW (SRAM) into AMOD-P's p12.
+* **The first version stopped at 0 V as it loaded:** the debouncer's `last` started at 1, and the button, pulled up
+  only inside the FPGA, read 0 at the first clock: a press.  A scratch build reporting its state on the serial port
+  (button 1, running 0, v 0) found it; `last` now starts at 0; rebuilt and loaded (14:11:31).  Jason: red, yellow,
+  green and blue came on in order, the blue bright near the top.
+* New page **1.11 A slow ramp: four LEDs and the energy of a photon** (its figure worked out from the code,
+  `dev/tools/fig_ledramp.py`); README's contents and page map, 1.00's summary, 4.10's Planck row and Appendix D's P12
+  row point to it; Appendix C says how it was checked (by eye; the thresholds not read off).  `make sync`, `make
+  check`: 73 pages, 0 errors, the one standing warning.

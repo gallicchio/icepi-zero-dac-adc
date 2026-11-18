@@ -424,7 +424,7 @@ says so.
 | P9 | a 455 kHz ceramic filter | 1 | 2 | a superheterodyne's IF, with A9's mixer and P13's loopstick; [4.02](4_02_rc_and_lc_circuits.md#402-rc-and-lc-circuits) | $0.50 | keep |
 | P10 | a two-diode clipper | 1 | 2 | [4.04](4_04_harmonics.md#404-harmonics-a-diode-clipper) | $0.10 | keep |
 | P11 | a delay line: 20 LC sections of 1 µH and 400 pF, 50 Ω, 20 ns each; jacks at the input, at 100, 200 and 300 ns, and at the output | 2 | 5 | [4.05](4_05_quarter_wave_stub.md#405-a-quarter-wave-stub)'s stub on a tile, [6.05](6_05_the_channel.md#605-the-channel-sounding-it-and-equalizing-it)'s echo, [6.10](6_10_chirps_and_lora.md#610-chirps-zadoffchu-and-lora-ranging-and-radar-on-a-cable)'s radar target, [7.06](7_06_control.md#706-control-at-the-speed-of-the-cable)'s pure-delay plant | $2 | keep: 400 ns is 260 ft of RG-58, and it disperses near its 16 MHz cut-off where you can watch it |
-| P12 | LEDs of four colours, one at a time on a DIP switch | 1 | 1 | [4.10](4_10_more_ideas.md#410-more-ideas-for-one-board)'s Planck's constant | $0.20 | keep |
+| P12 | LEDs of four colours, one at a time on a DIP switch | 1 | 1 | [1.11](1_11_led_ramp.md#111-a-slow-ramp-four-leds-and-the-energy-of-a-photon)'s Planck's constant | $0.20 | keep |
 | P13 | an AM loopstick (a ferrite rod) and a two-gang tuning capacitor | 3 | 1 | [1.10](1_10_am_radio.md#110-an-am-radio): hear a real station | $3 | keep, with A4 |
 
 The "maybe"s: a −6 dB pad; a parallel RLC; a 10 MHz crystal; a 10.7 MHz

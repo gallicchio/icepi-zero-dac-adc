@@ -1,5 +1,5 @@
 <!-- nav -->
-[← 1.09 A spectrum analyzer](1_09_spectrum_analyzer.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.00 A processor on the FPGA →](2_00_a_processor_on_the_fpga.md)
+[← 1.09 A spectrum analyzer](1_09_spectrum_analyzer.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.11 A slow ramp: four LEDs and the energy of a photon →](1_11_led_ramp.md)
 
 # 1.10 An AM radio
 
@@ -1069,7 +1069,7 @@ That's the end of Chapter 1. Out of nothing but logic, you've built:
 a computer in the FPGA next to them.
 
 <!-- nav -->
-[← 1.09 A spectrum analyzer](1_09_spectrum_analyzer.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [2.00 A processor on the FPGA →](2_00_a_processor_on_the_fpga.md)
+[← 1.09 A spectrum analyzer](1_09_spectrum_analyzer.md) &emsp;&emsp;&emsp; **[Contents](../README.md#contents)** &emsp;&emsp;&emsp; [1.11 A slow ramp: four LEDs and the energy of a photon →](1_11_led_ramp.md)
 
 <!-- author -->
 <sub>Jason Gallicchio, jason@hmc.edu, Harvey Mudd College</sub>

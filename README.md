@@ -54,6 +54,7 @@ flowchart LR
   spine["<b>Chapter 1, the spine</b><br/>1.00–1.08: tools, DAC, ADC,<br/>loopback, lock-in"]
   fft["1.09 FFT spectrum analyzer"]
   am["1.10 AM radio"]
+  ramp["1.11 A slow ramp, four LEDs<br/>(AMOD-P's p12)"]
   c2["<b>2. A processor</b><br/>LiteX, C, your peripherals"]
   c3["<b>3. Linux</b>"]
   c4["<b>4. One-board experiments</b><br/>(4.01 needs only 1.03)"]
@@ -62,6 +63,7 @@ flowchart LR
   c7["<b>7. Signal processing in gateware</b><br/>filters, delta-sigma, control"]
   spine --> fft
   spine --> am
+  spine --> ramp
   spine --> c2 --> c3
   spine --> c4
   spine --> c5
@@ -78,7 +80,7 @@ flowchart LR
 
 The shortest paths:
 
-- **The lock-in amplifier:** 1.00–1.08. (1.04 is optional; 1.09 and 1.10 are desserts.)
+- **The lock-in amplifier:** 1.00–1.08. (1.04 is optional; 1.09, 1.10 and 1.11 are desserts.)
 - **Digital communications (Chapter 6):** the spine, then [6.00](tutorial/6_00_digital_communications.md#600-digital-communications-hardware-defined-radio). It uses one
   design from Chapter 5, `awgcap.sv`, which you load without reading the chapter. One board is enough.
 - **Linux on the FPGA:** 1.00–1.01 (load a bitstream), [2.00](tutorial/2_00_a_processor_on_the_fpga.md#200-a-processor-on-the-fpga) (install LiteX), then
@@ -122,6 +124,7 @@ first", so you can check before you start.
 - [1.08 A lock-in amplifier](tutorial/1_08_lockin.md)
 - [1.09 A spectrum analyzer](tutorial/1_09_spectrum_analyzer.md)
 - [1.10 An AM radio](tutorial/1_10_am_radio.md)
+- [1.11 A slow ramp: four LEDs and the energy of a photon](tutorial/1_11_led_ramp.md)
 
 **2. A RISC-V processor, and C**
 
