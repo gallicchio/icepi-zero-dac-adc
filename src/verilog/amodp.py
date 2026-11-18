@@ -20,6 +20,9 @@ The two boards load a tile differently, and the dashed "expected" curve is the h
 On the Icepi a tile made for 50 ohm can be followed by p1 (tile OUT -> p1 IN, p1 OUT -> ADC IN): p1's IN is 51.6 ohm,
 so the tile sees the load it was made for.  A sweep 14 dB or more down everywhere is taken to be through p1, and is
 divided by p1's own sweep.
+Give --load every time (the bring-up's runner does): on 2026-11-17 the ECP5's lockin2 went wrong between two tiles,
+most likely upset while the cables were moved, and read the through as -6 dB with a false roll-off above 300 kHz until
+it was loaded again; a fresh load costs three seconds.
 Saved in ../../dev/data/amodp/: <board>_<tile>.npz (f, z at the ADC, h = z / z of p0) and <board>_<tile>.png.
 """
 import argparse
@@ -34,7 +37,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.normpath(os.path.join(HERE, "../../dev/data/amodp"))
 FREQS = np.geomspace(1e3, 12e6, 121)
-TILES = {"p0": "through (a barrel): the calibration", "p1": "pi pad, -20 dB", "p2": "RC low-pass, 159 kHz",
+TILES = {"p0": "through (a barrel): the calibration", "p0chk": "the through again: a check of the cables and the board", "p1": "pi pad, -20 dB", "p2": "RC low-pass, 159 kHz",
          "p3": "RC high-pass, 159 kHz", "p4": "series RLC 100 uH 220 pF, switches off: 1.07 MHz",
          "p4-1": "series RLC, switch 1 on (+47 pF): 0.98 MHz", "p4-2": "series RLC, switch 2 on (+100 pF): 0.89 MHz",
          "p4-12": "series RLC, both switches on (+147 pF): 0.83 MHz", "p5": "LC low-pass, 9 MHz",
