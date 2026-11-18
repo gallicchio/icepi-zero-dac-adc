@@ -23,7 +23,13 @@ divided by p1's own sweep.
 Give --load every time (the bring-up's runner does): on 2026-11-17 the ECP5's lockin2 went wrong between two tiles,
 most likely upset while the cables were moved, and read the through as -6 dB with a false roll-off above 300 kHz until
 it was loaded again; a fresh load costs three seconds.
+The lock-in reads the DAC's staircase, not a sine: the ADC samples what the DAC holds.  The through passes the DAC's
+images and they fold back onto the signal, so it reads flat; a low-pass tile stops them and reads its own response
+times the hold's sinc droop (-2.4 dB at 10 MHz on the ECP5 board, where DAC and ADC share one 25 MHz clock).  So the
+dashed curve is the handbook's circuit as the lock-in sees it (SAMPLING, found on p5, 2026-11-18) and the dotted one the
+circuit alone.  (The Icepi fits no better folded, so its curve is the plain one.)
 Saved in ../../dev/data/amodp/: <board>_<tile>.npz (f, z at the ADC, h = z / z of p0) and <board>_<tile>.png.
+    python3 amodp.py all --replot      # redraw every saved figure from its .npz (no hardware)
 """
 import argparse
 import glob
@@ -48,6 +54,15 @@ EXTRA = {"p4": np.linspace(0.4e6, 2.4e6, 81), "p5": np.linspace(4e6, 12e6, 41), 
          "p7": np.linspace(3e6, 10e6, 71), "p9": np.linspace(420e3, 500e3, 401), "p11": np.linspace(0.2e6, 12e6, 119)}
 BOARD_LOAD = {"ecp5": (50.0, 50.0, 0.0), "icepi": (51.0, 20.6e3, 18.4e-12)}   # the DAC's source (ohm), the ADC's load
 #   (ohm, and the farad across it: the Icepi's 18.4 pF of cable and ADC input is what p4's 100 uH rings with at 3.7 MHz)
+SAMPLING = {"ecp5": dict(fs_dac=25e6, fs_adc=25e6, delta=2.35e-9, chain=(20.6e6, 0.5)),
+            "icepi": None}
+#   how each lock-in samples: the DAC's rate, the ADC's, the time from the DAC's update to the ADC's sample (mod 1/L),
+#   and the board's analog chain (DAC output to ADC input) as one second-order section (f0, Q; Q 0.5 is two equal
+#   real poles).  lockin2.sv clocks the ECP5 board's DAC and
+#   ADC on one 25 MHz clock; lockin_half.sv the Icepi's DAC at 50 MHz and its ADC at 25 MHz.  delta and the poles
+#   are fitted to the tiles p2-p5 with the handbook's values and to the raw through's magnitude (2026-11-18).  The
+#   Icepi (DAC 50 MS/s, ADC 25 MS/s) fits no better folded than plain, with any delta and chain (its misfits are in
+#   its own input and the tiles' coils), so its curve stays the plain one: None.
 
 
 # ---- the handbook's circuits, as ABCD matrices (series Z, shunt Y), for the expected curves -----------------------
@@ -91,7 +106,7 @@ def abcd(tile, f):
     if tile == "p5":
         return _chain(_sh(C(220e-12)), _ser(L(1.5e-6)), _sh(C(680e-12)), _ser(L(1.5e-6)), _sh(C(220e-12)))
     if tile == "p6":
-        return _chain(_sh(C(20e-9)), _ser(L(150e-6)), _sh(C(20e-9)))
+        return _chain(_sh(C(20e-9)), _ser(6.1 + L(150e-6)), _sh(C(20e-9)))      # the coil's 6.1 ohm (NLCV32T-151K)
     if tile == "p7":
         s = L(2.7e-6) + 1 / C(270e-12)
         return _chain(_ser(s), _sh(1 / L(330e-9) + C(2.2e-9)), _ser(s))
@@ -104,21 +119,55 @@ def abcd(tile, f):
     return None
 
 
-def expected(tile, f, board, via_p1=False):
-    """The tile's gain over the through, from the handbook's values and the board's source and load."""
+def _vout(tile, f, board, via_p1=False):
+    """V at the ADC / V of the DAC's source, at frequencies f >= 0: the tile (then p1, if via_p1) between the board's
+    source and load; tile None is the through (the barrel)."""
+    f = np.asarray(f, float)
+    rs, r_l, c_l, r_c = (tuple(BOARD_LOAD[board]) + (0.0,))[:4]
+    rl = 1 / (1 / r_l + 1 / (r_c + 1 / (2j * np.pi * f * c_l))) if c_l else r_l + 0j * f
+    if tile is None:
+        return rl / (rl + rs)
     m = abcd(tile, f)
     if m is None:
         return None
-    rs, r_l, c_l = BOARD_LOAD[board]
-    rl = 1 / (1 / r_l + 2j * np.pi * np.asarray(f, float) * c_l)
-
-    def vout(m):                                               # V_load / V_source
-        a, b, c, d = m[0, 0], m[0, 1], m[1, 0], m[1, 1]
-        return rl / (a * rl + b + rs * (c * rl + d))
-    through = rl / (rl + rs)
     if via_p1:
-        return vout(_chain(m, abcd("p1", f))) / vout(abcd("p1", f))
-    return vout(m) / through
+        m = _chain(m, abcd("p1", f))
+    a, b, c, d = m[0, 0], m[0, 1], m[1, 0], m[1, 1]
+    return rl / (a * rl + b + rs * (c * rl + d))
+
+
+def _folded(v, f, board, J=200):
+    """What the lock-in reads at f when the analog response is v(F) (a function of F >= 0).  The DAC holds each
+    sample for 1/fs_dac (a staircase: the zero-order hold's sinc, and its images at F = f + m fs_dac); the ADC samples
+    at fs_adc and folds everything at f + k fs_adc onto f.  The lock-in sees the sum over the frequencies that are
+    both, f + j L with L = lcm(fs_dac, fs_adc), each weighted by the hold, the board's chain (its poles) and the time
+    from the DAC's update to the ADC's sample (delta):  sum_j v(f_j) W(f_j),  v(-F) = conj(v(F)).  A tile that passes
+    the images (the through, a pad) reads its analog response; one that stops them reads it times the hold's droop."""
+    s = SAMPLING[board]
+    L = np.lcm(int(s["fs_dac"]), int(s["fs_adc"]))
+    fj = np.asarray(f, float)[None, :] + L * np.arange(-J, J + 1)[:, None]
+    a = np.abs(fj)
+    g = v(a.ravel()).reshape(a.shape)
+    g = np.where(fj < 0, np.conj(g), g)
+    w = np.sinc(fj / s["fs_dac"]) * np.exp(-1j * np.pi * fj / s["fs_dac"] - 2j * np.pi * fj * s["delta"])
+    f0, q = s["chain"]
+    w = w / (1 - (fj / f0) ** 2 + 1j * fj / (f0 * q))
+    return (g * w).sum(0)
+
+
+def expected(tile, f, board, via_p1=False, folded=True):
+    """The tile's gain over the through, from the handbook's values and the board's source and load: as the lock-in
+    sees it (folded=True: the DAC's staircase sampled by the ADC, SAMPLING), or the plain analog ratio (folded=False).
+    Via p1, it is (the tile then p1) over (p1 alone), as amodp divides it."""
+    f = np.asarray(f, float)
+    if abcd(tile, f[:1]) is None:
+        return None
+    if not folded or SAMPLING.get(board) is None:
+        num = _vout(tile, f, board, via_p1)
+        return num / (_vout("p1", f, board) if via_p1 else _vout(None, f, board))
+    num = _folded(lambda F: _vout(tile, F, board, via_p1), f, board)
+    den = _folded(lambda F: _vout("p1", F, board) if via_p1 else _vout(None, F, board), f, board)
+    return num / den
 
 
 # ---- the two boards ---------------------------------------------------------------------------------------------
@@ -229,7 +278,7 @@ def summary(f, h):
     return s
 
 
-def plot(path, f, h, tile, label, board_name, via_p1=False, raw=False):
+def plot(path, f, h, tile, label, board_name, via_p1=False, raw=False, stamp=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -239,24 +288,48 @@ def plot(path, f, h, tile, label, board_name, via_p1=False, raw=False):
     a2.semilogx(f, np.degrees(np.unwrap(np.angle(h))), "o-", ms=2.5, lw=1)
     e = None if raw else expected(tile, f, board_name, via_p1)
     if e is not None:
-        a1.semilogx(f, 20 * np.log10(np.abs(e)), "k--", lw=1, label="expected (the handbook's circuit)")
+        s = SAMPLING.get(board_name)
+        a1.semilogx(f, 20 * np.log10(np.abs(e)), "k--", lw=1, label="expected: the handbook's circuit" + (
+            " as the lock-in sees it (DAC held at %g MS/s, ADC at %g MS/s)" % (s["fs_dac"] / 1e6, s["fs_adc"] / 1e6)
+            if s else ""))
         a2.semilogx(f, np.degrees(np.unwrap(np.angle(e))), "k--", lw=1)
-        a1.legend(fontsize=9)
+        if s:
+            p = expected(tile, f, board_name, via_p1, folded=False)
+            a1.semilogx(f, 20 * np.log10(np.abs(p)), ":", color="0.45", lw=1, label="the handbook's circuit alone (analog)")
+            a2.semilogx(f, np.degrees(np.unwrap(np.angle(p))), ":", color="0.45", lw=1)
+        a1.legend(fontsize=8)
     a1.set_ylabel("gain (dB)" + (", from its value at 1 kHz" if raw else ", over the through"))
     a1.grid(alpha=0.3, which="both")
     a2.set_ylabel("phase (degrees)"); a2.set_xlabel("frequency (Hz)"); a2.grid(alpha=0.3, which="both")
     a1.set_title("AMOD-P %s, %s%s\n%s, %s" % (tile, TILES.get(tile, ""), " (then p1: a 50 ohm load)" if via_p1 else "",
-                                             label, time.strftime("%Y-%m-%d %H:%M")), fontsize=10)
+                                             label, (stamp or time.strftime("%Y-%m-%d %H:%M"))[:16]), fontsize=10)
     fig.tight_layout(); fig.savefig(path, dpi=100); plt.close(fig)
+
+
+def replot(tiles, name):
+    """Redraw each saved sweep's figure from its .npz (no hardware): after the expected curves change."""
+    for tile in tiles:
+        base = os.path.join(DATA, "%s_%s" % (name, tile))
+        d = np.load(base + ".npz")
+        vp = bool(d["via_p1"]) if "via_p1" in d.files else False
+        plot(base + ".png", d["f"], d["h"], tile, str(d["label"]), name, vp, raw=tile in ("p0", "p0chk"),
+             stamp=str(d["t"]) if "t" in d.files else None)
+        print("redrew %s.png" % base)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("tile", help="p0 (the through) .. p13; p4-1, p4-2, p4-12 for p4's switches")
     ap.add_argument("--load", action="store_true", help="load the lock-in's bitstream first")
+    ap.add_argument("--replot", action="store_true", help="only redraw the saved sweep's figure (tile 'all': every one)")
     a = ap.parse_args()
     os.makedirs(DATA, exist_ok=True)
     b = board()
+    if a.replot:
+        tiles = [a.tile] if a.tile != "all" else sorted(
+            os.path.basename(p)[len(b.name) + 1:-4] for p in glob.glob(os.path.join(DATA, b.name + "_p*.npz")))
+        replot(tiles, b.name)
+        return
     if a.load:
         b.load()
     b.open()
